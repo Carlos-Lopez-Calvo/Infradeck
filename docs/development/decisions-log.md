@@ -48,97 +48,86 @@
 - Facilita mantener contexto
 - Mejor gestión de scope
 
-**Impacto**: Documentación primero, código después.
+**Impacto**: Documentación por fases, objetivos claros por sprint.
 
 ---
 
-## 26 Sep 2025 - Sistema de Recursos: Dual (Mana + Especiales)
+## 26 Sep 2025 - Sistema de Recursos: Dual Layer
 
-**Contexto**: Necesitábamos definir cómo funcionan los recursos del juego.
+**Contexto**: ¿Cómo hacer que las clases se sientan únicas sin complicar?
 
 **Opciones Consideradas**:
-- Solo mana universal
-- Recursos únicos por clase
-- Sistema dual: mana universal + recursos especiales
+- Solo mana universal (simple pero genérico)
+- Recursos únicos por clase (confuso para nuevos)
+- Mana + recurso especial por clase (hybrid)
 
-**Decisión Tomada**: Sistema dual - Mana universal + recursos especiales por clase
+**Decisión Tomada**: Mana universal + recurso especial por clase
 
 **Razón**:
-- Familiaridad (todos entienden mana)
-- Diferenciación (cada clase única)
-- Complejidad escalable (fácil aprender, profundo dominar)
-- Balance natural entre clases
+- Familiar (mana) + único (recurso especial)
+- Permite cartas neutras y específicas
+- Skill progression natural (básico → avanzado)
+- Design space rico para cada clase
 
 **Impacto**:
-- Cartas tienen "modo básico" + "modo potenciado"
-- Cada clase necesita mecánica de recurso única
-- Tutorial puede enseñar mana primero, luego especiales
+- UI debe mostrar ambos recursos claramente
+- Tutorial debe explicar ambos sistemas
+- Balance debe considerar interacción dual
+
+---
+
+## 26 Sep 2025 - Vida Inicial: 20 Puntos
+
+**Contexto**: Definir cuánta vida es apropiada para partidas de 5-10 min.
+
+**Opciones Consideradas**:
+- 15 vida (partidas muy rápidas)
+- 20 vida (estándar)
+- 30 vida (partidas más largas)
+
+**Decisión Tomada**: 20 puntos de vida
+
+**Razón**:
+- Familiar (Hearthstone standard)
+- Permite aggro viable pero no dominante
+- Suficiente para comeback mechanics
+- Matemática simple para damage calculation
+
+**Impacto**: Curva de damage/mana debe estar balanceada para este life total.
 
 ---
 
 ## 26 Sep 2025 - Mecánica de Cartas: Doble Modo
 
-**Contexto**: Cómo integrar los recursos especiales en las cartas.
+**Contexto**: ¿Cómo hacer que las cartas tengan depth sin overwhelming?
 
-**Opciones Consideradas**:
-- Cartas separadas para efectos básicos vs potenciados
-- Cartas con costos alternativos
-- Cartas con efectos que cambian según recurso disponible
-
-**Decisión Tomada**: Cartas con "modo básico" + "modo potenciado" opcional
+**Decisión Tomada**: Cartas con modo básico + modo potenciado
 
 **Razón**:
-- Menos cartas necesarias (cada una tiene 2 usos)
-- Decisiones estratégicas profundas (¿uso ahora o espero?)
-- Curva de aprendizaje suave
-- Gestión de recursos más interesante
+- Aprende gradualmente (básico first)
+- Decisions interesantes (¿cuándo usar recursos?)
+- Reduce card count needed (una carta = múltiples opciones)
+- Skill expression alto
 
 **Impacto**:
-- No todas las cartas necesitan potenciación
-- Balance más complejo (2 efectos por carta)
-- Mayor profundidad estratégica
-- UI debe mostrar claramente ambos modos
+- UI design crítico (mostrar ambos modos claros)
+- Balancing complejo (dos efectos por carta)
+- Tutorial step-by-step esencial
 
 ---
 
-## 26 Sep 2025 - Estructura de Deck: Básicas + Clase
+## 26 Sep 2025 - Las 4 Clases: Definición Final
 
-**Contexto**: ¿Pueden los jugadores mezclar cartas de diferentes clases?
-
-**Opciones Consideradas**:
-- Decks completamente libres
-- Solo cartas de una clase
-- Cartas básicas + una clase elegida
-
-**Decisión Tomada**: Cartas básicas (neutras) + cartas de una clase elegida
-
-**Razón**:
-- Balance más fácil de mantener
-- Identidad de clase clara
-- Cartas básicas aseguran variedad
-- Evita combinaciones rotas entre clases
-
-**Impacto**:
-- ~40% cartas básicas, ~15% por clase
-- Meta más predecible y balanceado
-- Cada clase mantiene identidad única
-
----
-
-## 26 Sep 2025 - Las 4 Clases: Balance Triangle + Aggro
-
-**Contexto**: Definir las 4 clases evitando designs problemáticos como snowball.
+**Contexto**: Necesitábamos 4 arquetipos únicos y balanceados.
 
 **Opciones Consideradas**:
-- Momentum (rechazado - muy snowball)
-- Deuda (rechazado - muy snowball)
-- Sinergia ✅
+- Abominación ✅ (rediseñado de Sinergia)
 - Caos ✅
 - Ciclo ✅ (refinado a 3 fases)
 - Vitalidad ✅ (refinado a pure trade-off)
 
 **Decisión Tomada**: 
-1. **SINERGIA** (Engine building)
+1. **ABOMINACIÓN** (Espécimen Perfecto - herencia de habilidades)
 2. **CAOS** (RNG controlado)
 3. **CICLO** (Timing con Día/Noche/Eclipse)
 4. **VITALIDAD** (Aggro con vida como recurso)
@@ -157,146 +146,126 @@
 
 ---
 
-## 26 Sep 2025 - Vitalidad: 100% Pure Trade-off
+## 26 Sep 2025 - ABOMINACIÓN: Rediseño de SINERGIA
 
-**Contexto**: ¿Debe Vitalidad tener mecánicas de recovery de vida?
+**Contexto**: La mecánica original de SINERGIA (contadores por tipo) era aburrida y genérica.
 
-**Opciones Consideradas**:
-- Con recovery limitado
-- Con mecánicas de "emergency brake"
-- 100% pure trade-off sin recovery
+**Problema con SINERGIA**:
+- Mecánica poco única (Magic ya tiene esto)
+- Snowball problemático si no se controla bien
+- Gameplay lineal (más contadores = mejor)
 
-**Decisión Tomada**: 100% pure trade-off, sin recovery
+**Nueva Propuesta - ABOMINACIÓN**:
+- **Concepto**: Espécimen Perfecto que hereda habilidades del cementerio
+- **Mecánica**: Solo habilidades (Taunt, Prisa), no efectos
+- **Timing**: Turno 5+, una vez por partida
+- **Efectos**: Solo via cartas específicas de clase
 
-**Razón**:
-- Esencia del aggro: "win fast or die trying"
-- Natural counter por control/midrange
-- Skill expression en timing perfecto
-- Evita snowball mientras mantiene identidad
+**Razón del Cambio**:
+- Mecánica 100% única y temática
+- Skill expression alto (¿qué matar para maximizar?)
+- No snowball (solo una vez)
+- Counterplay claro (matar el Espécimen)
 
 **Impacto**:
-- Vitalidad debe cerrar partidas antes turno 6-7
-- Meta naturalmente balanceado
-- Partidas rápidas como objetivo de diseño
-- Decisiones de vida/poder extremadamente impactantes
+- Rediseño completo de cartas de clase
+- Nueva strategy completamente diferente
+- Documentación actualizada
+- Testing protocol revisado
 
 ---
 
-## 26 Sep 2025 - Tipos de Cartas: Hearthstone + Instantáneas
+## 26 Sep 2025 - Sistema de Stack: Magic-like pero Simplificado
 
-**Contexto**: Definir qué tipos de cartas existirán en el juego.
+**Contexto**: ¿Cómo manejar instantáneas sin complicar demasiado?
 
-**Opciones Consideradas**:
-- Solo Criaturas + Hechizos (como Hearthstone)
-- Sistema complejo con múltiples tipos
-- Hearthstone + Instantáneas (como Magic)
-
-**Decisión Tomada**: 3 tipos - Criaturas, Hechizos, Instantáneas
+**Decisión Tomada**: Stack system con timer de respuesta
 
 **Razón**:
-- Familiaridad de Hearthstone para accessibility
-- Instantáneas añaden profundidad y counterplay
-- Mantiene simplicidad sin sacrificar estrategia
-- Perfect fit con partidas de 5-10 minutos
+- Depth estratégico alto
+- Familiar para jugadores de Magic
+- Timer evita analysis paralysis
+- Permite counterplay real
 
-**Impacto**:
-- Sistema de stack simplificado necesario
-- Timer de respuesta (10-15 segundos)
-- UI debe mostrar claramente ventanas de respuesta
-- Tutorial debe enseñar timing de instantáneas
+**Impacto**: UI complejo pero gameplay rico.
 
 ---
 
-## 26 Sep 2025 - Estructura de Turnos: 4 Fases Streamlined
+## 26 Sep 2025 - Tipos de Cartas: 3 Tipos Básicos
 
-**Contexto**: Definir las fases del turno para manejar instantáneas correctamente.
+**Contexto**: Definir los tipos fundamentales de cartas.
 
-**Opciones Consideradas**:
-- 5 fases como Magic (con Principal 1 y 2)
-- 3 fases súper simple (Principal, Combate, Final)
-- 4 fases balanceadas (sin Principal 2)
-
-**Decisión Tomada**: 4 fases - Inicio, Principal, Combate, Final
+**Decisión Tomada**:
+1. **CRIATURAS** - van al tablero, atacan/defienden
+2. **HECHIZOS** - efecto inmediato, solo tu turno  
+3. **INSTANTÁNEAS** - stack system, timing flexible
 
 **Razón**:
-- Elimina redundancia de Principal 2
-- Mantiene timing claro para instantáneas
-- Streamlined para partidas rápidas
-- Familiar para jugadores de otros TCGs
+- Simple pero completo
+- Cubre todos los use cases necesarios
+- Familiar (similar a Magic básico)
+- Permite counterplay y strategy depth
 
-**Impacto**:
-- Ritmo de juego más rápido
-- Menos confusión sobre cuándo jugar cartas
-- Timing de instantáneas bien definido
-- Fases tienen propósitos claros
+**Impacto**: 
+- Sistema de targeting para cada tipo
+- UI diferente según tipo
+- Tutorial debe explicar cada uno
+
+---
+
+## 26 Sep 2025 - Estructura de Turnos: 4 Fases
+
+**Contexto**: ¿Cuántas fases necesita un turno para ser estratégico pero no lento?
+
+**Decisión Tomada**: 
+1. **INICIO** - roba carta, gana mana, triggers
+2. **PRINCIPAL** - jugar cartas, activar habilidades
+3. **COMBATE** - declarar ataques, resolución
+4. **FINAL** - cleanup, triggers de fin
+
+**Razón**:
+- Balance entre simplicidad y depth
+- Timing windows claros para instantáneas
+- Familiar (similar a Magic streamlined)
+- Permite planning estratégico
+
+**Impacto**: Tutorial debe explicar cada fase claramente.
 
 ---
 
 ## 26 Sep 2025 - Condiciones de Victoria: Eliminación + Final Stand
 
-**Contexto**: Cómo se gana/pierde el juego, incluyendo mecánicas anti-frustración.
+**Contexto**: ¿Cómo evitar feel-bad moments manteniendo tensión?
 
-**Opciones Consideradas**:
-- Solo reducir vida a 0 (simple)
-- Múltiples condiciones complejas
-- Eliminación + mecánica de "última oportunidad"
+**Decisión Tomada**: Eliminación (vida a 0) + Final Stand safety valve
 
-**Decisión Tomada**: Eliminación primaria + Final Stand + condiciones alternativas
+**Final Stand Mechanics**:
+- Se activa UNA vez cuando oponente te haría daño letal
+- Vida → 1, máximo 10 resto del duelo
+- Inmunidad hasta tu próximo turno
+- Bonus único por clase
 
 **Razón**:
-- Final Stand permite comebacks dramáticos
-- Evita que partidas terminen demasiado abruptamente
-- Condiciones alternativas previenen stall infinito
-- Mantiene tensión hasta el final
+- Elimina blowouts súbitos
+- Permite comebacks épicos
+- No cambia estrategia fundamental
+- Drama añadido a end game
 
-**Impacto**:
-- Partidas más emocionantes y menos frustrantes
-- Skill expression en gestión de Final Stand
-- Balance entre clases mejorado (especialmente Vitalidad)
-- Necesario explicar mecánica en tutorial
+**Impacto**: 
+- Balancing debe considerar Final Stand scenarios
+- UI debe comunicar mechanic claramente
+- Testing para frequency (target: 30-40% de games)
 
 ---
 
-## 26 Sep 2025 - Final Stand: Solo Defensivo y Temporal
+## 26 Sep 2025 - Sistema de Deck: 30 Cartas, 3 Rarezas
 
-**Contexto**: Cómo balancear la mecánica de Final Stand para evitar abuse.
+**Contexto**: Tamaño de deck y sistema de copias para balance.
 
-**Opciones Consideradas**:
-- Final Stand permanente hasta morir
-- Final Stand activable voluntariamente
-- Final Stand solo defensivo, temporal, una vez
-
-**Decisión Tomada**: Solo se activa cuando oponente causa daño letal, efectos de 1 turno
-
-**Razón**:
-- Evita que Vitalidad abuse la mecánica
-- Mantiene como "salvación" no "estrategia"
-- Efectos temporales evitan partidas alargadas
-- Inmunidad temporal da oportunidad real de comeback
-
-**Impacto**:
-- Vitalidad no puede "suicidarse" para activar Final Stand
-- Cada clase tiene momentos épicos pero controlados
-- Balance perfecto entre dramático y no abusable
-- Clear timing rules evitan confusión
-
----
-
-## 26 Sep 2025 - Tamaño de Deck y Sistema de Rarezas
-
-**Contexto**: Definir el tamaño de deck y límites de copias para balancing y deckbuilding.
-
-**Opciones Consideradas**:
-- 20 cartas (máxima consistencia)
-- 25 cartas (sweet spot)
-- 30 cartas (estándar TCG)
-
-**Decisión Tomada**: 30 cartas con sistema de copias por rareza
-
-**Sistema Completo**:
+**Decisión Tomada**: 
 - **30 cartas por deck**
-- **Máximo 2 copias** de cartas Básicas y Raras
-- **Máximo 1 copia** de cartas Legendarias
+- **Básicas/Raras**: Máx 2 copias
+- **Legendarias**: Máx 1 copia
 - **3 Rarezas**: Básica, Rara, Legendaria
 
 **Razón**:
@@ -318,87 +287,234 @@
 
 **Contexto**: ¿Deben las cartas básicas ser vanilla o tener efectos únicos?
 
-**Opciones Consideradas**:
-- Cartas vanilla simples (solo stats)
-- Cartas con efectos básicos
-- Cartas con personalidad y trade-offs
-
-**Decisión Tomada**: Cartas con personalidad, efectos únicos y trade-offs claros
+**Decisión Tomada**: Todas las cartas tienen efectos únicos o trade-offs
 
 **Razón**:
-- Más gameplay interesante desde el primer turno
-- Cada carta ofrece decisiones meaningful
-- Synergy sutil con mecánicas de las 4 clases
-- Evita gameplay aburrido en early game
+- Más decisions per game
+- Ninguna carta feel dead
+- Better play experience
+- Skill expression más alto
+- Synergies more interesting
 
-**Impacto**:
-- Cada carta básica tiene una "personalidad" única
-- Trade-offs claros (power vs risk) en cada diseño
-- Tutorial debe explicar efectos, no solo stats
-- Balance más complejo pero gameplay más rico
+**Ejemplos exitosos**:
+- Mercenario Ágil: condicional scaling
+- Berserker Herido: high stats con downside
+- Centinela Vigilante: defensive con upside
 
----
-
-## 26 Sep 2025 - Balance: Berserker Sanguinario
-
-**Contexto**: La carta inicial de Vitalidad (3/1 por 2 → 5/2 prisa por 3 vida) estaba demasiado fuerte.
-
-**Opciones Consideradas**:
-- 3/1 → 5/2 prisa por 3 vida (original)
-- 2/1 → 4/2 prisa por 4 vida
-- 2/1 → 5/2 prisa por 4 vida (balanceado)
-
-**Decisión Tomada**: 2/1 baseline, +3/+1 y prisa por 4 vida
-
-**Razón**:
-- Baseline justo (2/1 por 2 mana = stats estándar)
-- Costo real de vida (4 vida = 20% de vida inicial)
-- Sigue siendo amenaza seria (5/2 prisa) pero no roto
-- Timing de decisión importante (¿vale la pena 4 vida en turno 2?)
-
-**Impacto**:
-- Vitalidad mantiene identidad agresiva sin ser OP
-- Contraplay disponible para oponente
-- Trade-off genuino entre poder y supervivencia
-- Ejemplo de balance iterativo funcionando
-
----
-
-## Template para Futuras Decisiones
-
-```markdown
-## [FECHA] - [TÍTULO]
-**Contexto**: 
-**Opciones Consideradas**: 
-**Decisión Tomada**: 
-**Razón**: 
 **Impacto**: 
-```
-```
+- Cada carta requiere más design effort
+- Balancing más complejo
+- Tutorial debe explicar trade-offs
+- Más memorable play experience
 
-## ✅ **Documentación Completamente Actualizada**
+---
 
-He actualizado todos los archivos con el progreso completo:
+## 26 Sep 2025 - Final Stand por Clase: Efectos Únicos
 
-### 📋 **PROJECT_STATUS.md**
-- ✅ Progreso al 90% (18 cartas listas para testear)
-- ✅ Fase 0.2 - Paper Prototype iniciada
-- ✅ Todas las cartas diseñadas listadas
+**Contexto**: Cada clase necesita un Final Stand thematic y balanceado.
 
-### 🎮 **game-design-document.md**
-- ✅ 18 cartas específicas documentadas
-- ✅ Template actualizado con mana 1-10
-- ✅ Set de mini-test completo especificado
+**Decisiones Tomadas**:
 
-### 📝 **decisions-log.md**
-- ✅ Decisión de cartas con personalidad
-- ✅ Decisión de balance del Berserker
-- ✅ Rationale completo para cada decisión
+**🧬 ABOMINACIÓN - "Evolución Urgente"**
+- Espécimen Perfecto puede ser invocado inmediatamente
+- Bonus: +1/+1 por cada habilidad diferente que tenga
 
-## 🚀 **Estado Actual**
+**🎲 CAOS - "Entropía Máxima"** 
+- Empiezas el turno con 6 Entropía
+- Bonus: No se resetea al final del turno
 
-**✅ COMPLETADO**: 18 cartas balanceadas listas para paper test
+**🌓 CICLO - "Eclipse Desesperado"**
+- Todas tus cartas funcionan como Eclipse
+- Bonus: Dura todo el turno
 
-**🔄 EN CURSO**: Paper playtesting para validar mecánicas
+**❤️ VITALIDAD - "Adrenalina Mortal"**
+- Todas las cartas de vida se activan gratis
+- Bonus: Sin costo de vida este turno
 
-**¡Perfecto para empezar el testing físico!** 🎲
+**Razón**: 
+- Cada clase tiene comeback único
+- Thematic fit perfecto
+- Power level similar entre clases
+- Dramatic moment garantizado
+
+**Impacto**: Necesita testing extensivo para balance.
+
+---
+
+## 26 Sep 2025 - Combat System: Hearthstone-style
+
+**Contexto**: ¿Qué sistema de combate fit mejor con el target de 5-10 min?
+
+**Decisión Tomada**: Tablero como Hearthstone + targeting libre
+
+**Especificaciones**:
+- **Máximo 10 criaturas** por jugador
+- **Daño persistente** (no se cura)
+- **Free targeting** (atacante elige objetivo)
+- **Sin bloqueo** automático
+
+**Razón**:
+- Familiar para audiencia target
+- Streamlined pero estratégico
+- Permite aggressive strategies
+- Fácil de implementar digitalmente
+
+**Impacto**:
+- UI debe mostrar targets claramente
+- Removal es más importante
+- Combat tricks más valuable
+- Positioning no importa (diferente a Magic)
+
+---
+
+## 26 Sep 2025 - Mulligan System: Individual como Hearthstone
+
+**Contexto**: ¿Cómo permitir starting hand optimization sin delays?
+
+**Decisión Tomada**: Mulligan individual como Hearthstone
+
+**Mechanics**:
+- **5 cartas iniciales**
+- **Primer jugador**: no roba turno 1
+- **Segundo jugador**: roba turno 1 (empieza con 6)
+- **Mulligan individual**: cada carta por separado
+- **Solo una vez**: no hay re-mulligan
+
+**Razón**:
+- Familiar y probado
+- Balance entre consistency y speed
+- Simple de implementar
+- Good risk/reward decisions
+
+**Impacto**: 
+- Deckbuilding debe considerar mulligan strategy
+- UI needs clear mulligan interface
+- Tutorial debe explicar timing
+
+---
+
+## 26 Sep 2025 - Documentación Modular: Organización Final
+
+**Contexto**: La documentación creció mucho y necesitaba reorganización.
+
+**Decisión Tomada**: Estructura modular por temas
+
+**Nueva Estructura**:
+
+docs/
+├── game-design/
+│ ├── cartas-iniciales.md # Índice navegable
+│ ├── cartas-basicas.md # 10 cartas neutras
+│ ├── cartas-clases.md # 8 cartas signature
+│ ├── mecanicas-clases.md # Sistema de 4 clases
+│ ├── reglas-juego.md # Reglas completas
+│ └── balance-analisis.md # Meta analysis
+├── development/
+│ ├── decisions-log.md # Este archivo
+│ └── roadmap.md # Plan 6-12 meses
+└── testing/
+└── simulaciones.md # Logs de partidas
+
+**Razón**:
+- Información única en cada archivo
+- Navegación fácil
+- Sin duplicados
+- Modular para updates
+
+**Impacto**:
+- Mejor maintainability
+- Enlaces entre documentos
+- Context switching menor
+- Colaboración más fácil
+
+---
+
+## 26 Sep 2025 - Paper Testing Protocol: Metodología
+
+**Contexto**: ¿Cómo validar el diseño antes de implementar digital?
+
+**Decisión Tomada**: Paper testing con protocol específico
+
+**Methodology**:
+1. **Phase 1**: 10+ single games (diferentes matchups)
+2. **Phase 2**: Best-of-3 matches  
+3. **Phase 3**: Mini tournament (4 jugadores)
+4. **Phase 4**: Balance adjustments basado en data
+
+**Metrics to Track**:
+- Game duration (target: 5-10 min)
+- Win rates por clase (target: 45-55%)
+- Final Stand frequency (target: 30-40%)
+- Fun rating (target: 7+/10)
+- Rule questions per game (target: <5)
+
+**Razón**:
+- Validación barata y rápida
+- Iteración fácil en paper
+- Real user feedback
+- Confidence antes de development
+
+**Impacto**: 
+- Phase 1 development delay hasta validation
+- Possible balance changes needed
+- Rules clarification v2.0
+
+---
+
+## 26 Sep 2025 - Tech Stack: Full-Stack TypeScript
+
+**Contexto**: Selección de tecnologías para development.
+
+**Decisión Tomada**: 
+- **Frontend**: React + Vite + TypeScript + Tailwind
+- **Backend**: NestJS + Prisma + PostgreSQL
+- **Real-time**: Socket.io
+- **Monorepo**: PNPM + Turborepo
+- **Deploy**: Vercel + Railway
+
+**Razón**:
+- Type safety end-to-end
+- Shared types entre frontend/backend
+- Ecosistema maduro y stable
+- Good performance para real-time gaming
+- Cost-effective deployment
+
+**Impacto**:
+- Learning curve manageable
+- Development velocity alta
+- Shared code entre client/server
+- Easy deployment pipeline
+
+---
+
+## 📊 Estado de Decisiones
+
+### ✅ **Decisiones Implementadas** (26 Sep 2025)
+- [x] Tipo de gameplay (acción rápida)
+- [x] 4 clases únicas con mecánicas diferenciadas
+- [x] Sistema dual de recursos
+- [x] 3 tipos de cartas + stack system
+- [x] Combat system tipo Hearthstone
+- [x] Condiciones de victoria + Final Stand
+- [x] 18 cartas balanceadas listas para testing
+- [x] Documentación modular completa
+- [x] Paper testing protocol definido
+
+### 🔄 **En Evaluación**
+- [ ] Balance final después de paper testing
+- [ ] UI/UX approach específico
+- [ ] Monetization strategy (post-MVP)
+- [ ] Asset style (art direction)
+
+### 📝 **Log de Cambios de Este Documento**
+
+#### Version 1.0 (26 Sep 2025)
+- Documento inicial creado con todas las decisiones hasta la fecha
+- 26 decisiones clave documentadas
+- Estado del proyecto tracking incluido
+
+#### Version 1.1 (26 Sep 2025) 
+- ✅ Actualizado SINERGIA → ABOMINACIÓN
+- ✅ Añadida decisión sobre rediseño de clase
+- ✅ Documentación modular reorganizada
+- ✅ Paper
