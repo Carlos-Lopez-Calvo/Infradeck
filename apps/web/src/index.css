@@ -1,0 +1,37 @@
+/* Tailwind v4 base import */
+@import "tailwindcss";
+
+/* App globals */
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+}
+
+/* Utility helpers for the app (optional) */
+.card-hover {
+  transition-property: transform, box-shadow;
+  transition-duration: 200ms;
+}
+.card-hover:hover {
+  transform: scale(1.05);
+  box-shadow: 0 10px 30px rgba(59, 130, 246, 0.2);
+}
+
+.board-slot {
+  width: 6rem; /* 24 */
+  height: 8rem; /* 32 */
+  border-width: 2px;
+  border-style: dashed;
+  border-color: rgb(75, 85, 99); /* gray-600 */
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.board-slot.occupied {
+  border-style: solid;
+  border-color: rgb(96, 165, 250); /* blue-400 */
+  background-color: rgba(239, 246, 255, 0.06); /* blue-50/10 */
+}
+
