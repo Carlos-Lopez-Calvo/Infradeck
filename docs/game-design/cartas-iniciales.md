@@ -1,132 +1,134 @@
-# 🃏 CARTAS DE INFRADECK
+# �� INFRADECK - Estado del Proyecto
 
-> Índice completo del sistema de cartas inicial
+## 📊 Estado Actual
+- **Fase Actual**: 1.1 - Diseño Completo (74 Cartas)
+- **Última Actualización**: 29 Septiembre 2025
+- **Progreso General**: 100% (Diseño completo + 74 cartas + documentación modular)
 
-## 📋 **Set Inicial: 18 Cartas**
+## ✅ Decisiones Clave Tomadas
 
-Sistema completo para testing y MVP, distribuido en:
-- **10 Cartas Básicas** (neutras, todas las clases)
-- **8 Cartas de Clase** (2 por cada una de las 4 clases)
+### Tipo de Juego
+- **Ritmo**: Acción rápida (5-10 min por partida, estilo Hearthstone)
+- **Scope**: Juego completo con set inicial robusto (70 cartas para MVP)
+- **Estrategia de contenido**: Actualizaciones incrementales post-launch
+- **Tema visual**: Por definir (no afecta mecánicas iniciales)
 
----
+### Mecánicas Core ✅ COMPLETADAS
+- **Sistema base**: Mana universal (1-10) + Recursos especiales por clase
+- **Vida inicial**: 20 puntos, Final Stand a 1 vida (máx 10)
+- **Cartas con doble modo**: Básico + Potenciado (usando recurso especial)
+- **4 Clases**: ABOMINACIÓN, CAOS, CICLO, VITALIDAD
+- **3 Tipos de cartas**: Criaturas, Hechizos, Instantáneas (stack system)
+- **Estructura de turnos**: 4 fases (Inicio, Principal, Combate, Final)
+- **Sistema de deck**: 30 cartas, mulligan individual, 3 rarezas
+- **9 Habilidades**: Keywords system completamente definido
 
-## 📚 **Documentación Detallada**
+### **🃏 Set Completo: 70 Cartas Diseñadas**
+- **30 Cartas Básicas** (neutras, todas las clases)
+- **40 Cartas de Clase** (10 por cada una de las 4 clases)
 
-### **🛡️ [Cartas Básicas →](cartas-basicas.md)**
-Cartas neutras disponibles para todas las clases:
-- **5 Criaturas**: Mercenario Ágil, Escriba Estudioso, Berserker Herido, Centinela Vigilante, Campeón Caído
-- **3 Hechizos**: Flecha Certeza, Recarga Rapida, Llama Impura  
-- **2 Instantáneas**: Reflejo Rápido, Momento Crucial
+### 4 Clases: ABOMINACIÓN, CAOS, CICLO, VITALIDAD
 
-### **🏛️ [Cartas de Clase →](cartas-clases.md)** 
-Cartas signature que definen cada clase:
-- **🧬 Abominación**: Recolector de Tejidos, Ritual de Perfección
-- **🎲 Caos**: Mago del Caos, Tormenta Impredecible
-- **🌓 Ciclo**: Cambiaformas Lunar, Eclipse Eterno
-- **❤️ Vitalidad**: Berserker Sanguinario, Pacto Final
+#### **🧬 ABOMINACIÓN** - Espécimen Perfecto
+- **Mecánica**: Herencia de habilidades desde cementerio
+- **Estrategia**: Late-game engine con massive payoff
+- **Costo escalable**: 5→7→9→10 mana por invocación
+- **Cartas**: 10 completas (Explorador Infectado, Recolector, Necrófago, Ritual Menor, Anatomista, Invocación Siniestra, Perfeccionista, Ritual de Perfección, Maestro Necromántico, Evolución Perfecta)
 
-### **🎯 [Mecánicas de Clase →](mecanicas-clases.md)**
-Sistema detallado de las 4 clases únicas:
-- **🧬 Abominación**: Espécimen Perfecto - herencia de habilidades
-- **🎲 Caos**: Entropía - poder escalable por turno
-- **🌓 Ciclo**: Timing - ventanas de poder Día/Noche/Eclipse
-- **❤️ Vitalidad**: Vida como recurso - all-in aggro
+#### **🎲 CAOS** - RNG Controlado  
+- **Mecánica**: Entropía persistente (0-10, no resetea)
+- **Estrategia**: Accumulate + explosive random bursts
+- **Scaling**: Breakpoints en 2,3,4,5,6,8,9,10 Entropía
+- **Cartas**: 10 completas (Aprendiz Errático, Mago del Caos, Ritual Caótico, Mercader Loco, Manipulador del Destino, Portal Inestable, Caos Controlado, Señor del Caos, Tormenta Impredecible, Realidad Fracturada)
 
----
+#### **🌓 CICLO** - Timing Perfecto
+- **Mecánica**: Estados Día/Noche/Eclipse con effects únicos
+- **Estrategia**: Optimal play según timing windows
+- **Eclipse**: Estado especial activado por cartas
+- **Cartas**: 10 completas (Explorador Crepuscular, Ritual del Amanecer, Vidente Lunar, Cambiaformas Lunar, Invocador de Eclipse, Guardián del Equilibrio, Momento Perfecto, Maestro del Tiempo, Eclipse Eterno, Convergencia Celestial)
 
-## 📊 **Análisis del Set**
+#### **❤️ VITALIDAD** - All-in Aggro
+- **Mecánica**: Vida como recurso (2-8 vida costs)
+- **Estrategia**: Speed kills con life investment
+- **Risk/Reward**: Más vida = más poder, más riesgo
+- **Cartas**: 10 completas (Fanático Desesperado, Berserker Sanguinario, Cazador de Recompensas, Ritual Sangriento, Guerrero Herido, Señor de la Sangre, Pacto de Poder, Pacto Final, Frenesí Final, Avatar de la Destrucción)
 
-### **⚖️ [Balance y Meta →](balance-analisis.md)**
-Análisis completo de balance y predicciones:
-- **Distribución** por mana, tipo, rareza
-- **Power level** y complexity por clase
-- **Matchup predictions** y meta triangle
-- **Cards** potentially over/underpowered
+### Stack Tecnológico Planeado
+- **Frontend**: React + Vite + TypeScript + Tailwind CSS
+- **Backend**: NestJS + TypeScript + Prisma + PostgreSQL  
+- **Monorepo**: PNPM workspaces + Turborepo
+- **Tiempo real**: Socket.io (fase multiplayer)
+- **Deployment**: Vercel (frontend) + Railway (backend)
 
-### **⚔️ [Reglas del Juego →](reglas-juego.md)**
-Sistema completo de reglas:
-- **Setup inicial** y mulligan
-- **Tipos de cartas** y timing
-- **Estructura de turnos** y combate
-- **Condiciones de victoria** y Final Stand
+## 🗺️ **Fases de Desarrollo**
 
----
+### ✅ Fase 1: Diseño de Juego (COMPLETADA)
+- [x] Mecánicas core definidas
+- [x] 4 clases balanceadas
+- [x] 70 cartas diseñadas y documentadas
+- [x] Sistema de habilidades (9 keywords)
+- [x] Reglas completas especificadas
 
-## 🧪 **Testing y Validación**
+### 📋 Fase 2: Paper Prototype (SIGUIENTE)
+- [ ] Crear cartas físicas para testing
+- [ ] 10+ partidas de playtesting
+- [ ] Iteraciones de balance basadas en feedback
+- [ ] Refinamiento de reglas v2.0
 
-### **🎮 [Simulaciones →](../testing/simulaciones.md)**
-Logs de partidas simuladas:
-- **Vitalidad vs Caos**: Final Stand comeback épico
-- **Caos vs Ciclo**: Testing de timing mechanics
-- **Balance insights** y concerns identificados
-- **Protocol** para paper testing
+### 🔧 Fase 3: MVP Digital
+- [ ] Setup del monorepo y arquitectura
+- [ ] Engine de juego básico (offline)
+- [ ] UI/UX para single player
+- [ ] Testing automatizado
 
-### **🗺️ [Roadmap →](../development/roadmap.md)**
-Plan completo de desarrollo:
-- **Fase 1**: Validación via paper prototype
-- **Fases 2-7**: From concept to webapp
-- **Timeline**: 6-12 meses para MVP
+### 🌐 Fase 4: Multiplayer
+- [ ] Sistema real-time con Socket.io
+- [ ] Matchmaking básico
+- [ ] Spectator mode
+- [ ] Ranking system
 
----
+## 🔗 Navegación Rápida de Documentos
 
-## 🎯 **Estado Actual**
+| Categoría | Archivo | Status | Cartas |
+|-----------|---------|--------|--------|
+| **📋 Índice** | [cartas-iniciales.md](./docs/game-design/cartas-iniciales.md) | ✅ Complete | 70 total |
+| **🛡️ Básicas** | [cartas-basicas.md](./docs/game-design/cartas-basicas.md) | ✅ Complete | 30 neutras |
+| **🏛️ Clases** | [cartas-clases.md](./docs/game-design/cartas-clases.md) | ✅ Complete | 40 (10×4) |
+| **⚖️ Balance** | [balance-analisis.md](./docs/game-design/balance-analisis.md) | 🔄 Needs Update | 18→70 |
+| **⚔️ Reglas** | [reglas-juego.md](./docs/game-design/reglas-juego.md) | ✅ Complete | - |
+| **🎯 Mecánicas** | [mecanicas-clases.md](./docs/game-design/mecanicas-clases.md) | ✅ Complete | - |
+| **🗺️ Roadmap** | [roadmap.md](./docs/development/roadmap.md) | 🔄 Needs Update | - |
+| **🎮 Testing** | [simulaciones.md](./docs/testing/simulaciones.md) | ✅ Complete | - |
+| **📝 Decisiones** | [decisions-log.md](./docs/development/decisions-log.md) | ✅ Complete | - |
 
-### **✅ Completado**
-- **Game design**: 4 clases únicas, 18 cartas balanceadas
-- **Rule system**: Reglas completas y claras
-- **Documentation**: Estructura modular completa
-- **Theory testing**: 2 simulaciones + análisis
+## 📈 **Métricas del Proyecto**
 
-### **📋 Próximos Pasos**
-1. **Paper prototype**: Imprimir cartas para testing físico
-2. **Playtesting**: 10+ partidas con usuarios reales
-3. **Balance iteration**: Ajustes basados en data
-4. **Technical setup**: Empezar desarrollo de webapp
+### **Diseño Completado**
+- **70 Cartas Totales**: 30 básicas + 40 clase
+- **4 Mecánicas Únicas**: Espécimen, Entropía, Estados, Vida
+- **9 Habilidades**: Keywords system completo
+- **Perfect Curves**: 0-10 mana distribution balanceada
+- **3 Arquetipos**: Por clase, múltiples estrategias
 
----
+### **Distribución de Cartas**
+- **Por Rareza**: 35% Básicas, 45% Raras, 20% Legendarias
+- **Por Tipo**: 64% Criaturas, 26% Hechizos, 10% Instantáneas  
+- **Por Mana**: Curva optimizada para partidas 5-10 minutos
 
-## 📁 **Navegación Rápida**
+### **Complejidad por Clase**
+- **VITALIDAD**: ⭐⭐☆☆☆ (Beginner-friendly)
+- **CAOS**: ⭐⭐⭐☆☆ (Intermediate)
+- **CICLO**: ⭐⭐⭐⭐☆ (Advanced)
+- **ABOMINACIÓN**: ⭐⭐⭐⭐⭐ (Expert)
 
-| Aspecto | Archivo | Descripción |
-|---------|---------|-------------|
-| **🛡️ Básicas** | [cartas-basicas.md](cartas-basicas.md) | 10 cartas neutras + análisis |
-| **🏛️ Clases** | [cartas-clases.md](cartas-clases.md) | 8 cartas signature + análisis |
-| **🎯 Mecánicas** | [mecanicas-clases.md](mecanicas-clases.md) | Sistema detallado de 4 clases |
-| **⚔️ Reglas** | [reglas-juego.md](reglas-juego.md) | Reglas completas del juego |
-| **⚖️ Balance** | [balance-analisis.md](balance-analisis.md) | Análisis y predicciones |
-| **🎮 Testing** | [../testing/simulaciones.md](../testing/simulaciones.md) | Logs de simulaciones |
-| **🗺️ Plan** | [../development/roadmap.md](../development/roadmap.md) | Roadmap completo |
+## 📝 **Para Retomar Contexto**
 
----
+Si vuelves a este proyecto después de un tiempo:
 
-## 📊 **Quick Stats**
+1. **Lee este archivo primero** para el estado general
+2. **Revisa [reglas-juego.md](./docs/game-design/reglas-juego.md)** para mecánicas
+3. **Explora [cartas-clases.md](./docs/game-design/cartas-clases.md)** para las 40 cartas de clase
+4. **Consulta [cartas-basicas.md](./docs/game-design/cartas-basicas.md)** para las 30 cartas neutras
+5. **Revisa [roadmap.md](./docs/development/roadmap.md)** para próximos pasos
 
-### **Por Costo de Mana**
-- **0 mana**: 1 (Tormenta)
-- **1 mana**: 2 (Mercenario, Reflejo)  
-- **2 mana**: 5 (Escriba, Flecha, Berserker Sang., Recolector, Mago)
-- **3 mana**: 3 (Berserker Herido, Momento, Cambiaformas)
-- **4 mana**: 3 (Centinela, Llamarada, Pacto)
-- **5 mana**: 2 (Ritual)
-- **6 mana**: 2 (Campeón, Eclipse)
-
-### **Por Tipo**
-- **Criaturas**: 8 (44.4%)
-- **Hechizos**: 8 (44.4%)
-- **Instantáneas**: 2 (11.1%)
-
-### **Por Rareza**
-- **Básicas**: 8 (44.4%)
-- **Raras**: 6 (33.3%)
-- **Legendarias**: 4 (22.2%)
-
----
-
-## 📝 **Log de Cambios**
-
-### Version 2.0 (26 Sep 2025)
-- 🔄 **Converted to index**: Apunta a archivos modulares
-- ✅ **Navigation improved**: Quick access a toda la doc
-- ✅ **Stats summary**: Overview rápido del set
-- ✅ **Status tracking**: Progreso y próximos pasos
-- **PRÓXIMO**: Paper testing de las 18 cartas
+**Estado**: Listo para paper testing y desarrollo digital 🚀

@@ -518,3 +518,8 @@ docs/
 - ✅ Añadida decisión sobre rediseño de clase
 - ✅ Documentación modular reorganizada
 - ✅ Paper
+
+## [YYYY-MM-DD] Product Vision
+Decisión: El objetivo permanente del proyecto es una web app full‑stack (UI web + servidor tiempo real) sobre el engine compartido. Todas las decisiones técnicas priorizan este flujo.
+Razonamiento: Alineación de arquitectura, DX y pruebas con el producto final.
+Impacto: Roadmap enfocado a UI, networking y persistencia tras cerrar el engine MVP.

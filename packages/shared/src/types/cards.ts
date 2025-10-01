@@ -1,0 +1,279 @@
+/**
+ * INFRADECK - Card System Types
+ * Definiciones TypeScript para las 70 cartas del juego
+ */
+
+// ===== ENUMS BÁSICOS =====
+
+export enum CardType {
+  CREATURE = 'CREATURE',
+  SPELL = 'SPELL', 
+  INSTANT = 'INSTANT',
+  COUNTER_SPELL = 'COUNTER_SPELL',
+}
+
+export enum CardRarity {
+  BASIC = 'BASIC',
+  RARE = 'RARE',
+  LEGENDARY = 'LEGENDARY'
+}
+
+export enum ClassType {
+  NEUTRAL = 'NEUTRAL',
+  ABOMINACION = 'ABOMINACION',
+  CAOS = 'CAOS', 
+  CICLO = 'CICLO',
+  VITALIDAD = 'VITALIDAD'
+}
+
+// ===== HABILIDADES (9 KEYWORDS) =====
+
+export enum Ability {
+  // Ofensivas
+  PRISA = 'PRISA',
+  IMPACIENTE = 'IMPACIENTE',
+  ROBO_DE_VIDA = 'ROBO_DE_VIDA',
+  VENENO = 'VENENO',
+
+  // Defensivas
+  TAUNT = 'TAUNT',
+  SIGILO = 'SIGILO',
+  ESCUDO = 'ESCUDO',
+  REGENERACION = 'REGENERACION',
+
+  // Especiales
+  VUELO = 'VUELO',
+  DOBLE_GOLPE = 'DOBLE_GOLPE'        // ← añadir esto
+}
+
+// ===== RECURSOS DE CLASE =====
+
+export type ClassResourceCost = 
+  | { type: 'VIDA', amount: number }              // VITALIDAD: pagar vida
+  | { type: 'ENTROPIA', amount: number }          // CAOS: requiere Entropía
+  | { type: 'CEMENTERIO', amount: number }        // ABOMINACIÓN: cartas en cementerio
+  | { type: 'ESTADO', state: CycleState }         // CICLO: requiere estado específico
+
+export enum CycleState {
+  DIA = 'DIA',
+  NOCHE = 'NOCHE', 
+  ECLIPSE = 'ECLIPSE'
+}
+
+// ===== EFECTOS DE CARTAS =====
+
+export enum EffectActionType {
+  // Damage & Healing
+  DAMAGE = 'DAMAGE',
+  HEAL = 'HEAL',
+  
+  // Card manipulation  
+  DRAW_CARDS = 'DRAW_CARDS',
+  DISCARD_CARDS = 'DISCARD_CARDS',
+  
+  // Creature creation
+  SUMMON_CREATURE = 'SUMMON_CREATURE',
+  
+  // Stats modification
+  BUFF_ATTACK = 'BUFF_ATTACK',
+  BUFF_HEALTH = 'BUFF_HEALTH', 
+  BUFF_STATS = 'BUFF_STATS',        // +X/+Y combined
+  
+  // Abilities
+  GAIN_ABILITY = 'GAIN_ABILITY',
+  LOSE_ABILITY = 'LOSE_ABILITY',
+  
+  // State changes
+  CHANGE_CYCLE_STATE = 'CHANGE_CYCLE_STATE',
+  GAIN_ENTROPY = 'GAIN_ENTROPY',
+  
+  // Special effects
+  ACTIVATE_ECLIPSE = 'ACTIVATE_ECLIPSE',
+  SUMMON_SPECIMEN = 'SUMMON_SPECIMEN',
+  
+  // Counterspells
+  COUNTER_SPELL = 'COUNTER_SPELL',        // Anular hechizo/instantánea
+}
+
+export interface CardEffect {
+  id: string
+  description: string
+  timing: EffectTiming
+  condition?: EffectCondition
+  action: EffectAction
+}
+
+export enum EffectTiming {
+  // Timing básico
+  ON_PLAY = 'ON_PLAY',                // Al ser jugada
+  ON_ENTER = 'ON_ENTER',              // Al entrar al tablero
+  ON_DEATH = 'ON_DEATH',              // Al morir
+  ON_ATTACK = 'ON_ATTACK',            // Al atacar
+  
+  // Timing de turno
+  START_OF_TURN = 'START_OF_TURN',    // Inicio de turno
+  END_OF_TURN = 'END_OF_TURN',        // Final de turno
+  
+  // Timing reactivo
+  INSTANT = 'INSTANT',                // Cuando se juega (instantáneas)
+  TRIGGERED = 'TRIGGERED',            // Trigger condicional
+  PASSIVE = 'PASSIVE'                 // Efecto pasivo permanente
+}
+
+ export interface EffectCondition {
+     type: 'HEALTH_THRESHOLD' | 'GRAVEYARD_COUNT' | 'HAND_SIZE' | 'BOARD_STATE' | 'CLASS_RESOURCE' | 'SELF_NOT_DAMAGED_THIS_TURN'
+     value?: number | string | boolean
+     comparison?: 'EQUAL' | 'GREATER' | 'LESS' | 'GREATER_EQUAL' | 'LESS_EQUAL'
+  }
+
+export interface EffectAction {
+  type: EffectActionType
+  target: EffectTarget
+  value?: number | string | Ability
+  amount?: number              // Para stats separados
+  duration?: 'PERMANENT' | 'END_OF_TURN' | 'UNTIL_DEATH'
+  consumeEntropy?: number      // Opcional: consumo por disparo/uso (CAOS)
+}
+
+export enum EffectTarget {
+  SELF = 'SELF',
+  ENEMY_HERO = 'ENEMY_HERO',
+  FRIENDLY_HERO = 'FRIENDLY_HERO', 
+  TARGET_CREATURE = 'TARGET_CREATURE',
+  ALL_FRIENDLY_CREATURES = 'ALL_FRIENDLY_CREATURES',
+  ALL_ENEMY_CREATURES = 'ALL_ENEMY_CREATURES',
+  ALL_CREATURES = 'ALL_CREATURES',
+  RANDOM_ENEMY = 'RANDOM_ENEMY',
+  TARGET_SPELL = 'TARGET_SPELL'          // Hechizo/instantánea objetivo
+}
+
+// ===== DEFINICIÓN PRINCIPAL DE CARTA =====
+
+export interface Card {
+  // Identificación
+  id: string
+  name: string
+  
+  // Propiedades básicas
+  type: CardType
+  rarity: CardRarity
+  classType: ClassType
+  mana: number
+  
+  // Stats (solo criaturas)
+  attack?: number
+  health?: number
+  
+  // Habilidades pasivas
+  abilities: Ability[]
+  
+  // Efectos activos
+  effects: CardEffect[]
+  
+  // Costo de recurso de clase (opcional)
+  classResource?: ClassResourceCost
+  
+  // Flavor y arte
+  description: string
+  flavorText: string
+  artUrl?: string
+}
+
+// ===== CARTAS ESPECIALES =====
+
+// Para CICLO - cartas con stats variables según estado
+export interface CycleCard extends Omit<Card, 'attack' | 'health' | 'abilities' | 'effects'> {
+  classType: ClassType.CICLO
+  
+  // Stats por estado
+  dayForm: {
+    attack?: number
+    health?: number  
+    abilities: Ability[]
+    effects: CardEffect[]
+  }
+  
+  nightForm: {
+    attack?: number
+    health?: number
+    abilities: Ability[]
+    effects: CardEffect[]
+  }
+  
+  eclipseForm: {
+    attack?: number
+    health?: number
+    abilities: Ability[]
+    effects: CardEffect[]
+  }
+}
+
+// Para ABOMINACIÓN - Espécimen Perfecto especial
+export interface SpecimenCard extends Card {
+  classType: ClassType.ABOMINACION
+  isSpecimen: true
+  inheritedAbilities: Ability[]  // Habilidades heredadas del cementerio
+  inheritedEffects: CardEffect[] // Efectos añadidos por cartas de clase
+  summonCost: number            // Costo actual (5, 7, 9, 10)
+}
+
+// ===== UTILIDADES DE TIPO =====
+
+export type PlayableCard = Card | CycleCard
+export type AnyCard = Card | CycleCard | SpecimenCard
+
+// Type guards
+export function isCycleCard(card: AnyCard): card is CycleCard {
+  return card.classType === ClassType.CICLO && 'dayForm' in card
+}
+
+export function isSpecimenCard(card: AnyCard): card is SpecimenCard {
+  return card.classType === ClassType.ABOMINACION && 'isSpecimen' in card
+}
+
+export function isCreature(card: Card): boolean {
+  return card.type === CardType.CREATURE
+}
+
+export function hasAbility(card: Card, ability: Ability): boolean {
+  return card.abilities.includes(ability)
+}
+
+// ===== CONSTANTES DEL JUEGO =====
+
+export const GAME_CONSTANTS = {
+  // Deck rules
+  DECK_SIZE: 30,
+  MAX_COPIES_BASIC: 2,
+  MAX_COPIES_RARE: 2, 
+  MAX_COPIES_LEGENDARY: 1,
+  
+  // Game setup
+  STARTING_LIFE: 20,
+  STARTING_HAND_SIZE: 5,
+  MAX_MANA: 10,
+  MAX_BOARD_SIZE: 10,
+  
+  // Final Stand
+  FINAL_STAND_LIFE: 1,
+  FINAL_STAND_MAX_LIFE: 10,
+  
+  // Class resources
+  MAX_ENTROPY: 10,              // CAOS
+  SPECIMEN_BASE_COST: 5,        // ABOMINACIÓN
+  SPECIMEN_COST_INCREMENT: 2,   // ABOMINACIÓN
+  SPECIMEN_MAX_COST: 10         // ABOMINACIÓN
+} as const
+
+// ===== TIPOS DE VALIDACIÓN =====
+
+export interface DeckValidation {
+  isValid: boolean
+  errors: DeckValidationError[]
+}
+
+export interface DeckValidationError {
+  type: 'DECK_SIZE' | 'TOO_MANY_COPIES' | 'INVALID_CLASS_CARDS' | 'MISSING_REQUIRED_CARDS'
+  cardId?: string
+  message: string
+}
