@@ -756,68 +756,61 @@ export const TORMENTA_IMPREDECIBLE: Card = {
   effects: [
     {
       id: 'Tormenta_Entropy_Damage',
-      description: 'Haz 2 de daño aleatoriamente por cada punto de entropía',
+      description: 'Haz 2 de daño completamente aleatorio por cada punto de entropía',
       timing: EffectTiming.ON_PLAY,
       action: {
         type: EffectActionType.DAMAGE,
-        target: EffectTarget.RANDOM_ENEMY,
-        amount: 2, // Multiplicado por Entropía
+        target: EffectTarget.RANDOM_CHARACTER, // ✅ Ahora es verdaderamente caótico
+        amount: 2,
         duration: 'PERMANENT'
       }
     }
   ],
-  description: 'Entropía X: Haz 2 de daño aleatoriamente por cada punto de entropía',
-  flavorText: 'El caos recompensa a los audaces.'
+  description: 'Entropía X: Haz 2 de daño completamente aleatorio por cada punto de entropía',
+  flavorText: 'El caos no distingue entre amigo y enemigo.'
 }
 
 export const REALIDAD_FRACTURADA: Card = {
-  id: 'Realidad_Fracturada',
+  id: 'realidad_fracturada',
   name: 'Realidad Fracturada',
   type: CardType.SPELL,
   rarity: CardRarity.LEGENDARY,
   classType: ClassType.CAOS,
   mana: 10,
+  description: 'Entropía 8+: Juega todas las cartas de tu mano con objetivos aleatorios. Entropía 10: Además, todas se juegan dos veces.',
+  flavorText: 'Cuando la realidad se fractura, todo sucede múltiples veces.',
   abilities: [],
+  classResource: { type: 'ENTROPIA', amount: 8 },
   effects: [
-    {
-      id: 'Realidad_Hand_Dump',
-      description: 'Juega todas las cartas de tu mano de izquierda a derecha. Todos los objetivos son aleatorios',
-      timing: EffectTiming.ON_PLAY,
-      condition: {
-        type: 'CLASS_RESOURCE',
-        value: 8,
-        comparison: 'GREATER_EQUAL'
-      },
-      action: {
-        type: EffectActionType.DRAW_CARDS,
-        target: EffectTarget.FRIENDLY_HERO,
-        amount: 999, // Special: play all hand
-        duration: 'PERMANENT'
-      }
+  {
+    id: 'realidad_fracturada_8',
+    description: 'Entropía 8+: Juega todas las cartas de tu mano con objetivos aleatorios',
+    timing: EffectTiming.ON_PLAY,
+    condition: {
+      type: 'CLASS_RESOURCE',
+      value: 8
     },
-    {
-      id: 'Realidad_Double_Effects',
-      description: 'Además, todas esas cartas se juegan dos veces',
-      timing: EffectTiming.ON_PLAY,
-      condition: {
-        type: 'CLASS_RESOURCE',
-        value: 10,
-        comparison: 'GREATER_EQUAL'
-      },
-      action: {
-        type: EffectActionType.DRAW_CARDS,
-        target: EffectTarget.FRIENDLY_HERO,
-        amount: 999, // Special: double all effects
-        duration: 'PERMANENT'
-      }
+    action: {
+      type: EffectActionType.TRANSFORM, // Or a new effect type like PLAY_HAND
+      target: EffectTarget.SELF,
+      value: 'PLAY_ALL_HAND_RANDOM_TARGETS'
     }
-  ],
-  classResource: {
-    type: 'ENTROPIA',
-    amount: 8
   },
-  description: 'Entropía 8+: Juega todas las cartas de tu mano de izquierda a derecha. Todos los objetivos son aleatorios. Entropía 10: Además, todas esas cartas se juegan dos veces',
-  flavorText: 'Cuando la realidad se fractura, todo sucede múltiples veces.'
+  {
+    id: 'realidad_fracturada_10',
+    description: 'Entropía 10: Todas las cartas se juegan dos veces',
+    timing: EffectTiming.ON_PLAY,
+    condition: {
+      type: 'CLASS_RESOURCE',
+      value: 10
+    },
+    action: {
+      type: EffectActionType.TRANSFORM,
+      target: EffectTarget.SELF,
+      value: 'PLAY_ALL_HAND_TWICE_RANDOM_TARGETS'
+    }
+  }
+]
 }
 
 // ==========================================

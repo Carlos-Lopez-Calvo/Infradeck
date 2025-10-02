@@ -90,6 +90,7 @@ export enum EffectActionType {
   // Special effects
   ACTIVATE_ECLIPSE = 'ACTIVATE_ECLIPSE',
   SUMMON_SPECIMEN = 'SUMMON_SPECIMEN',
+  TRANSFORM = 'TRANSFORM',              // Para transformaciones de CICLO y efectos especiales
   
   // Counterspells
   COUNTER_SPELL = 'COUNTER_SPELL',        // Anular hechizo/instantánea
@@ -142,9 +143,12 @@ export enum EffectTarget {
   TARGET_CREATURE = 'TARGET_CREATURE',
   ALL_FRIENDLY_CREATURES = 'ALL_FRIENDLY_CREATURES',
   ALL_ENEMY_CREATURES = 'ALL_ENEMY_CREATURES',
+  ALL_ENEMIES = 'ALL_ENEMIES',          // Para REALIDAD_FRACTURADA
   ALL_CREATURES = 'ALL_CREATURES',
   RANDOM_ENEMY = 'RANDOM_ENEMY',
-  TARGET_SPELL = 'TARGET_SPELL'          // Hechizo/instantánea objetivo
+  RANDOM_CHARACTER = 'RANDOM_CHARACTER',
+  TARGET_SPELL = 'TARGET_SPELL',        // Hechizo/instantánea objetivo
+  CYCLE_CARDS = 'CYCLE_CARDS'           // Para transformaciones de CICLO
 }
 
 // ===== DEFINICIÓN PRINCIPAL DE CARTA =====
@@ -206,6 +210,19 @@ export interface CycleCard extends Omit<Card, 'attack' | 'health' | 'abilities' 
     abilities: Ability[]
     effects: CardEffect[]
   }
+  
+  // Transformación automática según estado del ciclo
+  transformsWithCycle?: boolean     // Si se transforma automáticamente
+  manualTransform?: boolean         // Si puede transformarse manualmente
+}
+
+// Efectos específicos para transformaciones de CICLO
+export interface CycleTransformEffect extends CardEffect {
+  action: {
+    type: EffectActionType.TRANSFORM | EffectActionType.CHANGE_CYCLE_STATE
+    target: EffectTarget.CYCLE_CARDS | EffectTarget.SELF
+    value: CycleState | 'NEXT_CYCLE_STATE' | 'RANDOM_CYCLE_STATE'
+  }
 }
 
 // Para ABOMINACIÓN - Espécimen Perfecto especial
@@ -237,6 +254,37 @@ export function isCreature(card: Card): boolean {
 
 export function hasAbility(card: Card, ability: Ability): boolean {
   return card.abilities.includes(ability)
+}
+
+// Utilidades para cartas de CICLO
+export function getCurrentForm(card: CycleCard, currentState: CycleState) {
+  switch (currentState) {
+    case CycleState.DIA:
+      return card.dayForm
+    case CycleState.NOCHE:
+      return card.nightForm
+    case CycleState.ECLIPSE:
+      return card.eclipseForm
+    default:
+      return card.dayForm
+  }
+}
+
+export function getNextCycleState(currentState: CycleState): CycleState {
+  switch (currentState) {
+    case CycleState.DIA:
+      return CycleState.NOCHE
+    case CycleState.NOCHE:
+      return CycleState.ECLIPSE
+    case CycleState.ECLIPSE:
+      return CycleState.DIA
+    default:
+      return CycleState.DIA
+  }
+}
+
+export function canTransform(card: CycleCard): boolean {
+  return card.transformsWithCycle === true || card.manualTransform === true
 }
 
 // ===== CONSTANTES DEL JUEGO =====

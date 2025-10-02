@@ -135,9 +135,13 @@ export const GUARDIAN_NOVATO: Card = {
   effects: [
     {
       id: 'Guardian_Gain_Taunt',
-      description: 'Al final de tu turno: Si no ha recibido daño, gana Taunt',
+      description: 'Al final de tu turno: Si es la única criatura en el campo, gana Taunt',
       timing: EffectTiming.END_OF_TURN,
-      condition: { type: 'SELF_NOT_DAMAGED_THIS_TURN' },
+      condition: { 
+        type: 'BOARD_STATE',
+        value: 'ONLY_CREATURE_ON_BOARD',
+        comparison: 'EQUAL'
+      },
       action: {
         type: EffectActionType.GAIN_ABILITY,
         target: EffectTarget.SELF,
@@ -146,7 +150,7 @@ export const GUARDIAN_NOVATO: Card = {
       }
     }
   ],
-  description: '0/3 con Escudo. Al final de tu turno: Si no ha recibido daño, gana Taunt',
+  description: '0/3 con Escudo. Al final de tu turno: Si es la única criatura en el campo, gana Taunt',
   flavorText: 'La experiencia viene con la supervivencia.'
 }
 
