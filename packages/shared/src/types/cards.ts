@@ -19,7 +19,6 @@ export enum CardRarity {
 }
 
 export enum ClassType {
-  NEUTRAL = 'NEUTRAL',
   ABOMINACION = 'ABOMINACION',
   CAOS = 'CAOS', 
   CICLO = 'CICLO',
@@ -161,7 +160,7 @@ export interface Card {
   // Propiedades básicas
   type: CardType
   rarity: CardRarity
-  classType: ClassType
+  classType?: ClassType 
   mana: number
   
   // Stats (solo criaturas)

@@ -1445,7 +1445,7 @@ export const GUERRERO_HERIDO: Card = {
   effects: [
     {
       id: 'Guerrero_Blood_Enhancement',
-      description: 'Vida 4: Gana +1/+1 y Regeneración hasta final del turno',
+      description: 'Vida 4: Gana +1/+1 y Prisa hasta final del turno',
       timing: EffectTiming.TRIGGERED,
       condition: {
         type: 'CLASS_RESOURCE',
@@ -1464,7 +1464,7 @@ export const GUERRERO_HERIDO: Card = {
     type: 'VIDA',
     amount: 4
   },
-  description: '2/1 con Robo de vida. Vida 4: Gana +1/+1 y Regeneración hasta final del turno',
+  description: '2/1 con Robo de vida. Vida 4: Gana +1/+1 y Prisa hasta final del turno',
   flavorText: 'La sangre derramada fortalece al guerrero.'
 }
 
@@ -1641,7 +1641,7 @@ export const AVATAR_DE_LA_DESTRUCCION: Card = {
   effects: [
     {
       id: 'Avatar_Scaling_Power',
-      description: 'Vida Y: Gana +Y/+Y donde Y es tu vida máxima menos tu vida actual',
+      description: 'Vida X: Gana +X/+X donde X es la vida que pagues',
       timing: EffectTiming.PASSIVE,
       action: {
         type: EffectActionType.BUFF_STATS,
@@ -1667,6 +1667,6 @@ export const AVATAR_DE_LA_DESTRUCCION: Card = {
       }
     }
   ],
-  description: '1/1. Vida Y: Gana +Y/+Y donde Y es tu vida máxima menos tu vida actual. Al atacar: Si tienes 5 o menos vida, gana Doble golpe',
+  description: '1/1. Vida X: Gana +X/+X donde X es la vida que pagues. Al atacar: Si tienes 5 o menos vida, gana Doble golpe',
   flavorText: 'Más cerca de la muerte, más cerca de la perfección.'
 }

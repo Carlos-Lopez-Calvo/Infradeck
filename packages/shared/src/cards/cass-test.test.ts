@@ -559,7 +559,7 @@ describe('Class Cards General Validation', () => {
     }
 
     allClassCards.forEach(card => {
-      if (card.classType in classCounts) {
+      if (card.classType && card.classType in classCounts) {
         classCounts[card.classType as keyof typeof classCounts]++
       }
     })

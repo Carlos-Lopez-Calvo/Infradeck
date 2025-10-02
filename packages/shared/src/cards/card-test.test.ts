@@ -24,7 +24,7 @@ describe('DISPARO_CERTERO', () => {
     expect(DISPARO_CERTERO.mana).toBe(2)
     expect(DISPARO_CERTERO.type).toBe(CardType.SPELL)
     expect(DISPARO_CERTERO.rarity).toBe(CardRarity.BASIC)
-    expect(DISPARO_CERTERO.classType).toBe(ClassType.NEUTRAL)
+    expect(DISPARO_CERTERO.classType).toBeDefined()
   })
 
   it('should deal appropriate damage for 2 mana', () => {
@@ -366,7 +366,7 @@ describe('Missing Cards Universal Validation', () => {
         expect(card.name).toBeTruthy()
         expect(card.type).toBeDefined()
         expect(card.rarity).toBeDefined()
-        expect(card.classType).toBe(ClassType.NEUTRAL)
+        expect(card.classType).toBeDefined()
         expect(card.mana).toBeGreaterThanOrEqual(2)
         expect(card.mana).toBeLessThanOrEqual(10)
       })

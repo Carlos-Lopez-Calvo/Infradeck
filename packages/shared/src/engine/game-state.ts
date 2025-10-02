@@ -129,6 +129,34 @@ return {
     priorityPassed: [false, false],  // ← añadir esto
   }
   }
+
+ export function createInitialGameState(): GameState {
+  const basicDeck = [
+    // ✅ USAR IDs que SÍ EXISTEN en tus cartas:
+    'Ultima_Oportunidad', 'Ultima_Oportunidad', 'Ultima_Oportunidad', 'Ultima_Oportunidad',
+    'Mercenario_Agil', 'Mercenario_Agil', 'Mercenario_Agil', 'Mercenario_Agil', 
+    'Explorador_Astuto', 'Explorador_Astuto', 'Asesino_Silencioso', 'Asesino_Silencioso',
+    'Guardian_Novato', 'Guardian_Novato', 'Reflejo_Rapido', 'Reflejo_Rapido'
+  ]
+
+  const player1 = {
+    id: 'player1',
+    name: 'Player 1',
+    classType: 'ABOMINACION',
+    deck: [...basicDeck]
+  }
+
+  const player2 = {
+    id: 'player2', 
+    name: 'Player 2',
+    classType: 'CAOS',
+    deck: [...basicDeck]
+  }
+
+  const gameState = createGame(player1, player2)
+  startGame(gameState)
+  return gameState
+}
   
   export function startGame(state: GameState): void {
     // Mano inicial: 5 para P1, 6 para P2
@@ -426,12 +454,12 @@ export type GetCardById = (id: string) => Card | undefined
 export type PlayResult = { ok: true } | { ok: false, error: string }
 
 export function playCard(
-    state: GameState,
-    playerIndex: number,
-    handIndex: number,
-    getCardById: GetCardById,
-    options?: PlayOptions
-  ): PlayResult {
+  state: GameState,
+  playerIndex: number,
+  handIndex: number,
+  getCardById: GetCardById,  // ← ESTE es el problema
+  options?: PlayOptions
+): PlayResult {
     if (playerIndex !== getCurrentPlayerIndex(state) && !isInstantInPriority(state, playerIndex, handIndex, getCardById)) {
       return { ok: false, error: 'No es tu turno o no es ventana de prioridad para instantáneas' }
     }
@@ -1397,4 +1425,3 @@ export function activateFinalStand(state: GameState, playerIndex: number): void 
     p.maxLife = 10
     p.life = Math.min(p.life, 1)
   }
-
