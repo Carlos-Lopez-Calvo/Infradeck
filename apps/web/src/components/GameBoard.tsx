@@ -2,14 +2,14 @@ import { motion } from 'framer-motion'
 import { useGameEngine } from '../hooks/useGameEngine'
 import { Hand } from './Hand'
 import { Card } from './Card'
+import { hasFinalStandImmunity } from '@infradeck/shared'
 import { getCardById } from '../utils/gameHelpers'
-import { useState } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import clsx from 'clsx'
 
 export function GameBoard() {
   const { gameState, logs, actions, stack, canRespond } = useGameEngine()
   
-  // ✅ Estado para modo de combate
   const [combatState, setCombatState] = useState<{
     attackingCreatureIndex: number | null
     targetingMode: 'HERO' | 'CREATURE' | null
@@ -18,47 +18,99 @@ export function GameBoard() {
     targetingMode: null
   })
 
-  // ✅ Estado para targeting de hechizos
   const [spellTargeting, setSpellTargeting] = useState<{
     cardId: string
     needsTarget: boolean
   } | null>(null)
 
+  const [shownFinalStand, setShownFinalStand] = useState([false, false])
+  const [showFinalStand, setShowFinalStand] = useState(false)
+  const lastLife = useRef([gameState.players[0].life, gameState.players[1].life])
+  const timerRef = useRef<NodeJS.Timeout | null>(null)
+
+  useEffect(() => {
+    gameState.players.forEach((p, idx) => {
+      const prevLife = lastLife.current[idx]
+      const nowLife = p.life
+      const activated = p.finalStand?.used
+
+      if (
+        prevLife > 0 &&
+        nowLife === 1 &&
+        activated &&
+        !shownFinalStand[idx]
+      ) {
+        setShowFinalStand(true)
+        setShownFinalStand(prev => {
+          const copy = [...prev]
+          copy[idx] = true
+          return copy
+        })
+        setTimeout(() => {
+          setShowFinalStand(false)
+        }, 5000)
+      }
+      lastLife.current[idx] = nowLife
+    })
+  }, [
+    gameState.players[0].life,
+    gameState.players[1].life,
+    gameState.players[0].finalStand?.used,
+    gameState.players[1].finalStand?.used,
+    shownFinalStand
+  ])
+
+  useEffect(() => {
+    if (showFinalStand !== null) {
+      if (timerRef.current) clearTimeout(timerRef.current)
+      timerRef.current = setTimeout(() => {
+        setShowFinalStand(false)
+        timerRef.current = null
+      }, 5000)
+    }
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current)
+        timerRef.current = null
+      }
+    }
+  }, [showFinalStand])
+
   const player = gameState.players[0]
+  const specimenSummons = player.specimenSummons ?? 0
+  const specimenCost = Math.min(10, 5 + 2 * specimenSummons)
+  const specimenCardId = 'Especimen_Perfecto' // ID real del espécimen
+
+  // Lógica para saber si puedes invocar el espécimen
+  const canSummonSpecimen =
+    player.classType === 'ABOMINACION' &&
+    player.mana >= specimenCost &&
+    /* añade aquí cualquier otra condición necesaria, por ejemplo: */
+    // player.board.length < maxBoardSize
+    true // <-- elimina o ajusta según tu lógica
+
   const opponent = gameState.players[1]
   const isPlayerTurn = gameState.turn.currentPlayerIndex === 0
   const isCombatPhase = gameState.turn.phase === 'COMBAT'
 
-  // ✅ Función para manejar ataques de criaturas con spell targeting
   const handleCreatureClick = (creatureIndex: number, isPlayerCreature: boolean) => {
-    // ✅ Spell targeting primero
     if (spellTargeting) {
       const targetId = isPlayerCreature 
         ? `player-creature-${creatureIndex}`
         : `opponent-creature-${creatureIndex}`
-      
       actions.playCard(spellTargeting.cardId, targetId)
       setSpellTargeting(null)
       return
     }
-
-    // Resto de lógica de combate
     if (!isPlayerTurn || !isCombatPhase) return
-
     if (isPlayerCreature) {
-      // Seleccionar atacante
       const creature = player.board[creatureIndex]
-      if (!creature || creature.exhausted) {
-        console.log('Creature cannot attack (exhausted or invalid)')
-        return
-      }
-      
+      if (!creature || creature.exhausted) return
       setCombatState({
         attackingCreatureIndex: creatureIndex,
         targetingMode: 'CREATURE'
       })
     } else {
-      // Atacar criatura enemiga
       if (combatState.attackingCreatureIndex !== null) {
         actions.attackCreature(combatState.attackingCreatureIndex, creatureIndex)
         setCombatState({
@@ -69,17 +121,13 @@ export function GameBoard() {
     }
   }
 
-  // ✅ Función para atacar al héroe oponente
   const handleHeroClick = () => {
-    // ✅ Spell targeting para héroe
     if (spellTargeting) {
       actions.playCard(spellTargeting.cardId, 'opponent-hero')
       setSpellTargeting(null)
       return
     }
-
     if (!isPlayerTurn || !isCombatPhase) return
-    
     if (combatState.attackingCreatureIndex !== null) {
       actions.attackHero(combatState.attackingCreatureIndex)
       setCombatState({
@@ -99,16 +147,12 @@ export function GameBoard() {
             Turn: {gameState.turn.turnNumber} | Phase: {gameState.turn.phase}
           </div>
         </div>
-        
         <div className="flex items-center gap-4">
-          {/* Stack indicator */}
           {stack.length > 0 && (
             <div className="bg-orange-600 px-3 py-1 rounded text-white text-sm">
               Stack: {stack.length}
             </div>
           )}
-          
-          {/* Turn indicator */}
           <div className={clsx(
             'px-3 py-1 rounded text-sm font-bold',
             isPlayerTurn 
@@ -117,8 +161,6 @@ export function GameBoard() {
           )}>
             {isPlayerTurn ? 'Your Turn' : 'Opponent Turn'}
           </div>
-
-          {/* ✅ Botón de control de turno dinámico */}
           <button
             onClick={() => {
               if (isPlayerTurn) {
@@ -146,22 +188,17 @@ export function GameBoard() {
                 : 'End Turn'
             }
           </button>
-
-          {/* ✅ Indicador de combate */}
+          <button onClick={() => setShowFinalStand(true)}>Test Final Stand Overlay</button>
           {isCombatPhase && combatState.attackingCreatureIndex !== null && (
             <div className="bg-yellow-600 px-3 py-1 rounded text-white text-sm animate-pulse">
               Select Target
             </div>
           )}
-
-          {/* ✅ Indicador de spell targeting */}
           {spellTargeting && (
             <div className="bg-purple-600 px-3 py-1 rounded text-white text-sm animate-pulse">
               🎯 Select Target for Spell
             </div>
           )}
-
-          {/* ✅ Botón para cancelar targeting */}
           {spellTargeting && (
             <button
               onClick={() => {
@@ -179,7 +216,6 @@ export function GameBoard() {
       <div className="flex-1 flex flex-col">
         {/* Opponent Area */}
         <div className="p-4 bg-red-900/20 border-b border-red-800">
-          {/* ✅ Opponent Hero - Clickeable en combate y spell targeting */}
           <div className="flex justify-between items-center mb-2">
             <div className="flex items-center gap-4">
               <h3 className="text-lg font-bold text-red-300">{opponent.name}</h3>
@@ -210,8 +246,6 @@ export function GameBoard() {
               Hand: {opponent.hand.length} | Deck: {opponent.deck.length}
             </div>
           </div>
-
-          {/* ✅ Opponent Field - Criaturas clickeables */}
           <div className="min-h-24 bg-red-900/30 rounded-lg p-2 border border-red-800">
             <div className="flex gap-2 flex-wrap">
               {opponent.board.length === 0 ? (
@@ -222,11 +256,9 @@ export function GameBoard() {
                 opponent.board.map((creature, index) => {
                   const card = getCardById(creature.cardId)
                   if (!card || !('abilities' in card)) return null
-                  
                   const isValidCombatTarget = isCombatPhase && isPlayerTurn && combatState.attackingCreatureIndex !== null
                   const isValidSpellTarget = spellTargeting !== null
                   const isValidTarget = isValidCombatTarget || isValidSpellTarget
-                  
                   return (
                     <motion.div
                       key={`opponent-${creature.cardId}-${index}`}
@@ -269,7 +301,6 @@ export function GameBoard() {
                   const card = stackItem.cardData
                   const displayName = card ? card.name : stackItem.sourceId
                   const displayDescription = card ? card.description : `${stackItem.type} effect`
-                  
                   return (
                     <div
                       key={index}
@@ -284,7 +315,6 @@ export function GameBoard() {
                   )
                 })}
               </div>
-              
               {canRespond && (
                 <div className="mt-2 text-center">
                   <button
@@ -326,8 +356,6 @@ export function GameBoard() {
               </div>
             </div>
           </div>
-
-          {/* ✅ Player Field - Criaturas atacantes */}
           <div className="min-h-24 bg-green-900/30 rounded-lg p-2 border border-green-800 mb-4">
             <div className="flex gap-2 flex-wrap">
               {player.board.length === 0 ? (
@@ -338,11 +366,9 @@ export function GameBoard() {
                 player.board.map((creature, index) => {
                   const card = getCardById(creature.cardId)
                   if (!card || !('abilities' in card)) return null
-                  
                   const canAttack = isCombatPhase && isPlayerTurn && !creature.exhausted
                   const isSelected = combatState.attackingCreatureIndex === index
                   const isValidSpellTarget = spellTargeting !== null
-                  
                   return (
                     <motion.div
                       key={`player-${creature.cardId}-${index}`}
@@ -373,37 +399,52 @@ export function GameBoard() {
         </div>
 
         {/* Player Hand */}
-        <Hand 
-          cards={player.hand}
-          availableMana={player.mana}
-          onCardPlay={(cardId) => {
-            const card = getCardById(cardId)
-            if (card && card.type === 'SPELL' && 'targeting' in card && card.targeting && card.targeting !== 'NONE') {
-              setSpellTargeting({ cardId, needsTarget: true })
-            } else {
-              actions.playCard(cardId)
-            }
-          }}
-        />
-      </div>
+        <Hand
+  cards={player.hand}
+  availableMana={player.mana}
+  onCardPlay={(cardId) => {
+    const card = getCardById(cardId)
+    if (card && card.type === 'SPELL' && 'targeting' in card && card.targeting && card.targeting !== 'NONE') {
+      setSpellTargeting({ cardId, needsTarget: true })
+    } else {
+      actions.playCard(cardId)
+    }
+  }}
+  canSummonSpecimen={canSummonSpecimen}
+  specimenCost={specimenCost}
+  onSummonSpecimen={() => {
+    actions.summonSpecimen()
+  }}
+  specimenCardId={'Especimen_Perfecto'}
+  classType={player.classType}
+/>
 
-      {/* Game Log Sidebar */}
-      <div className="fixed right-0 bottom-0 w-40 h-40 bg-slate-800/95 border-l border-slate-700 p-4 overflow-hidden flex flex-col">
-        <h3 className="text-sm font-bold text-white mb-1">Game Log</h3>
-        <div className="flex-1 overflow-y-auto space-y-0.5">
-          {logs.length === 0 ? (
-            <div className="text-slate-500 italic text-xs">No actions yet...</div>
-          ) : (
-            logs.map((log, index) => (
-              <div
-                key={index}
-                className="text-xs text-slate-300 p-1 bg-slate-700/50 rounded"
-              >
-                {log}
+        {/* Final Stand Indicators */}
+        {showFinalStand && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none"
+            style={{ background: 'rgba(80,0,120,0.25)' }}
+          >
+            <div className="bg-purple-900/90 border-4 border-yellow-400 rounded-xl px-8 py-6 text-center shadow-xl animate-pulse">
+              <div className="text-3xl font-bold text-yellow-300 mb-2">
+                ⚡ FINAL STAND ⚡
               </div>
-            ))
-          )}
-        </div>
+              <div className="text-lg text-white">
+                ¡Un jugador ha entrado en Final Stand!<br />
+                <span className="text-yellow-200">¡Vida máxima reducida a 10!</span>
+              </div>
+              <div className="mt-4 text-xs text-gray-200">
+                Se cerrará automáticamente
+              </div>
+            </div>
+          </div>
+        )}
+
+        {player.finalStand?.used && (
+          <div className="text-sm text-purple-300 mt-1">
+            Bonus de clase activo: <span className="font-bold">{player.classType}</span>
+          </div>
+        )}
       </div>
     </div>
   )

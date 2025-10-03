@@ -1,9 +1,24 @@
 # 🎮 Infradeck
 
-## Visión
-Infradeck es una web app full‑stack de un juego de cartas 1v1. El repositorio prioriza un engine compartido en TypeScript, una UI web (React/Vite) y un backend con sincronización (WS), con tests automatizados que garantizan paridad entre diseño y ejecución.
+## Objetivos del TFG
 
-> Fast-paced 1v1 card game webapp with unique class mechanics and strategic depth
+Infradeck será un juego de cartas digital completo, incluyendo:
+- Inicio de sesión y gestión de usuarios
+- Colección de cartas y sistema de sobres/recompensas
+- Deckbuilder con selección de clase y edición de mazos
+- Motor de juego avanzado con mecánicas de clase y Final Stand
+- UI web completa con animaciones y feedback
+- Pantalla de victoria/derrota y estadísticas
+- Progreso, economía y tienda
+- Documentación técnica y manual de usuario
+
+## Estado actual
+
+- Motor de juego y cartas: **100% funcional**
+- UI básica: **en desarrollo**
+- Sistema de clases, Final Stand y mecánicas avanzadas: **implementadas**
+- Siguiente paso: **UI completa, deckbuilder, colección y sobres**
+
 
 ## 🎯 What We're Building
 

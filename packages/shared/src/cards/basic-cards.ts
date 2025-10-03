@@ -53,7 +53,7 @@ export const MERCENARIO_AGIL: Card = {
   type: CardType.CREATURE,
   rarity: CardRarity.BASIC,
   mana: 1,
-  attack: 2,
+  attack: 21,
   health: 1,
   abilities: [Ability.SIGILO],
   effects: [

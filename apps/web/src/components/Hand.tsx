@@ -2,6 +2,7 @@ import { motion } from 'framer-motion'
 import { Card } from './Card'
 import { getCardById } from '../utils/gameHelpers'
 import { isCardPlayable } from '../utils/cardHelpers'
+import React, { useState } from 'react'
 import clsx from 'clsx'
 
 interface HandProps {
@@ -10,6 +11,10 @@ interface HandProps {
   onCardPlay: (cardId: string) => void
   maxHandSize?: number
   className?: string
+  canSummonSpecimen?: boolean
+  specimenCost?: number
+  onSummonSpecimen?: () => void
+  specimenCardId?: string
 }
 
 export function Hand({ 
@@ -17,15 +22,57 @@ export function Hand({
   availableMana, 
   onCardPlay, 
   maxHandSize = 10,
-  className 
-}: HandProps) {
+  className,
+  canSummonSpecimen = false,
+  specimenCost = 0,
+  onSummonSpecimen,
+  specimenCardId,
+  classType, // <-- Añade esta prop
+}: HandProps & { classType?: string }) { // <-- Añade classType a las props
   const isHandFull = cards.length >= maxHandSize
+  const [showSpecimenTooltip, setShowSpecimenTooltip] = useState(false)
 
   return (
     <div className={clsx(
       'relative flex items-end justify-center p-4 bg-slate-800/50 rounded-t-lg border-t-2 border-slate-700',
       className
     )}>
+      {/* Botón de invocación de Espécimen Perfecto solo si la clase es Abominación */}
+      {onSummonSpecimen && classType === 'ABOMINACION' && (
+  <div className="absolute left-1/2 flex flex-col items-center -top-16">
+    <div className="relative flex flex-col items-center">
+      <button
+        onClick={onSummonSpecimen}
+        disabled={!canSummonSpecimen}
+        className={clsx(
+          "w-12 h-12 rounded-full font-bold shadow-lg flex items-center justify-center text-lg transition-all",
+          canSummonSpecimen
+            ? "bg-purple-700 hover:bg-purple-800 text-yellow-300 animate-pulse ring-2 ring-yellow-400"
+            : "bg-gray-700 text-gray-400 opacity-50 cursor-not-allowed"
+        )}
+        onMouseEnter={() => setShowSpecimenTooltip(true)}
+        onMouseLeave={() => setShowSpecimenTooltip(false)}
+        aria-label="Invocar Espécimen Perfecto"
+      >
+        {specimenCost}
+      </button>
+      {/* Tooltip solo al hacer hover */}
+      {specimenCardId && showSpecimenTooltip && (() => {
+        const specimenCard = getCardById(specimenCardId)
+        return specimenCard && 'abilities' in specimenCard ? (
+          <div className="absolute left-1/2 -translate-x-1/2 top-14 z-50">
+            <Card
+              card={specimenCard}
+              isPlayable={canSummonSpecimen}
+              isInHand={false}
+            />
+          </div>
+        ) : null
+      })()}
+    </div>
+  </div>
+)}
+
       {/* Hand size indicator */}
       <div className="absolute top-2 right-4 text-xs text-slate-400">
         {cards.length}/{maxHandSize}
@@ -121,18 +168,6 @@ export function Hand({
           <span className="text-xs text-slate-400">Mana</span>
         </div>
       </div>
-
-      {/* Play hint */}
-      {cards.some(cardId => {
-        const card = getCardById(cardId)
-        return card && 'abilities' in card && isCardPlayable(card, availableMana)
-      }) && (
-        <div className="absolute -top-8 left-1/2 transform -translate-x-1/2">
-          <div className="bg-green-600 text-white px-2 py-1 rounded text-xs animate-pulse">
-            Click playable cards to play them!
-          </div>
-        </div>
-      )}
     </div>
   )
 }

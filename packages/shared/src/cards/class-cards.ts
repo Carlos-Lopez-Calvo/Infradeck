@@ -11,6 +11,7 @@ import {
   EffectActionType  
 } from '../types/cards'
 
+
 /**
  * CARTAS DE CLASE - Implementación Completa  
  * 43 cartas total: 40 de clase + 3 versiones Espécimen Perfecto

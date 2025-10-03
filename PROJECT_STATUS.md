@@ -1,27 +1,26 @@
 # 📊 PROJECT STATUS - INFRADECK
 
-## 🎯 **Objetivo del Proyecto**
-Construir una web app full‑stack de un juego de cartas (frontend React, backend Node/WS) reutilizando `@infradeck/shared` como única fuente de lógica de juego.
+## 🎯 Objetivo del TFG
+Construir una web app full‑stack de un juego de cartas coleccionables:
+- Registro/login y gestión de usuarios
+- Colección y sobres para conseguir cartas
+- Deckbuilder con selección de clase y edición de mazos
+- Motor de juego avanzado y UI completa
+- Estadísticas, tienda y progresión
 
-## ✅ **Estado Actual - Fase 2.1: Engine MVP Completo**
+## ✅ Estado actual
+- Engine y cartas: 100% funcional
+- UI básica: en desarrollo
+- Siguiente: deckbuilder, colección, sobres y sistema de usuario
 
-### **🚀 Engine de Juego (COMPLETADO)**
-- ✅ **Stack System Real**: LIFO con ventanas de prioridad completas
-- ✅ **APIs de Prioridad**: `getStack`, `canRespond`, `respondWithCard`, `passPriority`, `resolveStack`
-- ✅ **14/14 Tests Verdes**: Cobertura completa de mecánicas avanzadas
-- ✅ **Efectos Avanzados**: RANDOM_BY_ENTROPY, DISCOVER, LIFE_DIFFERENTIAL, COUNTER_SPELL, Espécimen
-
-### **🃏 Sistema de Cartas (COMPLETADO)**
-- ✅ **70 Cartas Implementadas**: 30 básicas + 40 de clase
-- ✅ **92 Tests de Cartas**: Validación completa de todas las cartas
-- ✅ **4 Clases Balanceadas**: ABOMINACIÓN, CAOS, CICLO, VITALIDAD  
-- ✅ **9 Habilidades**: Sistema completo de keywords
-
-### **🔧 Arquitectura Técnica (COMPLETADO)**
-- ✅ **Monorepo**: PNPM workspaces configurado
-- ✅ **TypeScript**: Types compartidos y validaciones
-- ✅ **Testing**: Vitest con cobertura completa
-- ✅ **Shared Package**: Lógica de juego centralizada
+## 🗺️ Roadmap
+1. **UI completa para partidas**
+2. **Deckbuilder y selección de clase**
+3. **Colección y sistema de sobres**
+4. **Inicio de sesión y gestión de usuarios**
+5. **Pantalla de victoria/derrota y estadísticas**
+6. **Economía, tienda y recompensas**
+7. **Documentación técnica y manual de usuario**
 
 ## 🎲 **Mecánicas Implementadas**
 
