@@ -251,10 +251,6 @@ export function isCreature(card: Card): boolean {
   return card.type === CardType.CREATURE
 }
 
-export function hasAbility(card: Card, ability: Ability): boolean {
-  return card.abilities.includes(ability)
-}
-
 // Utilidades para cartas de CICLO
 export function getCurrentForm(card: CycleCard, currentState: CycleState) {
   switch (currentState) {

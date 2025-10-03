@@ -1,5 +1,44 @@
+import { GameState, CreatureOnBoard, AttackResult, GamePhase } from './game-state'
+import { getCurrentPlayerIndex, getOpponentPlayerIndex } from './turns'
+import { hasFinalStandImmunity, checkAndActivateFinalStand } from './final-stand'
+import { notifyEffectTriggered, notifyLeaveBattlefield, triggerPriority } from './priority'
+import { Ability } from '../types/cards'
 
+// =======================
+// Helpers de habilidades
+// =======================
 
+// Comprueba si una criatura tiene una habilidad concreta
+export function hasAbility(creature: CreatureOnBoard, ability: Ability): boolean {
+  return creature.abilities?.some(a => a === String(ability)) ?? false
+}
+
+// Comprueba si el enemigo tiene alguna criatura con Taunt
+export function enemyHasTaunt(state: GameState, enemyIndex: number): boolean {
+  return state.players[enemyIndex].board.some(c => hasAbility(c, Ability.TAUNT))
+}
+
+// Aplica efectos de habilidades especiales tras eventos de combate
+export function applyAbilityEffects(
+  state: GameState, 
+  creature: CreatureOnBoard, 
+  playerIndex: number, 
+  event: 'ON_ATTACK' | 'ON_DEFEND' | 'ON_DAMAGE_TAKEN' | 'ON_KILL'
+): void {
+  const abilities = creature.abilities || []
+  
+  // REGENERACIÓN: revive con 1 vida al recibir daño mortal
+  if (event === 'ON_DAMAGE_TAKEN' && creature.health <= 0 && abilities.includes(String(Ability.REGENERACION))) {
+    creature.health = 1
+    creature.abilities = creature.abilities.filter(a => a !== String(Ability.REGENERACION))
+  }
+}
+
+// =======================
+// Lógica de combate
+// =======================
+
+// Ataque a héroe enemigo
 export function declareAttackHero(state: GameState, attackerIndex: number, attackerBoardIndex: number): AttackResult {
   const active = getCurrentPlayerIndex(state)
   if (attackerIndex !== active) return { ok: false, error: 'No es tu turno' }
@@ -12,58 +51,56 @@ export function declareAttackHero(state: GameState, attackerIndex: number, attac
   if (!atk) return { ok: false, error: 'Atacante inválido' }
   if (atk.exhausted) return { ok: false, error: 'Esta criatura está exhausta' }
 
-  // ✅ TAUNT: si el oponente tiene criaturas con Taunt, debes atacarlas
+  // TAUNT: si el oponente tiene criaturas con Taunt, debes atacarlas primero
   const taunters = opp.board.filter(c => hasAbility(c, Ability.TAUNT))
   if (taunters.length > 0) {
     return { ok: false, error: 'Debes atacar las criaturas con Taunt primero' }
   }
 
-  // ✅ SIGILO: SE PIERDE AL ATACAR - Quitar Sigilo del atacante
+  // SIGILO: se pierde al atacar
   if (hasAbility(atk, Ability.SIGILO)) {
     atk.abilities = atk.abilities.filter(a => a !== String(Ability.SIGILO))
-    console.log(`🫥 ${atk.cardId} loses Sigilo after attacking hero`)
+    console.log(`🫥 ${atk.cardId} pierde Sigilo tras atacar al héroe`)
   }
 
-  // ON_ATTACK triggers
+  // Triggers ON_ATTACK
   notifyEffectTriggered(state, attackerIndex, atk.cardId, 'ON_ATTACK')
 
   // Daño al héroe
   const damage = atk.attack ?? 0
   const oldLife = opp.life 
 
+  // Final Stand: inmunidad al daño letal
   if (hasFinalStandImmunity(state, oppIndex)) {
-    console.log(`🛡️ Target is immune to attack damage (Final Stand)`)
+    console.log(`🛡️ El objetivo es inmune al daño de ataque (Final Stand)`)
     atk.exhausted = true
-    return { ok: true } // Ataque "conecta" pero no hace daño
+    return { ok: true }
   }
   
   opp.life = Math.max(0, opp.life - damage)
-  console.log(`⚔️ Hero attack: ${damage} damage (${oldLife} → ${opp.life})`)
+  console.log(`⚔️ Ataque al héroe: ${damage} daño (${oldLife} → ${opp.life})`)
   
-  // ✅ Verificar Final Stand si el daño fue letal
+  // Verificar Final Stand si el daño fue letal
   if (opp.life <= 0 && oldLife > 0) {
     const finalStandActivated = checkAndActivateFinalStand(
       state, 
       oppIndex, 
-      attackerIndex // Atacante causó el daño
+      attackerIndex
     )
-    
     if (finalStandActivated) {
-      console.log(`⚡ Final Stand prevented death from creature attack`)
+      console.log(`⚡ Final Stand evitó la muerte por ataque de criatura`)
     }
   }
 
-  // ✅ ROBO_DE_VIDA: cura al dueño
+  // ROBO_DE_VIDA: cura al atacante
   if (damage > 0 && hasAbility(atk, Ability.ROBO_DE_VIDA)) {
     me.life = Math.min(me.maxLife || 20, me.life + damage)
   }
 
-  // ✅ DOBLE_GOLPE: segundo impacto al héroe
+  // DOBLE_GOLPE: segundo impacto al héroe
   if (hasAbility(atk, Ability.DOBLE_GOLPE)) {
     const secondDamage = atk.attack ?? 0
     opp.life -= secondDamage
-    
-    // Robo de vida por el segundo golpe
     if (secondDamage > 0 && hasAbility(atk, Ability.ROBO_DE_VIDA)) {
       me.life = Math.min(me.maxLife || 20, me.life + secondDamage)
     }
@@ -77,7 +114,7 @@ export function declareAttackHero(state: GameState, attackerIndex: number, attac
   return { ok: true }
 }
 
-
+// Ataque a criatura enemiga
 export function declareAttackCreature(state: GameState, attackerIndex: number, attackerBoardIndex: number, defenderBoardIndex: number): AttackResult {
   const active = getCurrentPlayerIndex(state)
   if (attackerIndex !== active) return { ok: false, error: 'No es tu turno' }
@@ -92,60 +129,56 @@ export function declareAttackCreature(state: GameState, attackerIndex: number, a
   if (!def) return { ok: false, error: 'Defensor inválido' }
   if (atk.exhausted) return { ok: false, error: 'Esta criatura está exhausta' }
 
-  // ✅ SIGILO: el defensor no puede ser targeteado si tiene Sigilo
+  // SIGILO: el defensor no puede ser targeteado si tiene Sigilo
   if (hasAbility(def, Ability.SIGILO)) {
     return { ok: false, error: 'No puedes atacar a una criatura con Sigilo' }
   }
 
-  // ✅ VUELO: solo criaturas con Vuelo pueden atacar criaturas con Vuelo
+  // VUELO: solo criaturas con Vuelo pueden atacar criaturas con Vuelo
   if (hasAbility(def, Ability.VUELO) && !hasAbility(atk, Ability.VUELO)) {
     return { ok: false, error: 'No puedes atacar a una criatura con Vuelo sin tener Vuelo' }
   }
 
-  // ✅ SIGILO: SE PIERDE AL ATACAR - Quitar Sigilo del atacante
+  // SIGILO: se pierde al atacar
   if (hasAbility(atk, Ability.SIGILO)) {
     atk.abilities = atk.abilities.filter(a => a !== String(Ability.SIGILO))
-    console.log(`🫥 ${atk.cardId} loses Sigilo after attacking`)
+    console.log(`🫥 ${atk.cardId} pierde Sigilo tras atacar`)
   }
 
-  // ON_ATTACK triggers
+  // Triggers ON_ATTACK
   notifyEffectTriggered(state, attackerIndex, atk.cardId, 'ON_ATTACK')
 
   // Daño simultáneo
   const atkDamage = atk.attack ?? 0
   const defDamage = def.attack ?? 0
 
-  // ✅ ESCUDO: previene el próximo daño que recibiría
+  // ESCUDO: previene el próximo daño recibido
   const attackerHasShield = hasAbility(atk, Ability.ESCUDO)
   const defenderHasShield = hasAbility(def, Ability.ESCUDO)
 
-  // Aplicar daño a defensor
+  // Aplicar daño al defensor
   if (defenderHasShield) {
     def.abilities = def.abilities.filter(a => a !== String(Ability.ESCUDO))
   } else {
     def.health -= atkDamage
     def.damagedThisTurn = true
-    
-    // ✅ Aplicar efectos después del daño
     applyAbilityEffects(state, def, oppIndex, 'ON_DAMAGE_TAKEN')
   }
 
-  // Aplicar daño a atacante
+  // Aplicar daño al atacante
   if (attackerHasShield) {
     atk.abilities = atk.abilities.filter(a => a !== String(Ability.ESCUDO))
   } else {
     atk.health -= defDamage
     atk.damagedThisTurn = true
-    
-    // ✅ Aplicar efectos después del daño
     applyAbilityEffects(state, atk, attackerIndex, 'ON_DAMAGE_TAKEN')
   }
 
-  // ✅ VENENO: cualquier daño que conecte destruye
+  // VENENO: cualquier daño que conecte destruye
   if (atkDamage > 0 && hasAbility(atk, Ability.VENENO)) def.health = 0
   if (defDamage > 0 && hasAbility(def, Ability.VENENO)) atk.health = 0
 
-  // ✅ ROBO_DE_VIDA: cura al dueño por el daño que hace
+  // ROBO_DE_VIDA: cura al dueño por el daño que hace
   if (atkDamage > 0 && hasAbility(atk, Ability.ROBO_DE_VIDA)) {
     me.life = Math.min(me.maxLife || 20, me.life + atkDamage)
   }
@@ -159,13 +192,11 @@ export function declareAttackCreature(state: GameState, attackerIndex: number, a
     opp.graveyard.unshift(dead.cardId)
     notifyLeaveBattlefield(state, oppIndex, dead.id)
     notifyEffectTriggered(state, oppIndex, dead.cardId, 'ON_DEATH')
-    
-    // ✅ Trigger ON_KILL para el atacante si sobrevive
+    // ON_KILL para el atacante si sobrevive
     if (atk.health > 0) {
       applyAbilityEffects(state, atk, attackerIndex, 'ON_KILL')
     }
   }
-  
   if (atk.health <= 0) {
     const [dead] = me.board.splice(attackerBoardIndex, 1)
     me.graveyard.unshift(dead.cardId)
@@ -178,13 +209,12 @@ export function declareAttackCreature(state: GameState, attackerIndex: number, a
     me.board[attackerBoardIndex].exhausted = true
   }
 
-  // ✅ DOBLE_GOLPE: segundo impacto solo del atacante
+  // DOBLE_GOLPE: segundo impacto solo del atacante
   if (hasAbility(atk, Ability.DOBLE_GOLPE)) {
     const atkNow = me.board[attackerBoardIndex]
     const defNow = opp.board[defenderBoardIndex]
     if (atkNow && defNow) {
       const dmg = atkNow.attack ?? 0
-
       // Escudo del defensor para el segundo golpe
       const defenderHasShield2 = hasAbility(defNow, Ability.ESCUDO)
       if (defenderHasShield2) {
@@ -194,22 +224,18 @@ export function declareAttackCreature(state: GameState, attackerIndex: number, a
         defNow.damagedThisTurn = true
         applyAbilityEffects(state, defNow, oppIndex, 'ON_DAMAGE_TAKEN')
       }
-      
       // Veneno del atacante en el segundo golpe
       if (dmg > 0 && hasAbility(atkNow, Ability.VENENO)) defNow.health = 0
-
       // Robo de vida por el segundo golpe
       if (dmg > 0 && hasAbility(atkNow, Ability.ROBO_DE_VIDA)) {
         me.life = Math.min(me.maxLife || 20, me.life + dmg)
       }
-
       // Muerte del defensor tras segundo golpe
       if (defNow.health <= 0) {
         const [dead] = opp.board.splice(defenderBoardIndex, 1)
         opp.graveyard.unshift(dead.cardId)
         notifyLeaveBattlefield(state, oppIndex, dead.id)
         notifyEffectTriggered(state, oppIndex, dead.cardId, 'ON_DEATH')
-        
         // ON_KILL trigger por segundo golpe
         if (atkNow.health > 0) {
           applyAbilityEffects(state, atkNow, attackerIndex, 'ON_KILL')
@@ -221,4 +247,25 @@ export function declareAttackCreature(state: GameState, attackerIndex: number, a
   // Prioridad después del combate
   triggerPriority(state, state.turn.phase)
   return { ok: true }
+}
+
+// =======================
+// Targeting y helpers
+// =======================
+
+// Valida si una criatura puede ser objetivo de una acción
+export function canTargetCreature(
+  state: GameState, 
+  targetPlayerIndex: number, 
+  targetCreatureIndex: number, 
+  sourcePlayerIndex: number,
+  sourceType: 'SPELL' | 'ABILITY' | 'ATTACK'
+): boolean {
+  const target = state.players[targetPlayerIndex].board[targetCreatureIndex]
+  if (!target) return false
+  // SIGILO: No puede ser targeteado por hechizos/habilidades enemigas
+  if (hasAbility(target, Ability.SIGILO) && targetPlayerIndex !== sourcePlayerIndex && sourceType !== 'ATTACK') {
+    return false
+  }
+  return true
 }

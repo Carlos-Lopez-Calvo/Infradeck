@@ -3,21 +3,23 @@ import { getCardById as getCardByIdHelper } from '../utils/gameHelpers'
 import { sampleDecks } from '../utils/sample-decks'
 
 import { 
-  GameState, 
+  GameState,
   createInitialGameState,
   playCard as enginePlayCard,
   passPriority as enginePassPriority,
-  respondWithCard as engineRespondWithCard,
   beginCombat as engineBeginCombat,
   nextTurn as engineNextTurn,
   declareAttackHero as engineAttackHero,
   declareAttackCreature as engineAttackCreature,
   getStack,
-  canRespond,
-  setCardResolver, hasFinalStandImmunity,
+  setCardResolver,
+  hasFinalStandImmunity,
   summonSpecimen as engineSummonSpecimen,
-  type GetCardById
+  getCardByIdGlobal,
+  
 } from '@infradeck/shared'
+
+type GetCardById = (id: string) => ReturnType<typeof getCardByIdHelper> | undefined;
 
 const getCardById: GetCardById = (id: string) => {
   const card = getCardByIdHelper(id)
@@ -32,7 +34,7 @@ export function useGameEngine(selectedClass: keyof typeof sampleDecks = 'ABOMINA
     }),
     undefined,  
     () => {     
-      setCardResolver(getCardById)
+      setCardResolver(getCardByIdGlobal)
       const initial = createInitialGameState()
       // Inicializa el mazo y la clase del jugador 0
       initial.players[0].deck = [...sampleDecks[selectedClass]]
@@ -59,7 +61,7 @@ export function useGameEngine(selectedClass: keyof typeof sampleDecks = 'ABOMINA
     return hand.findIndex(card => card === cardId)
   }, [gameState])
 
-  const playCard = useCallback((cardId: string, targetId?: string) => {
+  const playCard = useCallback((cardId: string, targetId?: string): boolean => {
     try {
       const cardIndex = findCardInHand(cardId)
       if (cardIndex === -1) {
@@ -74,7 +76,7 @@ export function useGameEngine(selectedClass: keyof typeof sampleDecks = 'ABOMINA
         }] 
       } : undefined
 
-      const result = enginePlayCard(gameState, 0, cardIndex, getCardById, options)
+      const result = enginePlayCard(gameState, 0, cardIndex, getCardByIdGlobal, options)
       if (result.ok) {
         dispatch({ type: 'UPDATE' })
         addLog(`Played card: ${getCardById(cardId)?.name || cardId}`)
@@ -99,36 +101,6 @@ export function useGameEngine(selectedClass: keyof typeof sampleDecks = 'ABOMINA
       addLog(`Error passing priority: ${String(error)}`)
     }
   }, [gameState, addLog])
-
-  const respondWithCard = useCallback((cardId: string, targetId?: string) => {
-    try {
-      const cardIndex = findCardInHand(cardId)
-      if (cardIndex === -1) {
-        addLog(`Card not found in hand: ${cardId}`)
-        return false
-      }
-      const options = targetId ? { 
-        targets: [{ 
-          type: 'ANY_CREATURE' as const, 
-          owner: 'ENEMY' as const,
-          index: 0
-        }] 
-      } : undefined
-
-      const result = engineRespondWithCard(gameState, 0, cardIndex, getCardById, options)
-      if (result.ok) {
-        dispatch({ type: 'UPDATE' })
-        addLog(`Responded with: ${getCardById(cardId)?.name || cardId}`)
-      } else {
-        addLog(`Failed to respond: ${result.error}`)
-      }
-      return result.ok
-    } catch (error) {
-      console.error('Error responding:', error)
-      addLog(`Error responding: ${String(error)}`)
-      return false
-    }
-  }, [gameState, addLog, findCardInHand])
 
   const beginCombat = useCallback(() => {
     console.log('🔴 beginCombat called', {
@@ -161,7 +133,7 @@ export function useGameEngine(selectedClass: keyof typeof sampleDecks = 'ABOMINA
         const attacker = gameState.players[0].board[attackerBoardIndex]
         if (attacker) {
           const card = getCardById(attacker.cardId)
-          addLog(`⚔️ ${card?.name || 'Creature'} attacks opponent for ${card?.attack || '?'} damage`)
+          addLog(`⚔️ ${card?.name || 'Creature'} attacks opponent for ${'attack' in (card ?? {}) ? (card as any).attack : '?'} damage`)
         }
         return true
       } else {
@@ -224,7 +196,7 @@ export function useGameEngine(selectedClass: keyof typeof sampleDecks = 'ABOMINA
     }
   }, [gameState, addLog])
 
-  const summonSpecimen = useCallback(() => {
+ const summonSpecimen = useCallback(() => {
     const ok = engineSummonSpecimen(gameState, 0)
     if (ok) {
       dispatch({ type: 'UPDATE' })
@@ -246,7 +218,7 @@ export function useGameEngine(selectedClass: keyof typeof sampleDecks = 'ABOMINA
           ]
           const handIndex = opponent.hand.indexOf(randomCard)
           try {
-            const result = enginePlayCard(gameState, 1, handIndex, getCardById)
+            const result = enginePlayCard(gameState, 1, handIndex, getCardByIdGlobal)
             if (result.ok) {
               dispatch({ type: 'UPDATE' })
               const card = getCardById(randomCard)
@@ -282,7 +254,6 @@ export function useGameEngine(selectedClass: keyof typeof sampleDecks = 'ABOMINA
     actions: {
       playCard,
       passPriority,
-      respondWithCard,
       beginCombat,
       endTurn,
       attackHero,
@@ -290,6 +261,5 @@ export function useGameEngine(selectedClass: keyof typeof sampleDecks = 'ABOMINA
       summonSpecimen
     },
     stack: getStack(gameState),
-    canRespond: canRespond(gameState, 0, getCardById)
   }
 }

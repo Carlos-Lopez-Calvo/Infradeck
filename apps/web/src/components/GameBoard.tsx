@@ -8,7 +8,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import clsx from 'clsx'
 
 export function GameBoard() {
-  const { gameState, logs, actions, stack, canRespond } = useGameEngine()
+  const { gameState, logs, actions, stack } = useGameEngine()
   
   const [combatState, setCombatState] = useState<{
     attackingCreatureIndex: number | null
@@ -315,16 +315,6 @@ export function GameBoard() {
                   )
                 })}
               </div>
-              {canRespond && (
-                <div className="mt-2 text-center">
-                  <button
-                    onClick={() => actions.passPriority()}
-                    className="bg-orange-600 hover:bg-orange-700 px-4 py-2 rounded text-white text-sm transition-colors"
-                  >
-                    Pass Priority
-                  </button>
-                </div>
-              )}
             </motion.div>
           ) : (
             <div className="text-slate-500 italic text-center">
@@ -413,7 +403,7 @@ export function GameBoard() {
   canSummonSpecimen={canSummonSpecimen}
   specimenCost={specimenCost}
   onSummonSpecimen={() => {
-    actions.summonSpecimen()
+    actions.playCard('Especimen_Perfecto')
   }}
   specimenCardId={'Especimen_Perfecto'}
   classType={player.classType}
