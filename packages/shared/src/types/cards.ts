@@ -156,6 +156,7 @@ export interface Card {
   // Identificación
   id: string
   name: string
+  image?: string
   
   // Propiedades básicas
   type: CardType

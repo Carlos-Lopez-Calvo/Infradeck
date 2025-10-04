@@ -1,12 +1,25 @@
 import React, { useState } from 'react'
 import { Card, ReversoCard } from './Card'
+import { MERCENARIO_AGIL, EXPLORADOR_ASTUTO, ASESINO_SILENCIOSO } from '@infradeck/shared'
 
 export function Hand() {
   const [hovered, setHovered] = useState<number | null>(null)
   const [isHandHovered, setIsHandHovered] = useState(false)
-  const cards = Array.from({ length: 10 })
 
-  const spread = 20 // apertura total en grados
+  const cards = [
+    MERCENARIO_AGIL,
+    EXPLORADOR_ASTUTO,
+    ASESINO_SILENCIOSO,
+    MERCENARIO_AGIL,
+    EXPLORADOR_ASTUTO,
+    ASESINO_SILENCIOSO,
+    MERCENARIO_AGIL,
+    EXPLORADOR_ASTUTO,
+    ASESINO_SILENCIOSO,
+    MERCENARIO_AGIL,
+  ]
+
+  const spread = 20
 
   return (
     <div
@@ -14,7 +27,7 @@ export function Hand() {
       onMouseEnter={() => setIsHandHovered(true)}
       onMouseLeave={() => setIsHandHovered(false)}
     >
-      {cards.map((_, i) => {
+      {cards.map((card, i) => {
         const total = cards.length
         const start = -spread / 2
         const angle = isHandHovered ? 0 : start + (spread / (total - 1)) * i
@@ -30,13 +43,13 @@ export function Hand() {
             key={i}
             className={`absolute left-1/2 bottom-0 transition-transform duration-300`}
             style={{
-              transform: `translate(-50%, 0%) translateX(${offsetX}px) translateY(${offsetY + (isHovered ? -60 : 0)}px) scale(${isHovered ? 1.25 : 1}) rotate(${angle}deg)`,
+              transform: `translate(-50%, 0%) translateX(${offsetX}px) translateY(${offsetY + (isHovered ? -60 : 0)}px) scale(${isHovered ? 1.5 : 1}) rotate(${angle}deg)`,
               zIndex: isHovered ? 100 : i,
             }}
             onMouseEnter={() => setHovered(i)}
             onMouseLeave={() => setHovered(null)}
           >
-            <Card />
+            <Card card={card} />
           </div>
         )
       })}

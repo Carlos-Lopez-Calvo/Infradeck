@@ -50,6 +50,7 @@ export const ULTIMA_OPORTUNIDAD: Card = {
 export const MERCENARIO_AGIL: Card = {
   id: 'Mercenario_Agil',
   name: 'Mercenario Ágil',
+  image: '/imgCards/mercenario_agil.png',
   type: CardType.CREATURE,
   rarity: CardRarity.BASIC,
   mana: 1,
@@ -59,7 +60,7 @@ export const MERCENARIO_AGIL: Card = {
   effects: [
     {
       id: 'Mercenario_Low_Life_Buff',
-      description: 'Al ser jugado: Si tienes 15 o menos vida, gana +1/+1',
+      description: 'Jugar: Si tienes 15 o menos vida, gana +1/+1',
       timing: EffectTiming.ON_PLAY,
       condition: {
         type: 'HEALTH_THRESHOLD',
