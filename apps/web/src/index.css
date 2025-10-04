@@ -46,3 +46,17 @@ body, html, #root {
   --blue-600: #2563eb;
   --green-600: #16a34a;
 }
+
+.card .w-full::-webkit-scrollbar {
+  width: 1px;
+  background: transparent;
+}
+
+.card .w-full::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 1px;
+}
+
+.card .w-full::-webkit-scrollbar-track {
+  background: transparent;
+}

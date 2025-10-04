@@ -144,7 +144,7 @@ export const EXPLORADOR_INFECTADO: Card = {
   effects: [
     {
       id: 'Explorador_Death_Draw',
-      description: 'Al morir: Roba 1 carta si tu cementerio tiene 3+ criaturas',
+      description: 'Roba 1 carta si han muerto 3+ criaturas',
       timing: EffectTiming.ON_DEATH,
       condition: {
         type: 'GRAVEYARD_COUNT',

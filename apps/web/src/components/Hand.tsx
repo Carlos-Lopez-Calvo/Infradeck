@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Card, ReversoCard } from './Card'
-import { MERCENARIO_AGIL, EXPLORADOR_ASTUTO, ASESINO_SILENCIOSO } from '@infradeck/shared'
+import { MERCENARIO_AGIL, EXPLORADOR_ASTUTO, ASESINO_SILENCIOSO, EXPLORADOR_INFECTADO, CUCHILLA_ENVENENADA } from '@infradeck/shared'
 
 export function Hand() {
   const [hovered, setHovered] = useState<number | null>(null)
@@ -14,8 +14,8 @@ export function Hand() {
     EXPLORADOR_ASTUTO,
     ASESINO_SILENCIOSO,
     MERCENARIO_AGIL,
-    EXPLORADOR_ASTUTO,
-    ASESINO_SILENCIOSO,
+    CUCHILLA_ENVENENADA,
+    EXPLORADOR_INFECTADO,
     MERCENARIO_AGIL,
   ]
 
