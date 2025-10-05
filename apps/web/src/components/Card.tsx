@@ -121,14 +121,10 @@ export function Card({ card }: { card: CardType }) {
             </p>
           ))}
         </div>
-        {/* Tooltips debajo de la carta */}
-        {(hoveredAbility || hoveredTiming !== null) && (
+        {/* Tooltips debajo de la carta: solo para efectos/timing, no para habilidades */}
+        {hoveredTiming !== null && (
           <span className="absolute left-1/2 -translate-x-1/2 bottom-[-2.2rem] bg-black/80 text-white text-xs rounded px-2 py-1 z-50 whitespace-nowrap shadow-lg">
-            {hoveredAbility
-              ? abilityDescriptions[hoveredAbility]
-              : hoveredTiming !== null
-                ? timingTooltips[card.effects[hoveredTiming].timing]
-                : ""}
+           {timingTooltips[card.effects[hoveredTiming].timing]}
           </span>
         )}
       </div>

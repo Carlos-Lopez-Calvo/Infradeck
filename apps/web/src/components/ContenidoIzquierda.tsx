@@ -1,6 +1,6 @@
 import React from 'react'
 
-export function ContenidoIzquierda() {
+export function ContenidoIzquierda({ life = 20, onAttackHero }: { life?: number, onAttackHero?: () => void }) {
   return (
     <div className="relative w-full h-full">
       <div className="absolute bottom-0 left-0 w-full h-full flex items-end justify-center bg-purple-700 rounded-t-lg py-4"
@@ -10,24 +10,24 @@ export function ContenidoIzquierda() {
             backgroundPosition: 'center',
           }}>
         {/* Aquí tu contenido */}
-        <div className='w-36 h-36 flex flex-col justify-center items-center rounded-full border'
+        <button
+          className='w-36 h-36 flex flex-col justify-center items-center rounded-full border active:scale-95 transition'
         style={{
             backgroundImage: `url('/imgCards/vida.jpg')`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             boxShadow: '0 0 8px 2px #ff0000ff inset'
           }}
+          onClick={onAttackHero}
         >
-          <span className="text-white font-bold pt-3 text-5xl"
-          
-          >20</span>
-          </div>
+          <span className="text-white font-bold pt-3 text-5xl">{life}</span>
+          </button>
       </div>
     </div>
   )
 }
 
-export function ContenidoIzquierdaOponente() {
+export function ContenidoIzquierdaOponente({ life = 20, onAttackHero }: { life?: number, onAttackHero?: () => void }) {
   return (
     <div className="relative flex w-full h-full">
       <div className="absolute bottom-0 left-0 w-full h-full flex items-end justify-center bg-purple-700 rounded-t-lg py-4"
@@ -38,18 +38,18 @@ export function ContenidoIzquierdaOponente() {
           }}
       >
         {/* Aquí tu contenido */}
-        <div className='w-36 h-36 flex flex-col justify-center items-center rounded-full border'
+        <button
+          className='w-36 h-36 flex flex-col justify-center items-center rounded-full border active:scale-95 transition'
         style={{
             backgroundImage: `url('/imgCards/vida.jpg')`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             boxShadow: '0 0 8px 2px #ff0000ff inset'
           }}
+          onClick={onAttackHero}
         >
-          <span className="text-white font-bold pt-3 text-5xl"
-          
-          >20</span>
-          </div>
+          <span className="text-white font-bold pt-3 text-5xl">{life}</span>
+          </button>
           
       </div>
     </div>

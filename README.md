@@ -14,11 +14,16 @@ Infradeck será un juego de cartas digital completo, incluyendo:
 
 ## Estado actual
 
-- Motor de juego y cartas: **100% funcional**
-- UI básica: **en desarrollo**
-- Sistema de clases, Final Stand y mecánicas avanzadas: **implementadas**
-- Siguiente paso: **UI completa, deckbuilder, colección y sobres**
-
+- Motor de juego y cartas: 100% funcional (70 cartas, mecánicas de clase, Final Stand)
+- UI básica: bucle de juego operativo
+  - Mano conectada al engine (resolver global)
+  - Jugar carta por click (bloqueo por maná)
+  - Render del tablero con `Card` estilizada
+  - Vida visible y actualizada de ambos héroes
+  - Combate por selección (atacante → criatura/héroe)
+  - Fases y fin de turno con botón único (MAIN → COMBAT → END)
+- Bot local de prueba: juega cartas asequibles, ataca y finaliza su turno (con candado por turno)
+- Siguiente paso: UI de selección de objetivos, visualización de prioridad/pila y deckbuilder
 
 ## 🎯 What We're Building
 
@@ -55,31 +60,47 @@ Infradeck será un juego de cartas digital completo, incluyendo:
 
 ## 📊 Current Status
 
-**Phase**: 2.1 - Engine MVP Complete  
-**Progress**: ~75% (Design 100% + Engine 100% + UI 0%)  
-**Next Step**: UI Development for user interaction
+- Engine and cards: 100% (tested)
+- Web UI: basic gameplay loop working (hand → play card → combat → end turn)
+- Bot: simple opponent (plays affordable cards, attacks, ends turn)
+- Next step: target selection UI, priority/stack UI, deckbuilder
 
-### **✅ Game Engine (COMPLETED)**
-- **Real Stack System**: LIFO with complete priority windows
-- **Priority APIs**: `getStack`, `canRespond`, `respondWithCard`, `passPriority`, `resolveStack`
-- **14/14 Tests Green**: Complete coverage of advanced mechanics
-- **Advanced Effects**: RANDOM_BY_ENTROPY, DISCOVER, LIFE_DIFFERENTIAL, COUNTER_SPELL, Specimen
+## 🎲 Implemented Mechanics
 
-### **✅ Card System (COMPLETED)**
-- **70 Cards Implemented**: 30 basic + 40 class cards
-- **92 Card Tests**: Complete validation of all cards
-- **4 Balanced Classes**: ABOMINACIÓN, CAOS, CICLO, VITALIDAD  
-- **9 Abilities**: Complete keyword system
+### **Real Stack System**
+```typescript
+// Key APIs implemented
+getStack(state): StackItem[]           // View current stack
+canRespond(state, playerIndex): boolean // Can player respond?
+respondWithCard(state, ...): PlayResult // Play instant
+passPriority(state, playerIndex): void  // Pass priority
+resolveStack(state): void               // Resolve LIFO stack
+```
 
-### **✅ Technical Architecture (COMPLETED)**
-- **Monorepo**: PNPM workspaces configured
-- **TypeScript**: Shared types and validations
-- **Testing**: Vitest with complete coverage
-- **Shared Package**: Centralized game logic
+### **Advanced Effects**
+- ✅ RANDOM_BY_ENTROPY
+- ✅ DISCOVER_FROM_GRAVEYARD
+- ✅ LIFE_DIFFERENTIAL
+- ✅ COUNTER_SPELL
+- ✅ Specimen (scaling cost)
+
+### **Complete Abilities (9/9)**
+- ✅ Prisa, Impaciente, Taunt, Sigilo, Escudo, Veneno
+- ✅ Robo de Vida, Vuelo, Regeneración
+- ✅ Doble Golpe
 
 ## 📁 Project Structure
-
-```
+Advanced Effects
+✅ RANDOM_BY_ENTROPY
+✅ DISCOVER_FROM_GRAVEYARD
+✅ LIFE_DIFFERENTIAL
+✅ COUNTER_SPELL
+✅ Specimen (scaling cost)
+Complete Abilities (9/9)
+✅ Prisa, Impaciente, Taunt, Sigilo, Escudo, Veneno
+✅ Robo de Vida, Vuelo, Regeneración
+✅ Doble Golpe
+📁 Project Structure
 infradeck/
 ├── packages/
 │   └── shared/                    # 🎯 Game engine + cards
@@ -92,163 +113,41 @@ infradeck/
 │   ├── development/             # 🔧 Roadmap and decisions
 │   └── testing/                 # 📊 Results and analysis
 └── PROJECT_STATUS.md            # 📋 Current state
-```
 
-## 🎲 Implemented Mechanics
+📈 Testing and Validation
+Engine Tests: 14/14 ✅
+Card Tests: 92/92 ✅
+🔜 Next Up (Phase 3)
+Target selection UI (ON_PLAY/INSTANT)
+Priority window and stack visualization (pass/respond/resolve)
+Deckbuilder + pre-match deck selection
+Replace local bot with socket-based opponent (future phase)
+Last updated: October 5, 2025
 
-### **Real Stack System**
-```typescript
-// Key APIs implemented
-getStack(state): StackItem[]           // View current stack
-canRespond(state, playerIndex): boolean // Can player respond?
-respondWithCard(state, ...): PlayResult // Play instant
-passPriority(state, playerIndex): void  // Pass priority
-resolveStack(state): void              // Resolve LIFO stack
-```
+```1:140:/Users/carloslopez/Desktop/TFG/Infradeck/PROJECT_STATUS.mda web app full‑stack de un del TFG
+Construir una web app full‑stack de unistrogintión gestiónrios usuariosolecciónbres sobresaraeguir conseguirrtas Deckerbuildernección selecciónclaseción ediciónazos-otor Motorego juegoado avanzadopleta completaEstadsísticasa tiendares progres##✅stado Estado actualne Engineas cartas00ncional funcionalests testss verdesUIsica básicamanoct conectblero tablerord `Card mancre decrealgar jugar vidable visiblee por porección selecciónanteriatura criatura,ases fases finderno turno Botple simplelocala juegas cartaselesiblesatacayinal finalrno turnocanddor porno turnomp Limpezanica técnicaaciónificacióno estadome `GameEngineerProvidernimindook hookic duplicesolver resolverinicialdos anteselmer primer render 🗺oad Roadp1** **Iompleta completaaidas partidas**kDeckderbuildercción selecciónclase** **eColencciónstema sistemaes sobres* **cioIniciosión sesiónión gestiónrios usuarios**tPantalladectoria/der/der y estadísticas**rota y estadísticas**a tiendamp recompsas7** **umentDocumentcnicaación técnicaanualio usuario# 🎲c Mecasicaslement Implementck StackrealPIsget getkStackpond respondassityPrioritye resolveck Ectfectvanz avanzosNDOMANDOMYT_ENTOPDISC DISCVERM_FROMRAVEDARDIFE LIFEIRFFERALENTIAL COUNRSLLPELLec Specmen- Hilidadesabilidades completasmp Impnteacienteuntig Siglosc Escdoen Vennoobo Roboeda VidaVueloeg Regenernaciónleoble Gol##
+## 📋Suigutesientesitossease3-
+-I UI delección selecciónvos objetivos/izos/ntinstantas-isual Visualizaciónoridad prioridadpasrontra/contrarizar/resrolvereckbuilder y yarga carga mazosr porario usuario
+- Logs/feedbackones accionesauesiggers triggers📈 Méras del Proyecto del Proyecto **Progresol~80(Dise% (Dise100+ngine Engine0+I UI 40)
+-* **tasasmplement Implement 7070 (0100)
+-* **ineEngineres Features00re coret botal local**tsTests06 106106✅
+-* **Ictual actualo manolero tableroida manombate combateurnotón botónse fase## 🏗rquitect Arquitectlyecto Proyecto
 
-### **Advanced Effects**
-- ✅ **RANDOM_BY_ENTROPY**: Damage/effects scaled by Entropy (with optional consumption)
-- ✅ **DISCOVER_FROM_GRAVEYARD**: Summon from graveyard with ON_ENTER
-- ✅ **LIFE_DIFFERENTIAL**: Scaling by life difference (+X/+X)
-- ✅ **COUNTER_SPELL**: Counters opponent's next spell
-- ✅ **Specimen**: Escalating cost system (5→7→9→10 mana)
+infradeck/
+├── packages/
+│ └── shared/
+│ ├── src/engine/
+│ ├── src/cards/
+│ ├── src/types/
+│ └── tests/
+├── docs/
+│ ├── game-design/
+│ ├── development/
+│ └── testing/
+└── PROJECT_STATUS.md
 
-### **Complete Abilities (9/9)**
-- ✅ **Prisa, Impaciente, Taunt, Sigilo, Escudo, Veneno**
-- ✅ **Robo de Vida, Vuelo, Regeneración**
-- ✅ **DOBLE_GOLPE** (bonus mechanic)
-
-## 🃏 Complete Card Set Overview
-
-### **🛡️ Basic Cards (30 - Neutral)**
-**Perfect mana curve from 0-8 mana:**
-- **0-1 mana**: 7 cards (aggressive starts)
-- **2-3 mana**: 17 cards (core gameplay)  
-- **4-5 mana**: 10 cards (midgame power)
-- **6+ mana**: 6 cards (late game bombs)
-
-### **🏛️ Class Cards (40 - 10 per Class)**
-
-#### **🧬 ABOMINACIÓN (Graveyard Engine)**
-Build the ultimate creature by collecting abilities from fallen allies:
-- **Espécimen Perfecto**: Inherits all abilities from graveyard
-- **Scaling Cost**: 5→7→9→10 mana per summon
-- **Strategy**: Sacrifice → Collect → Dominate
-
-#### **🎲 CAOS (Entropy System)**  
-Accumulate Entropy for explosive random effects:
-- **Entropy**: Persists between turns (max 10)
-- **Generation**: +1 per card played
-- **Payoffs**: Scaling random damage and effects
-
-#### **🌓 CICLO (Day/Night/Eclipse)**
-Master timing with state-dependent power:
-- **Day**: Aggressive effects (Prisa, damage)
-- **Night**: Defensive effects (Taunt, healing)
-- **Eclipse**: Best of both worlds (special activation)
-
-#### **❤️ VITALIDAD (Life as Resource)**
-Use your life force for immediate power:
-- **Life Costs**: 2-8 life for enhanced effects
-- **Risk/Reward**: More life = more power
-- **All-in**: Speed kills strategy
-
-## 📈 Testing and Validation
-
-### **Engine Tests: 14/14 ✅**
-- Stack LIFO and priority windows
-- START/END_OF_TURN triggers
-- Combat abilities (Sigilo, Vuelo, etc.)
-- Advanced effects and chained counters
-
-### **Card Tests: 92/92 ✅**
-- Validation of all 70 cards
-- Class-specific mechanics
-- Rarity and mana curve distribution
-- Synergies and combos
-
-## 🎯 Key Milestones
-
-### **✅ Completed (Phase 2.1)**
-- [x] **Game Engine MVP**: Complete with stack system
-- [x] **70 Cards**: Fully implemented and tested
-- [x] **Advanced Mechanics**: All effects working
-- [x] **106 Tests**: Full validation coverage
-- [x] **TypeScript Architecture**: Shared package ready
-
-### **🔄 Next Up (Phase 3)**
-- [ ] **UI Minimal**: CLI/Web interface for game visualization
-- [ ] **User Interaction**: Hand, board, stack display
-- [ ] **Priority System**: Visual priority passing
-- [ ] **Target Selection**: UI for card targeting
-
-### **📋 Future (Phase 4+)**
-- [ ] **Multiplayer**: Real-time Socket.io implementation
-- [ ] **Advanced UI**: Polish and animations
-- [ ] **Deployment**: Production ready app
-
-## 🛠️ Tech Stack (Implemented + Planned)
-
-### **Core (✅ Implemented)**
-- **Monorepo**: PNPM Workspaces + TypeScript
-- **Game Logic**: Complete engine in `@infradeck/shared`
-- **Testing**: Vitest with 106 passing tests
-- **Types**: Comprehensive TypeScript definitions
-
-### **Frontend (📋 Planned)**
-- **Framework**: React + Vite + TypeScript
-- **Styling**: Tailwind CSS + Framer Motion
-- **State**: Zustand + game engine integration
-
-### **Backend (📋 Planned)**
-- **Framework**: NestJS + TypeScript  
-- **Database**: Prisma + PostgreSQL
-- **Realtime**: Socket.io
-- **Auth**: JWT + Redis
-
-### **DevOps (📋 Planned)**
-- **CI/CD**: GitHub Actions
-- **Deploy**: Vercel (frontend) + Railway (backend)
-- **E2E Testing**: Playwright
-
-## 🚀 How to Get Started
-
-### **For Developers**
-```bash
-# Clone and install
-git clone <repo>
-cd infradeck
-pnpm install
-
-# Run tests
-cd packages/shared
-pnpm test
-
-# All tests should pass: 106/106 ✅
-```
-
-### **For Designers**
-1. Read [reglas-juego.md](docs/game-design/reglas-juego.md) for complete rules
-2. Browse [cartas-clases.md](docs/game-design/cartas-clases.md) for all 70 cards
-3. Check [PROJECT_STATUS.md](PROJECT_STATUS.md) for current progress
-
-### **For Testers**
-1. Review the implemented mechanics above
-2. Check out the test files in `packages/shared/tests/`
-3. Try running the test suite locally
-
-## 📈 Project Metrics
-
-- **📊 Overall Progress**: ~75% (Design 100% + Engine 100% + UI 0%)
-- **🃏 Cards Implemented**: 70/70 (100%)
-- **⚙️ Engine Features**: 95% (Stack, abilities, advanced effects)
-- **🧪 Test Coverage**: 106 tests passing (92 cards + 14 engine)
-- **📚 Documentation**: 8 files updated
 
 ## 🎯 Ready for Phase 3: UI Development
+El engine está completamente funcional y validado. Próximo paso: UI para selección de objetivos, prioridad/pila y deckbuilder.
 
-**The engine is completely functional and validated. Next step: create an interface for players to interact with the stack system and advanced mechanics.**
-
----
-
-*Last updated: October 2, 2025*
+Última actualización: 5 octubre 2025
