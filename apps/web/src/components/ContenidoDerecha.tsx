@@ -1,37 +1,63 @@
 import React from 'react'
 import { StackMazo } from './Mazo'
+import { useGameEngine } from '../hooks/useGameEngine'
 
-export function ContenidoDerecha({
-    deckCount = 20,
-    graveyardCount = 5,
-    mana = 7,
-    classResource,
-    handCount = 0,
-}: {
-    deckCount?: number
-    graveyardCount?: number
-    mana?: number
-    classResource?: { name: string; value: number }
-    handCount?: number
-}) {
+export function ContenidoDerecha() {
+    const { gameState, currentPlayer, actions } = useGameEngine()
+   const phase = gameState.turn.phase
+
+    const deckCount = currentPlayer.deck.length
+    const graveyardCount = currentPlayer.graveyard.length
+    const handCount = currentPlayer.hand.length
+    const mana = currentPlayer.mana
+
+    const cr = currentPlayer.classResource
+    const classResource =
+        cr?.type === 'ESTADO'
+            ? { name: cr.state ?? 'DIA', value: undefined }
+            : cr?.type === 'ENTROPIA' || cr?.type === 'CEMENTERIO'
+            ? { name: cr.type, value: cr.amount ?? 0 }
+            : cr?.type === 'VIDA'
+            ? { name: 'VIDA', value: currentPlayer.life }
+            : undefined
+
     return (
         <div className="w-full h-full flex flex-col items-center justify-center">
             <div className="w-full h-1/2 bg-purple-800 rounded-lg flex flex-row items-center justify-center">
-                <div className="w-1/2 h-full bg-red-800 rounded-lg flex flex-col items-center justify-center">
+                <div className="w-1/2 h-full bg-green-800 rounded-lg flex flex-col items-center justify-center">
                     {classResource ? (
                         <>
                             <span className="font-bold text-sm mb-1">{classResource.name}</span>
-                            <span className="text-white font-bold text-lg">{classResource.value}</span>
+                            {'value' in classResource && classResource.value != null ? (
+                                <span className="text-white font-bold text-lg">{classResource.value}</span>
+                            ) : (
+                                <span className="text-white text-xs">Estado</span>
+                            )}
                         </>
                     ) : (
                         <span className="text-white text-xs">Sin recurso especial</span>
                     )}
                 </div>
                 <div className="w-1/2 h-full bg-blue-800 rounded-lg flex flex-col items-center justify-center">
-                    <div className='w-24 h-24 flex flex-col justify-center items-center rounded-full border bg-red-600'>
-                        <span className="text-white font-bold pt-4 text-6xl">{mana}</span>
-                    </div>
-                </div>
+    <button
+        className='w-24 h-24 flex flex-col justify-center items-center rounded-full border bg-red-600 active:scale-95 transition'
+        onClick={() => {
+            if (phase === 'MAIN') {
+                actions.beginCombat()
+            } else if (phase === 'COMBAT') {
+                   actions.endTurn() // el servidor iniciará el turno del oponente
+                } else {
+                // En cualquier otro estado, garantizamos avanzar a MAIN
+                actions.startTurn()
+            }
+        }}
+        title={phase === 'MAIN' ? 'Combat' : phase === 'COMBAT' ? 'End Turn' : 'Next'}
+    >
+        <span className="text-white font-bold text-lg">
+        {phase === 'MAIN' ? 'Combatir' : phase === 'COMBAT' ? 'Finalizar turno' : 'Siguiente'}
+        </span>
+    </button>
+</div>
             </div>
             <div className="w-full h-1/2 bg-gray-800 rounded-lg flex flex-row items-center justify-center">
                 <div className="w-1/2 h-full bg-blue-800 rounded-lg flex flex-col items-center justify-center">
@@ -55,19 +81,13 @@ export function ContenidoDerecha({
     )
 }
 
-export function ContenidoDerechaOponente({
-    deckCount = 20,
-    graveyardCount = 5,
-    mana = 7,
-    classResource,
-    handCount = 0,
-}: {
-    deckCount?: number
-    graveyardCount?: number
-    mana?: number
-    classResource?: { name: string; value: number }
-    handCount?: number
-}) {
+export function ContenidoDerechaOponente() {
+    const { opponentPlayer } = useGameEngine()
+
+    const deckCount = opponentPlayer.deck.length
+    const handCount = opponentPlayer.hand.length
+    const mana = opponentPlayer.mana
+
     return (
         <div className="w-full h-full flex flex-col items-center justify-center">
             <div className="w-full h-1/2 bg-gray-800 rounded-lg flex flex-row items-center justify-center">
@@ -90,14 +110,7 @@ export function ContenidoDerechaOponente({
             </div>
             <div className="w-full h-1/2 bg-purple-800 rounded-lg flex flex-row items-center justify-center">
                 <div className="w-1/2 h-full bg-red-800 rounded-lg flex flex-col items-center justify-center">
-                    {classResource ? (
-                        <>
-                            <span className="font-bold text-sm mb-1">{classResource.name}</span>
-                            <span className="text-white font-bold text-lg">{classResource.value}</span>
-                        </>
-                    ) : (
-                        <span className="text-white text-xs">Sin recurso especial</span>
-                    )}
+                    <span className="text-white text-xs">Sin recurso especial</span>
                 </div>
                 <div className="w-1/2 h-full bg-blue-800 rounded-lg flex flex-col items-center justify-center"></div>
             </div>

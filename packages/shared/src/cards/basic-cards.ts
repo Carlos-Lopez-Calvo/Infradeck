@@ -928,3 +928,46 @@ export const APOCALIPSIS: Card = {
   description: 'Haz 6 de daño a todas las criaturas. Si matas 5 o más criaturas de esta forma, haz daño igual a las criaturas eliminadas al rival',
   flavorText: 'La destrucción masiva tiene consecuencias.'
 }
+
+// Al final del archivo
+export const BASIC_CARDS = [
+  ULTIMA_OPORTUNIDAD,
+  MERCENARIO_AGIL,
+  EXPLORADOR_ASTUTO,
+  ASESINO_SILENCIOSO,
+  GUARDIAN_NOVATO,
+  REFLEJO_RAPIDO,
+  CUCHILLA_ENVENENADA,
+  EXPLORADOR_AUDAZ,
+  ESCRIBA_ESTUDIOSO,
+  FLECHA_CERTEZA,
+  DUELISTA_EXPERTO,
+  COMERCIANTE_SAGAZ,
+  DISPARO_CERTERO,
+  BERSERKER_HERIDO,
+  RECARGA_RAPIDA,
+  MOMENTO_CRUCIAL,
+  SOLDADO_VETERANO,
+  INTERCEPCION_RAPIDA,
+  CURANDERO_SABIO,
+  CENTINELA_VIGILANTE,
+  LLAMA_IMPURA,
+  MAESTRO_DE_ARMAS,
+  ACECHADOR_NOCTURNO,
+  PALABRA_DE_PODER,
+  VAMPIRO_ANCESTRAL,
+  COLOSO_DE_HIERRO,
+  INGENIERA_ASTUTA,
+  TORMENTA_DE_ACERO,
+  GOLPE_DEVASTADOR,
+  CAMPEON_CAIDO,
+  SENOR_DE_LA_GUERRA,
+  RITUAL_DE_RENOVACION,
+  TITAN_PRIMORDIAL,
+  APOCALIPSIS,
+]
+
+// Opcional: acceso por id
+export const BASIC_CARDS_BY_ID = Object.fromEntries(
+  BASIC_CARDS.map(c => [c.id, c] as const)
+)
