@@ -1,18 +1,16 @@
 import React, { useState } from 'react'
 import { Card, ReversoCard } from './Card'
-import { useGameEngine } from '../hooks/useGameEngine'
+import { useGameEngine } from '../context/GameEngineProvider'
 import { getCardByIdGlobal } from '@infradeck/shared'
 
 export function Hand() {
   const [hovered, setHovered] = useState<number | null>(null)
   const [isHandHovered, setIsHandHovered] = useState(false)
-  const { currentPlayer } = useGameEngine()
+  const { currentPlayer, actions, isMyTurn } = useGameEngine()
 
-  const cards = currentPlayer.hand
-    .map(id => getCardByIdGlobal(id))
-    .filter(Boolean)
-
-  const spread = 20
+  // Mantén el índice real de la mano para playCard
+  const handItems = currentPlayer.hand
+    .map((id, idx) => ({ card: getCardByIdGlobal(id), handIndex: idx }))
 
   return (
     <div
@@ -20,22 +18,23 @@ export function Hand() {
       onMouseEnter={() => setIsHandHovered(true)}
       onMouseLeave={() => setIsHandHovered(false)}
     >
-      {cards.map((card, i) => {
-        const total = cards.length
+      {handItems.map(({ card, handIndex }, i) => {
+        const total = handItems.length
         const denom = Math.max(total - 1, 1)
         const invRatio = Math.max(10 / Math.max(total, 1), 1) // menos cartas → más espacio
-       const dirRatio = Math.min(total / 10, 1)
-        const baseSpread = 20
-const baseOffset = isHandHovered ? 80 : 60
-const baseArc = 80
-const baseLift = 60
-const baseScaleHover = 1.5
+        const dirRatio = Math.min(total / 10, 1)              // menos cartas → menos zoom
 
-const spread = baseSpread * invRatio
-const start = -spread / 2
-const angle = isHandHovered ? 0 : start + (spread / denom) * i
-const offsetX = (i - denom / 2) * (baseOffset * invRatio)
-const arcHeight = baseArc
+        const baseSpread = 20
+        const baseOffset = isHandHovered ? 80 : 60
+        const baseArc = 80
+        const baseLift = 60
+        const baseScaleHover = 1.5
+
+        const spread = baseSpread * invRatio
+        const start = -spread / 2
+        const angle = isHandHovered ? 0 : start + (spread / denom) * i
+        const offsetX = (i - denom / 2) * (baseOffset * invRatio)
+        const arcHeight = baseArc
         const t = (i - denom / 2) / (denom / 2)
         const offsetY = isHandHovered ? 0 : -arcHeight * (1 - t * t)
         const hoverLift = baseLift * invRatio
@@ -44,18 +43,22 @@ const arcHeight = baseArc
         const isHovered = hovered === i
 
         return (
-          <div
-            key={`${card!.id}-${i}`}
+          <button
+            key={handIndex}
             className="absolute left-1/2 bottom-0 transition-transform duration-300"
             style={{
               transform: `translate(-50%, 0%) translateX(${offsetX}px) translateY(${offsetY + (isHovered ? -hoverLift : 0)}px) scale(${isHovered ? scaleHovered : 1}) rotate(${angle}deg)`,
               zIndex: isHovered ? 100 : i,
+              opacity: isMyTurn ? 1 : 0.6,
+              cursor: isMyTurn ? 'pointer' : 'not-allowed',
             }}
             onMouseEnter={() => setHovered(i)}
             onMouseLeave={() => setHovered(null)}
+            onClick={() => isMyTurn && actions.playFromHand(handIndex)}
+            disabled={!isMyTurn}
           >
-            <Card card={card!} />
-          </div>
+            {card ? <Card card={card} /> : <ReversoCard />}
+          </button>
         )
       })}
     </div>

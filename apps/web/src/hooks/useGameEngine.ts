@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { createInitialGameState, GameState, startTurn as engineStartTurn, endTurn as engineEndTurn, beginCombat, endCombat, setCardResolver, setPriorityWindow } from '@infradeck/shared'
+import { createInitialGameState, GameState, startTurn as engineStartTurn, endTurn as engineEndTurn, beginCombat, endCombat, setCardResolver, setPriorityWindow, playCard } from '@infradeck/shared'
 import { BASIC_CARDS, BASIC_CARDS_BY_ID, CLASS_CARDS, CLASS_CARDS_BY_ID } from '@infradeck/shared'
 import { useEffect } from 'react'
 
@@ -14,8 +14,11 @@ export function useGameEngine() {
     const getCardById = (id: string) => BASIC_CARDS_BY_ID[id] ?? CLASS_CARDS_BY_ID[id]
 
     useEffect(() => {
-      setCardResolver(getCardById)
-      setPriorityWindow(() => setGameState(s => ({ ...s })))
+        setCardResolver(getCardById)
+        setPriorityWindow(() => {
+        // Evita setState durante el render de otro componente
+        setTimeout(() => setGameState(s => ({ ...s })), 0)
+      })
     }, [])
      const meIndex = gameState.players[0].id === localPlayerId ? 0 : 1
      const currentPlayer = gameState.players[meIndex]
@@ -31,6 +34,15 @@ export function useGameEngine() {
                 return next
             })
         },
+        playFromHand: (handIndex: number) => {
+            if (!isMyTurn) return
+                 setGameState(prev => {
+            const next: GameState = JSON.parse(JSON.stringify(prev))
+            const res = playCard(next, next.turn.currentPlayerIndex, handIndex, getCardById)
+            if (!res.ok) console.warn('playCard failed:', res)
+            return next
+            })
+            },
         beginCombat: () => {
             if (!isMyTurn) return
             setGameState(prev => {

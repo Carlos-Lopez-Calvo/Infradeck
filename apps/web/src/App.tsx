@@ -1,10 +1,11 @@
 import { GameBoard } from './components/GameBoard'
+import { GameEngineProvider } from './context/GameEngineProvider'
 
 function App() {
   return (
-    <div className="App">
+    <GameEngineProvider>
       <GameBoard />
-    </div>
+    </GameEngineProvider>
   )
 }
 

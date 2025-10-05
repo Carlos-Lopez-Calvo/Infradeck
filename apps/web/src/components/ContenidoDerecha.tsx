@@ -1,9 +1,9 @@
 import React from 'react'
 import { StackMazo } from './Mazo'
-import { useGameEngine } from '../hooks/useGameEngine'
+import { useGameEngine } from '../context/GameEngineProvider'
 
 export function ContenidoDerecha() {
-    const { gameState, currentPlayer, actions } = useGameEngine()
+    const { gameState, currentPlayer, actions, isMyTurn } = useGameEngine()
    const phase = gameState.turn.phase
 
     const deckCount = currentPlayer.deck.length
