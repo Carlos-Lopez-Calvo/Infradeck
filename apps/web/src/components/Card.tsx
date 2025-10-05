@@ -14,7 +14,7 @@ const timingTooltips: Record<string, string> = {
   PASSIVE: "Efecto permanente mientras la carta está en juego.",
 }
 
-const classTypeColors: Record<string, string> = {
+export const classTypeColors: Record<string, string> = {
   CAOS: '#fbbf24',
   ABOMINACION: '#b11ec2ff',
   CICLO: '#fbbf24',

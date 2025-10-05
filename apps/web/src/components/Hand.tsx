@@ -6,7 +6,7 @@ export function Hand() {
   const [hovered, setHovered] = useState<number | null>(null)
   const [isHandHovered, setIsHandHovered] = useState(false)
 
-  const cards = [
+ const cards = [
     MERCENARIO_AGIL,
     EXPLORADOR_ASTUTO,
     ASESINO_SILENCIOSO,

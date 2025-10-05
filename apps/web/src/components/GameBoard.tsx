@@ -1,5 +1,8 @@
 import React from 'react'
 import { Hand, OpponentHand } from './Hand'
+import { ContenidoIzquierda, ContenidoIzquierdaOponente } from './ContenidoIzquierda'
+import { ContenidoDerecha, ContenidoDerechaOponente } from './ContenidoDerecha'
+
 
 export function GameBoard() {
   return (
@@ -9,6 +12,7 @@ export function GameBoard() {
         {/* 20% - 60% - 20% */}
         <div className="class-left w-1/5 h-full flex items-center justify-center bg-purple-500">
           {/* Contenido izquierdo */}
+           <ContenidoIzquierdaOponente />
         </div>
         <div className="w-3/5 h-full flex flex-col">
   {/* Mitad superior */}
@@ -22,6 +26,7 @@ export function GameBoard() {
 </div>
         <div className="class-right w-1/5 h-full flex items-center justify-center">
           {/* Contenido derecho */}
+           <ContenidoDerechaOponente />
         </div>
       </div>
       {/* Div intermedio */}
@@ -31,6 +36,7 @@ export function GameBoard() {
           {/* 20% - 60% - 20% */}
         <div className="class-left w-1/5 h-full flex items-center justify-center bg-gray-500">
           {/* Contenido izquierdo */}
+            <ContenidoIzquierda />
         </div>
         <div className="w-3/5 h-full flex flex-col">
   {/* Mitad superior */}
@@ -43,7 +49,7 @@ export function GameBoard() {
   </div>
 </div>
         <div className="class-right w-1/5 h-full flex items-center justify-center bg-gray-500">
-          {/* Contenido derecho */}
+          <ContenidoDerecha />
         </div>
       </div>
     </div>
