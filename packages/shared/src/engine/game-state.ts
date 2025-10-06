@@ -73,6 +73,7 @@ export interface PlayerState {
   finalStandBonusApplied?: boolean 
   freeLifeCosts?: boolean
   programmedSpecimenEffects: (EffectActionType | string)[]
+  lifeCredit?: number          // crédito de vida para pagar costes sin tocar la vida real
 }
 
 export interface TurnState {
@@ -100,6 +101,8 @@ export interface GameState {
   endOfTurnTasks?: Array<() => void>
   pendingCounters?: [number, number]
   priorityPassed: [boolean, boolean]
+  finalStandJustActivated?: number | null
+  pendingTargets?: TargetRef[]           // ← objetivos UI pendientes
 }
 
 interface FinalStandState {
@@ -278,7 +281,7 @@ export function playCard(
       ownerId: player.id,
       attack: card.attack ?? 0,
       health: card.health ?? 1,
-      exhausted: true,
+      exhausted: !(card.abilities?.includes(Ability.PRISA)), // <- si tiene PRISA, no entra exhausta
       abilities: card.abilities ? [...card.abilities] : [],
       effects: [],
     }
@@ -320,6 +323,13 @@ export function endCombat(state: GameState): void {
   onPriorityWindow(state, { phase: GamePhase.MAIN, activePlayer: getCurrentPlayerIndex(state) })
 }
 
+export type DiscoverHandler = (state: GameState, info: {
+  playerIndex: number
+  options: Array<{ id: string; label: string; preview?: Partial<Card> }>
+}) => string
+
+export let onDiscoverRequest: DiscoverHandler = () => 'BASE'
+export function setDiscoverRequest(handler: DiscoverHandler) { onDiscoverRequest = handler }
 
 
 // =======================

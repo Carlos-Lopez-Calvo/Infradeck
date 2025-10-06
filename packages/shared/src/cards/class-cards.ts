@@ -643,23 +643,23 @@ export const MANIPULADOR_DEL_DESTINO: Card = {
   abilities: [Ability.VUELO],
   effects: [
     {
-      id: 'Manipulador_Scaling_AoE',
-      description: 'Al entrar: Dispara 1 daño aleatorio N veces (N = Entropía). Consume 1 por disparo.',
+      id: 'Manipulador_Entropy_Shots_Discover',
+      description: 'Al entrar: Elige N disparos (N = Entropía), o N+2 disparos pagando 2 Entropía',
       timing: EffectTiming.ON_ENTER,
       action: {
-        type: EffectActionType.DAMAGE,
-        target: EffectTarget.RANDOM_ENEMY,
-        amount: 1,
-        value: 'RANDOM_BY_ENTROPY',
-        consumeEntropy: 1,
-        duration: 'PERMANENT'
+        type: EffectActionType.DISCOVER_PAY_ENTROPY,
+        target: EffectTarget.FRIENDLY_HERO,
+        options: {
+          entropyCost: 2,
+          base:  { type: EffectActionType.DAMAGE, target: EffectTarget.RANDOM_ENEMY, amount: 1, value: 'RANDOM_BY_ENTROPY', duration: 'PERMANENT' },
+          buff:  { type: EffectActionType.DAMAGE, target: EffectTarget.RANDOM_ENEMY, amount: 1, value: 'RANDOM_BY_ENTROPY_PLUS_2', duration: 'PERMANENT' }
+        }
       }
     }
   ],
-  description: '2/3 con Vuelo. Al entrar: N proyectiles aleatorios (N = Entropía), consumiendo 1 por proyectil.',
+  description: '2/3 con Vuelo. Al entrar: N proyectiles (N = Entropía) o N+2 pagando 2 Entropía.',
   flavorText: 'El destino obedece a quien comprende el caos.'
 }
-
 export const PORTAL_INESTABLE: Card = {
   id: 'Portal_Inestable',
   name: 'Portal Inestable',
@@ -688,7 +688,7 @@ export const PORTAL_INESTABLE: Card = {
 export const CAOS_CONTROLADO: Card = {
   id: 'Caos_Controlado',
   name: 'Caos Controlado',
-  type: CardType.INSTANT,
+  type: CardType.SPELL,
   rarity: CardRarity.RARE,
   classType: ClassType.CAOS,
   mana: 4,
@@ -697,7 +697,7 @@ export const CAOS_CONTROLADO: Card = {
     {
       id: 'Caos_Scaling_Cost_Reduction',
       description: 'Entropía 2: El próximo hechizo cuesta 2 menos. Entropía 4: Los próximos 2 hechizos. Entropía 8: Todos los hechizos hasta final del turno',
-      timing: EffectTiming.INSTANT,
+      timing: EffectTiming.ON_PLAY,
       action: {
         type: EffectActionType.BUFF_STATS,
         target: EffectTarget.FRIENDLY_HERO,
@@ -1099,7 +1099,7 @@ export const GUARDIAN_DEL_EQUILIBRIO: Card = {
 export const MOMENTO_PERFECTO: Card = {
   id: 'Momento_Perfecto',
   name: 'Momento Perfecto',
-  type: CardType.INSTANT,
+  type: CardType.SPELL,
   rarity: CardRarity.RARE,
   classType: ClassType.CICLO,
   mana: 4,
@@ -1108,7 +1108,7 @@ export const MOMENTO_PERFECTO: Card = {
     {
       id: 'Momento_Day_Attack',
       description: 'Día: Todas tus criaturas atacan inmediatamente con +1/+0',
-      timing: EffectTiming.INSTANT,
+      timing: EffectTiming.ON_PLAY,
       condition: {
         type: 'CLASS_RESOURCE',
         value: CycleState.DIA,
@@ -1124,7 +1124,7 @@ export const MOMENTO_PERFECTO: Card = {
     {
       id: 'Momento_Night_Defense',
       description: 'Noche: Todas tus criaturas ganan Taunt y +0/+1 hasta final del turno',
-      timing: EffectTiming.INSTANT,
+      timing: EffectTiming.ON_PLAY,
       condition: {
         type: 'CLASS_RESOURCE',
         value: CycleState.NOCHE,
@@ -1140,7 +1140,7 @@ export const MOMENTO_PERFECTO: Card = {
     {
       id: 'Momento_Eclipse_Combined',
       description: 'Eclipse: Combina ambos efectos (Taunt y +0/+1 permanentes)',
-      timing: EffectTiming.INSTANT,
+      timing: EffectTiming.ON_PLAY,
       condition: {
         type: 'CLASS_RESOURCE',
         value: CycleState.ECLIPSE,
@@ -1292,27 +1292,31 @@ export const FANATICO_DESESPERADO: Card = {
   abilities: [Ability.PRISA],
   effects: [
     {
-      id: 'Fanatico_Desperate_Buff',
-      description: 'Vida 3: Gana +2/+0 hasta final del turno',
-      timing: EffectTiming.TRIGGERED,
-      condition: {
-        type: 'CLASS_RESOURCE',
-        value: 3,
-        comparison: 'EQUAL'
-      },
+      id: 'Fanatico_Descubrir',
+      description: 'Elige al entrar: sin cambios, o +2/+0 pagando 2 de vida',
+      timing: EffectTiming.ON_ENTER,
       action: {
-        type: EffectActionType.BUFF_ATTACK,
+        type: EffectActionType.DISCOVER_PAY_LIFE,
         target: EffectTarget.SELF,
-        amount: 2,
-        duration: 'END_OF_TURN'
+        options: {
+          lifeCost: 2,
+          base: {
+            type: EffectActionType.BUFF_STATS,
+            target: EffectTarget.SELF,
+            value: '+0/+0',
+            duration: 'PERMANENT'
+          },
+          buff: {
+            type: EffectActionType.BUFF_STATS,
+            target: EffectTarget.SELF,
+            value: '+2/+0',
+            duration: 'PERMANENT'
+          }
+        }
       }
     }
   ],
-  classResource: {
-    type: 'VIDA',
-    amount: 3
-  },
-  description: '1/1 con Prisa. Vida 3: Gana +2/+0 hasta final del turno',
+  description: '1/1 con Prisa. Al entrar: Elige sin cambios o +2/+0 pagando 2 de vida',
   flavorText: 'La desesperación es el combustible más puro.'
 }
 
@@ -1328,19 +1332,17 @@ export const BERSERKER_SANGUINARIO: Card = {
   abilities: [],
   effects: [
     {
-      id: 'Berserker_Blood_Frenzy',
-      description: 'Vida 4: Gana +3/+1 y Prisa hasta final del turno',
-      timing: EffectTiming.TRIGGERED,
-      condition: {
-        type: 'CLASS_RESOURCE',
-        value: 4,
-        comparison: 'EQUAL'
-      },
+      id: 'Berserker_Descubrir',
+      description: 'Al entrar: Elige sin cambios, o +3/+1 pagando 4 de vida',
+      timing: EffectTiming.ON_ENTER,
       action: {
-        type: EffectActionType.BUFF_STATS,
+        type: EffectActionType.DISCOVER_PAY_LIFE,
         target: EffectTarget.SELF,
-        value: '+3/+1',
-        duration: 'END_OF_TURN'
+        options: {
+          lifeCost: 4,
+          base: { type: EffectActionType.BUFF_STATS, target: EffectTarget.SELF, value: '+0/+0', duration: 'PERMANENT' },
+          buff: { type: EffectActionType.BUFF_STATS, target: EffectTarget.SELF, value: '+3/+1', duration: 'END_OF_TURN' }
+        }
       }
     }
   ],
@@ -1348,7 +1350,7 @@ export const BERSERKER_SANGUINARIO: Card = {
     type: 'VIDA',
     amount: 4
   },
-  description: '2/1. Vida 4: Gana +3/+1 y Prisa hasta final del turno',
+  description: '2/1. Al entrar: Elige sin cambios, o +3/+1 pagando 4 de vida',
   flavorText: 'La sangre es combustible, la victoria es destino.'
 }
 
@@ -1364,19 +1366,17 @@ export const CAZADOR_DE_RECOMPENSAS: Card = {
   abilities: [],
   effects: [
     {
-      id: 'Cazador_Blood_Removal',
-      description: 'Vida 2: Al entrar: Haz 2 de daño a una criatura',
+      id: 'Cazador_Descubrir',
+      description: 'Al entrar: Elige sin cambios, o haz 2 de daño pagando 2 de vida',
       timing: EffectTiming.ON_ENTER,
-      condition: {
-        type: 'CLASS_RESOURCE',
-        value: 2,
-        comparison: 'EQUAL'
-      },
       action: {
-        type: EffectActionType.DAMAGE,
-        target: EffectTarget.TARGET_CREATURE,
-        amount: 2,
-        duration: 'PERMANENT'
+        type: EffectActionType.DISCOVER_PAY_LIFE,
+        target: EffectTarget.SELF,
+        options: {
+          lifeCost: 2,
+          base: { type: EffectActionType.BUFF_STATS, target: EffectTarget.SELF, value: '+0/+0', duration: 'PERMANENT' },
+          buff: { type: EffectActionType.DAMAGE, target: EffectTarget.TARGET_CREATURE, amount: 2, duration: 'PERMANENT' }
+        }
       }
     }
   ],
@@ -1384,7 +1384,7 @@ export const CAZADOR_DE_RECOMPENSAS: Card = {
     type: 'VIDA',
     amount: 2
   },
-  description: '2/2. Vida 2: Al entrar: Haz 2 de daño a una criatura',
+  description: '2/2. Al entrar: Elige sin cambios, o haz 2 de daño pagando 2 de vida',
   flavorText: 'El precio se paga en sangre.'
 }
 
@@ -1398,30 +1398,17 @@ export const RITUAL_SANGRIENTO: Card = {
   abilities: [],
   effects: [
     {
-      id: 'Ritual_Base_Damage',
-      description: 'Haz 3 de daño al oponente',
+      id: 'Ritual_Descubrir',
+      description: 'Al jugar: Elige 3 de daño al oponente, o 6 de daño pagando 6 de vida',
       timing: EffectTiming.ON_PLAY,
       action: {
-        type: EffectActionType.DAMAGE,
-        target: EffectTarget.ENEMY_HERO,
-        amount: 3,
-        duration: 'PERMANENT'
-      }
-    },
-    {
-      id: 'Ritual_Blood_Amplification',
-      description: 'Vida 6: En su lugar, haz 6 de daño al oponente',
-      timing: EffectTiming.ON_PLAY,
-      condition: {
-        type: 'CLASS_RESOURCE',
-        value: 6,
-        comparison: 'EQUAL'
-      },
-      action: {
-        type: EffectActionType.DAMAGE,
-        target: EffectTarget.ENEMY_HERO,
-        amount: 6,
-        duration: 'PERMANENT'
+        type: EffectActionType.DISCOVER_PAY_LIFE,
+        target: EffectTarget.FRIENDLY_HERO,
+        options: {
+          lifeCost: 6,
+          base: { type: EffectActionType.DAMAGE, target: EffectTarget.ENEMY_HERO, amount: 3, duration: 'PERMANENT' },
+          buff: { type: EffectActionType.DAMAGE, target: EffectTarget.ENEMY_HERO, amount: 6, duration: 'PERMANENT' }
+        }
       }
     }
   ],
@@ -1429,7 +1416,7 @@ export const RITUAL_SANGRIENTO: Card = {
     type: 'VIDA',
     amount: 6
   },
-  description: 'Haz 3 de daño al oponente. Vida 6: En su lugar, haz 6 de daño al oponente',
+  description: 'Elige: Haz 3 de daño al oponente o 6 de daño pagando 6 de vida',
   flavorText: 'El dolor compartido duele más.'
 }
 
@@ -1445,19 +1432,17 @@ export const GUERRERO_HERIDO: Card = {
   abilities: [Ability.ROBO_DE_VIDA],
   effects: [
     {
-      id: 'Guerrero_Blood_Enhancement',
-      description: 'Vida 4: Gana +1/+1 y Prisa hasta final del turno',
-      timing: EffectTiming.TRIGGERED,
-      condition: {
-        type: 'CLASS_RESOURCE',
-        value: 4,
-        comparison: 'EQUAL'
-      },
+      id: 'Guerrero_Descubrir',
+      description: 'Al entrar: Elige sin cambios, o +1/+1 pagando 4 de vida',
+      timing: EffectTiming.ON_ENTER,
       action: {
-        type: EffectActionType.BUFF_STATS,
+        type: EffectActionType.DISCOVER_PAY_LIFE,
         target: EffectTarget.SELF,
-        value: '+1/+1',
-        duration: 'END_OF_TURN'
+        options: {
+          lifeCost: 4,
+          base: { type: EffectActionType.BUFF_STATS, target: EffectTarget.SELF, value: '+0/+0', duration: 'PERMANENT' },
+          buff: { type: EffectActionType.BUFF_STATS, target: EffectTarget.SELF, value: '+1/+1', duration: 'END_OF_TURN' }
+        }
       }
     }
   ],
@@ -1465,7 +1450,7 @@ export const GUERRERO_HERIDO: Card = {
     type: 'VIDA',
     amount: 4
   },
-  description: '2/1 con Robo de vida. Vida 4: Gana +1/+1 y Prisa hasta final del turno',
+  description: '2/1 con Robo de vida. Al entrar: Elige sin cambios, o +1/+1 pagando 4 de vida',
   flavorText: 'La sangre derramada fortalece al guerrero.'
 }
 
@@ -1481,19 +1466,17 @@ export const SENOR_DE_LA_SANGRE: Card = {
   abilities: [],
   effects: [
     {
-      id: 'Senor_Mass_Rush',
-      description: 'Vida 4: Al entrar: Todas tus criaturas ganan Prisa hasta final del turno',
+      id: 'Senor_Descubrir_Marcha',
+      description: 'Al entrar: Elige sin cambios, o todas tus criaturas ganan Prisa este turno pagando 4 de vida',
       timing: EffectTiming.ON_ENTER,
-      condition: {
-        type: 'CLASS_RESOURCE',
-        value: 4,
-        comparison: 'EQUAL'
-      },
       action: {
-        type: EffectActionType.GAIN_ABILITY,
-        target: EffectTarget.ALL_FRIENDLY_CREATURES,
-        value: Ability.PRISA,
-        duration: 'END_OF_TURN'
+        type: EffectActionType.DISCOVER_PAY_LIFE,
+        target: EffectTarget.SELF,
+        options: {
+          lifeCost: 4,
+          base: { type: EffectActionType.BUFF_STATS, target: EffectTarget.SELF, value: '+0/+0', duration: 'PERMANENT' },
+          buff: { type: EffectActionType.GAIN_ABILITY, target: EffectTarget.ALL_FRIENDLY_CREATURES, value: Ability.PRISA, duration: 'END_OF_TURN' }
+        }
       }
     }
   ],
@@ -1501,7 +1484,7 @@ export const SENOR_DE_LA_SANGRE: Card = {
     type: 'VIDA',
     amount: 4
   },
-  description: '2/3. Vida 4: Al entrar: Todas tus criaturas ganan Prisa hasta final del turno',
+  description: '2/3. Al entrar: Elige sin cambios o da Prisa a todas tus criaturas hasta final de turno pagando 4 de vida',
   flavorText: 'Su llamado despierta la furia dormida.'
 }
 
@@ -1515,30 +1498,27 @@ export const PACTO_DE_PODER: Card = {
   abilities: [],
   effects: [
     {
-      id: 'Pacto_Base_Summon',
-      description: 'Invoca una criatura 2/2 con Prisa',
+      id: 'Pacto_Descubrir_Summon',
+      description: 'Al jugar: Elige invocar 2/2 con Prisa, o 4/4 con Prisa y Robo de vida pagando 5 de vida (muere al final del turno)',
       timing: EffectTiming.ON_PLAY,
       action: {
-        type: EffectActionType.SUMMON_CREATURE,
+        type: EffectActionType.DISCOVER_PAY_LIFE,
         target: EffectTarget.FRIENDLY_HERO,
-        value: 'TOKEN_2_2_PRISA',
-        duration: 'END_OF_TURN'
-      }
-    },
-    {
-      id: 'Pacto_Blood_Enhancement',
-      description: 'Vida 5: En su lugar, invoca una criatura 4/4 con Prisa y Robo de vida',
-      timing: EffectTiming.ON_PLAY,
-      condition: {
-        type: 'CLASS_RESOURCE',
-        value: 5,
-        comparison: 'EQUAL'
-      },
-      action: {
-        type: EffectActionType.SUMMON_CREATURE,
-        target: EffectTarget.FRIENDLY_HERO,
-        value: 'TOKEN_4_4_PRISA_LIFESTEAL',
-        duration: 'END_OF_TURN'
+        options: {
+          lifeCost: 5,
+          base: {
+            type: EffectActionType.SUMMON_CREATURE,
+            target: EffectTarget.FRIENDLY_HERO,
+            value: 'TOKEN_2_2_PRISA',
+            duration: 'END_OF_TURN'
+          },
+          buff: {
+            type: EffectActionType.SUMMON_CREATURE,
+            target: EffectTarget.FRIENDLY_HERO,
+            value: 'TOKEN_4_4_PRISA_LIFESTEAL',
+            duration: 'END_OF_TURN'
+          }
+        }
       }
     }
   ],
@@ -1546,7 +1526,7 @@ export const PACTO_DE_PODER: Card = {
     type: 'VIDA',
     amount: 5
   },
-  description: 'Invoca una criatura 2/2 con Prisa. Vida 5: En su lugar, invoca una criatura 4/4 con Prisa y Robo de vida. Esa criatura muere al final del turno',
+  description: 'Elige: Invoca 2/2 con Prisa o 4/4 con Prisa y Robo de vida pagando 5 de vida (muere al final del turno)',
   flavorText: 'Poder prestado, precio diferido.'
 }
 
@@ -1560,30 +1540,17 @@ export const PACTO_FINAL: Card = {
   abilities: [],
   effects: [
     {
-      id: 'Pacto_Base_Finisher',
-      description: 'Haz 5 de daño al oponente',
+      id: 'PactoFinal_Descubrir',
+      description: 'Al jugar: Elige 5 de daño al oponente, o 12 de daño pagando 8 de vida',
       timing: EffectTiming.ON_PLAY,
       action: {
-        type: EffectActionType.DAMAGE,
-        target: EffectTarget.ENEMY_HERO,
-        amount: 5,
-        duration: 'PERMANENT'
-      }
-    },
-    {
-      id: 'Pacto_Blood_Finisher',
-      description: 'Vida 8: En su lugar, haz 12 de daño al oponente',
-      timing: EffectTiming.ON_PLAY,
-      condition: {
-        type: 'CLASS_RESOURCE',
-        value: 8,
-        comparison: 'EQUAL'
-      },
-      action: {
-        type: EffectActionType.DAMAGE,
-        target: EffectTarget.ENEMY_HERO,
-        amount: 12,
-        duration: 'PERMANENT'
+        type: EffectActionType.DISCOVER_PAY_LIFE,
+        target: EffectTarget.FRIENDLY_HERO,
+        options: {
+          lifeCost: 8,
+          base: { type: EffectActionType.DAMAGE, target: EffectTarget.ENEMY_HERO, amount: 5, duration: 'PERMANENT' },
+          buff: { type: EffectActionType.DAMAGE, target: EffectTarget.ENEMY_HERO, amount: 12, duration: 'PERMANENT' }
+        }
       }
     }
   ],
@@ -1591,7 +1558,7 @@ export const PACTO_FINAL: Card = {
     type: 'VIDA',
     amount: 8
   },
-  description: 'Haz 5 de daño al oponente. Vida 8: En su lugar, haz 12 de daño al oponente',
+  description: 'Elige: 5 de daño o 12 de daño pagando 8 de vida',
   flavorText: 'Todo o nada. Prefiero todo.'
 }
 
@@ -1605,8 +1572,8 @@ export const FRENESI_FINAL: Card = {
   abilities: [],
   effects: [
     {
-      id: 'Frenesi_Mass_Attack',
-      description: 'Solo se puede jugar si tienes 10 o menos vida. Vida 6: Todas tus criaturas atacan inmediatamente. Este ataque no se puede bloquear',
+      id: 'Frenesi_Play_Restriction',
+      description: 'Solo se puede jugar si tienes 10 o menos vida',
       timing: EffectTiming.ON_PLAY,
       condition: {
         type: 'HEALTH_THRESHOLD',
@@ -1614,10 +1581,15 @@ export const FRENESI_FINAL: Card = {
         comparison: 'LESS_EQUAL'
       },
       action: {
-        type: EffectActionType.BUFF_ATTACK,
-        target: EffectTarget.ALL_FRIENDLY_CREATURES,
-        amount: 999, // Unblockable attack flag
-        duration: 'END_OF_TURN'
+        type: EffectActionType.DISCOVER_PAY_LIFE,
+        target: EffectTarget.FRIENDLY_HERO,
+        options: {
+          lifeCost: 6,
+          // Base: sin efecto (no-op)
+          base: { type: EffectActionType.BUFF_STATS, target: EffectTarget.FRIENDLY_HERO, value: '+0/+0', duration: 'PERMANENT' },
+          // Buff: todas tus criaturas “atacan inmediatamente” (flag 999), hasta fin de turno
+          buff: { type: EffectActionType.BUFF_ATTACK, target: EffectTarget.ALL_FRIENDLY_CREATURES, amount: 999, duration: 'END_OF_TURN' }
+        }
       }
     }
   ],
@@ -1625,7 +1597,7 @@ export const FRENESI_FINAL: Card = {
     type: 'VIDA',
     amount: 6
   },
-  description: 'Solo se puede jugar si tienes 10 o menos vida. Vida 6: Todas tus criaturas atacan inmediatamente. Este ataque no se puede bloquear',
+  description: 'Solo si tienes 10 o menos vida. Elige: no hacer nada, o todas tus criaturas atacan inmediatamente pagando 6 de vida (no bloqueable).',
   flavorText: 'Cuando todo está perdido, todo vale.'
 }
 
@@ -1641,14 +1613,17 @@ export const AVATAR_DE_LA_DESTRUCCION: Card = {
   abilities: [],
   effects: [
     {
-      id: 'Avatar_Scaling_Power',
-      description: 'Vida X: Gana +X/+X donde X es la vida que pagues',
-      timing: EffectTiming.PASSIVE,
+      id: 'Avatar_Descubrir_Poder',
+      description: 'Al entrar: Elige sin cambios, o +5/+5 pagando 5 de vida',
+      timing: EffectTiming.ON_ENTER,
       action: {
-        type: EffectActionType.BUFF_STATS,
+        type: EffectActionType.DISCOVER_PAY_LIFE,
         target: EffectTarget.SELF,
-        value: 'LIFE_DIFFERENTIAL',
-        duration: 'PERMANENT'
+        options: {
+          lifeCost: 5,
+          base: { type: EffectActionType.BUFF_STATS, target: EffectTarget.SELF, value: '+0/+0', duration: 'PERMANENT' },
+          buff: { type: EffectActionType.BUFF_STATS, target: EffectTarget.SELF, value: '+5/+5', duration: 'PERMANENT' }
+        }
       }
     },
     {
@@ -1668,7 +1643,7 @@ export const AVATAR_DE_LA_DESTRUCCION: Card = {
       }
     }
   ],
-  description: '1/1. Vida X: Gana +X/+X donde X es la vida que pagues. Al atacar: Si tienes 5 o menos vida, gana Doble golpe',
+  description: '1/1. Al entrar: Elige sin cambios o +5/+5 pagando 5 de vida. Al atacar: Si tienes 5 o menos vida, gana Doble golpe',
   flavorText: 'Más cerca de la muerte, más cerca de la perfección.'
 }
 

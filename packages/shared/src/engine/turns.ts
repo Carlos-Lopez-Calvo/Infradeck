@@ -1,7 +1,8 @@
-import { GameState, GamePhase } from './game-state'
+import { GameState, GamePhase, getCardByIdGlobal } from './game-state'
 import { triggerPriority } from './priority'
 import { triggerBoardEffects } from './effects'
 import { applyFinalStandBonus } from './final-stand'
+import { getCurrentForm, CycleState } from '../types/cards'
 
 // =======================
 // Gestión de turnos
@@ -15,6 +16,7 @@ export function getOpponentPlayerIndex(state: GameState): number {
   return 1 - state.turn.currentPlayerIndex
 }
 
+
 // Inicia el turno del jugador activo
 export function startTurn(state: GameState): void {
   state.turn.turnNumber += 1 
@@ -23,6 +25,9 @@ export function startTurn(state: GameState): void {
   state.turn.phase = GamePhase.START
   triggerPriority(state, GamePhase.START)
 
+    // APLICA BONUS DE FINAL STAND AQUÍ
+    applyFinalStandBonus(state, i)
+    
   if (p.maxMana < 10) p.maxMana += 1
   p.mana = p.maxMana
 
@@ -35,12 +40,26 @@ export function startTurn(state: GameState): void {
   p.board.forEach(c => { c.exhausted = false; c.damagedThisTurn = false })
 
   // Estado de Eclipse/Ciclo
-  if (p.classResource?.type === 'ESTADO') {
-    if (!p.permanentEclipse && p.classResource.state === 'ECLIPSE') {
-      p.classResource.state = 'DIA'
+    if (p.classResource?.type === 'ESTADO') {
+      if (!p.permanentEclipse && p.classResource.state === 'ECLIPSE') {
+        p.classResource.state = 'DIA'
+      }
+      // Sincroniza formas de cartas CICLO del jugador activo
+      if (p.classResource.state) {
+        for (let bi = 0; bi < p.board.length; bi++) {
+          const ent = p.board[bi]
+          const base = getCardByIdGlobal(ent.cardId)
+          if (!base || !(base as any).dayForm) continue
+          const form = getCurrentForm(base as any, p.classResource.state as CycleState)
+          ent.attack = form.attack ?? ent.attack
+          const newMax = form.health ?? ent.health
+          if (ent.health > newMax) ent.health = newMax
+          ent.abilities = form.abilities ? form.abilities.map(a => String(a)) : []
+        }
+      }
     }
-  }
 
+    
   // Reset flags de turno
   p.attackersDeclaredThisTurn = 0
   p.lastAttackTargetHero = false
@@ -66,8 +85,11 @@ export function draw(state: GameState, playerIndex: number, count = 1): void {
 
 // Finaliza el turno del jugador activo
 export function endTurn(state: GameState): void {
-  const i = getCurrentPlayerIndex(state)
+  const i = state.turn.currentPlayerIndex
+  state.players[i].lifeCredit = undefined
+  state.players[i].freeLifeCosts = false
   const p = state.players[i]
+  
 
   state.turn.phase = GamePhase.END
   triggerPriority(state, GamePhase.END)
@@ -81,19 +103,34 @@ export function endTurn(state: GameState): void {
     tasks.forEach(fn => { try { fn() } catch {} })
   }
 
-  // Cambio de estado de Eclipse/Ciclo
-  if (p.classResource?.type === 'ESTADO') {
-    if (!p.permanentEclipse) {
-      if (p.classResource.state === 'DIA') p.classResource.state = 'NOCHE'
-      else if (p.classResource.state === 'NOCHE') p.classResource.state = 'DIA'
-      else if (p.classResource.state === 'ECLIPSE') p.classResource.state = 'DIA'
+    // Cambio de estado de Eclipse/Ciclo
+    if (p.classResource?.type === 'ESTADO') {
+      if (!p.permanentEclipse) {
+        if (p.classResource.state === 'DIA') p.classResource.state = 'NOCHE'
+        else if (p.classResource.state === 'NOCHE') p.classResource.state = 'DIA'
+        else if (p.classResource.state === 'ECLIPSE') p.classResource.state = 'DIA'
+      }
+      // Sincroniza formas de cartas CICLO del jugador activo tras el cambio
+      if (p.classResource.state) {
+        for (let bi = 0; bi < p.board.length; bi++) {
+          const ent = p.board[bi]
+          const base = getCardByIdGlobal(ent.cardId)
+          if (!base || !(base as any).dayForm) continue
+          const form = getCurrentForm(base as any, p.classResource.state as CycleState)
+          ent.attack = form.attack ?? ent.attack
+          const newMax = form.health ?? ent.health
+          if (ent.health > newMax) ent.health = newMax
+          ent.abilities = form.abilities ? form.abilities.map(a => String(a)) : []
+        }
+      }
     }
-  }
+  
+    // Cambia jugador activo
+    state.turn.currentPlayerIndex = getOpponentPlayerIndex(state)
+    state.turn.phase = GamePhase.START
+    triggerPriority(state, GamePhase.START)
 
-  // Cambia jugador activo
-  state.turn.currentPlayerIndex = getOpponentPlayerIndex(state)
-  state.turn.phase = GamePhase.START
-  triggerPriority(state, GamePhase.START)
+  
 }
 
 // Avanza al siguiente turno (usado para efectos especiales)

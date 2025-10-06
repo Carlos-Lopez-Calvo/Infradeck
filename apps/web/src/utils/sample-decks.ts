@@ -15,9 +15,9 @@ export const sampleDecks = {
 
     // Cartas básicas
     'Ultima_Oportunidad', 'Ultima_Oportunidad',
-    'Mercenario_Agil', 'Mercenario_Agil',
+    'Mercenario', 'Mercenario',
     'Explorador_Astuto', 'Explorador_Astuto',
-    'Asesino_Silencioso', 'Asesino_Silencioso',
+    'Asesino_delarossa', 'Asesino_delarossa',
     'Guardian_Novato', 'Guardian_Novato',
     'Reflejo_Rapido', 'Reflejo_Rapido'
   ],
@@ -37,9 +37,9 @@ export const sampleDecks = {
 
     // Cartas básicas
     'Ultima_Oportunidad', 'Ultima_Oportunidad',
-    'Mercenario_Agil', 'Mercenario_Agil',
+    'Mercenario', 'Mercenario',
     'Explorador_Astuto', 'Explorador_Astuto',
-    'Asesino_Silencioso', 'Asesino_Silencioso',
+    'Asesino_delarossa', 'Asesino_delarossa',
     'Guardian_Novato', 'Guardian_Novato',
     'Reflejo_Rapido', 'Reflejo_Rapido'
   ],
@@ -59,9 +59,9 @@ export const sampleDecks = {
 
     // Cartas básicas
     'Ultima_Oportunidad', 'Ultima_Oportunidad',
-    'Mercenario_Agil', 'Mercenario_Agil',
+    'Mercenario', 'Mercenario',
     'Explorador_Astuto', 'Explorador_Astuto',
-    'Asesino_Silencioso', 'Asesino_Silencioso',
+    'Asesino_delarossa', 'Asesino_delarossa',
     'Guardian_Novato', 'Guardian_Novato',
     'Reflejo_Rapido', 'Reflejo_Rapido'
   ],
@@ -81,9 +81,9 @@ export const sampleDecks = {
 
     // Cartas básicas
     'Ultima_Oportunidad', 'Ultima_Oportunidad',
-    'Mercenario_Agil', 'Mercenario_Agil',
+    'Mercenario', 'Mercenario',
     'Explorador_Astuto', 'Explorador_Astuto',
-    'Asesino_Silencioso', 'Asesino_Silencioso',
+    'Asesino_delarossa', 'Asesino_delarossa',
     'Guardian_Novato', 'Guardian_Novato',
     'Reflejo_Rapido', 'Reflejo_Rapido'
   ]

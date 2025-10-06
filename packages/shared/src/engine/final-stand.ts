@@ -1,6 +1,8 @@
-import { GameState, PlayerState } from './game-state'
+import { GameState, PlayerState, getCardByIdGlobal } from './game-state'
 import { CardType } from '../types/cards'
-import { getCardByIdGlobal } from './game-state'
+import { applyOnEnterEffects } from './effects'
+import { notifyEnterBattlefield } from './priority'
+import { hasSpecimenOnBoard } from './specimen'
 // Si usas un resolver global de cartas, importa aquí:
 // Estado de Final Stand (puedes mover la interfaz aquí si la tienes en game-state.ts)
 export interface FinalStandState {
@@ -22,32 +24,26 @@ export function checkAndActivateFinalStand(
   damageSourcePlayerIndex: number
 ): boolean {
   const player = state.players[damagedPlayerIndex]
-  
-  // Solo si: vida ≤ 0, no ha usado Final Stand, y fue dañado por oponente
   if (player.life <= 0 && 
       !player.finalStand?.used && 
       damageSourcePlayerIndex !== damagedPlayerIndex) {
-    
+
     console.log(`💀⚡ FINAL STAND activated for Player ${damagedPlayerIndex}!`)
-    
-    // Activar Final Stand inmediatamente
     player.finalStand = {
       used: true,
       immuneUntilTurn: state.turn.turnNumber + (damagedPlayerIndex === state.turn.currentPlayerIndex ? 2 : 1),
       triggeredByDamageFrom: damageSourcePlayerIndex
     }
-    
-    // Ajustar stats inmediatamente
-    player.life = 1 // No mueres
-    player.maxLife = 10 // Máximo permanente
-    
-    // Aplicar bonus por clase EN TU PRÓXIMO TURNO (no ahora)
+    player.life = 1
+    player.maxLife = 10
+
+    // Flag para UI
+    state.finalStandJustActivated = damagedPlayerIndex
+
     console.log(`🎁 Final Stand bonus will apply on next turn for ${player.classType}`)
-    
-    return true // Final Stand se activó
+    return true
   }
-  
-  return false // No Final Stand
+  return false
 }
 
 // ✅ Verificar si un jugador tiene inmunidad activa
@@ -77,7 +73,9 @@ export function applyFinalStandBonus(state: GameState, playerIndex: number): voi
   
   switch (player.classType) {
     case 'ABOMINACION': {
-      // Espécimen Perfecto inmediato con +1/+1 por habilidad en cementerio
+      // Si ya hay un espécimen, no invocar otro
+      if (hasSpecimenOnBoard(player)) break
+
       const uniqueAbilities = new Set<string>()
       for (const cardId of player.graveyard) {
         const card = getCardByIdGlobal(cardId)
@@ -85,14 +83,27 @@ export function applyFinalStandBonus(state: GameState, playerIndex: number): voi
           card.abilities.forEach((ab: string | number) => uniqueAbilities.add(String(ab)))
         }
       }
-      
-      const bonusStats = uniqueAbilities.size
-      console.log(`🧬 ABOMINACIÓN Final Stand: Free Specimen with +${bonusStats}/+${bonusStats}`)
-      
-      // Marcar que puede jugar Espécimen gratis este turno
-      player.freeSpecimenThisTurn = { attack: bonusStats, health: bonusStats }
+
+      const fsCard = getCardByIdGlobal('Especimen_Perfecto_Final_Stand')
+      if (fsCard) {
+        const ent = {
+          id: `fs-specimen-${Date.now()}`,
+          cardId: fsCard.id,
+          ownerId: player.id,
+          attack: fsCard.attack ?? 0,
+          health: fsCard.health ?? 1,
+          exhausted: true,
+          abilities: Array.from(uniqueAbilities),
+          effects: [],
+        }
+        player.board.push(ent)
+        notifyEnterBattlefield(state, playerIndex, ent.id)
+        applyOnEnterEffects(state, ent as any, playerIndex, fsCard)
+      }
       break
     }
+    
+
     
     case 'CAOS': {
       // Empiezas con 6 Entropía, no resetea este turno
@@ -115,9 +126,8 @@ export function applyFinalStandBonus(state: GameState, playerIndex: number): voi
     }
     
     case 'VITALIDAD': {
-      // Cartas de vida se activan gratis este turno y siguientes
-      player.freeLifeCosts = true
-      console.log(`❤️ VITALIDAD Final Stand: Free life costs`)
+      player.freeLifeCosts = false
+      player.lifeCredit = 999
       break
     }
   }

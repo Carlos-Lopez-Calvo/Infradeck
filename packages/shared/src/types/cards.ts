@@ -8,8 +8,6 @@
 export enum CardType {
   CREATURE = 'CREATURE',
   SPELL = 'SPELL', 
-  INSTANT = 'INSTANT',
-  COUNTER_SPELL = 'COUNTER_SPELL',
 }
 
 export enum CardRarity {
@@ -85,14 +83,15 @@ export enum EffectActionType {
   // State changes
   CHANGE_CYCLE_STATE = 'CHANGE_CYCLE_STATE',
   GAIN_ENTROPY = 'GAIN_ENTROPY',
+  DISCOVER_PAY_ENTROPY = 'DISCOVER_PAY_ENTROPY',
   
   // Special effects
   ACTIVATE_ECLIPSE = 'ACTIVATE_ECLIPSE',
   SUMMON_SPECIMEN = 'SUMMON_SPECIMEN',
-  TRANSFORM = 'TRANSFORM',              // Para transformaciones de CICLO y efectos especiales
-  
-  // Counterspells
-  COUNTER_SPELL = 'COUNTER_SPELL',        // Anular hechizo/instantánea
+  TRANSFORM = 'TRANSFORM',        
+  DISCOVER_PAY_LIFE = 'DISCOVER_PAY_LIFE',
+
+  ATTACK_SPELL = 'ATTACK_SPELL',
 }
 
 export interface CardEffect {
@@ -101,6 +100,7 @@ export interface CardEffect {
   timing: EffectTiming
   condition?: EffectCondition
   action: EffectAction
+  
 }
 
 export enum EffectTiming {
@@ -133,6 +133,7 @@ export interface EffectAction {
   amount?: number              // Para stats separados
   duration?: 'PERMANENT' | 'END_OF_TURN' | 'UNTIL_DEATH'
   consumeEntropy?: number      // Opcional: consumo por disparo/uso (CAOS)
+  options?: DiscoverPayLifeOptions | DiscoverPayEntropyOptions
 }
 
 export enum EffectTarget {
@@ -320,4 +321,16 @@ export interface DeckValidationError {
   type: 'DECK_SIZE' | 'TOO_MANY_COPIES' | 'INVALID_CLASS_CARDS' | 'MISSING_REQUIRED_CARDS'
   cardId?: string
   message: string
+}
+
+export interface DiscoverPayLifeOptions {
+  lifeCost: number
+  base?: EffectAction
+  buff?: EffectAction
+}
+
+export interface DiscoverPayEntropyOptions {
+  entropyCost: number
+  base?: EffectAction
+  buff?: EffectAction
 }

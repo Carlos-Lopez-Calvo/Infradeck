@@ -47,6 +47,7 @@ export function GameBoard() {
             {opponentPlayer.board.map((c, idx) => {
                 const card = getCardByIdGlobal(c.cardId)
                 if (!card) return null
+                const preview = { ...card, attack: c.attack, health: c.health, abilities: c.abilities }
                 return (
                   <button
                     key={c.id ?? `${c.cardId}-${idx}`}
@@ -60,7 +61,7 @@ export function GameBoard() {
                     }}
                     title="Click para atacar a esta criatura (si tienes un atacante seleccionado)"
                   >
-                    <Card card={card} />
+                    <Card card={preview as any} />
                   </button>
                 )
               })}
@@ -95,6 +96,7 @@ export function GameBoard() {
                 if (!card) return null
                 const isSelected = selectedAttacker === idx
                 const canSelect = canAct && !c.exhausted && (c.attack ?? 0) > 0 && c.health > 0
+                const preview = { ...card, attack: c.attack, health: c.health, abilities: c.abilities }
                 return (
                   <button
                     key={c.id ?? `${c.cardId}-${idx}`}
@@ -106,7 +108,7 @@ export function GameBoard() {
                     }}
                     title={canSelect ? (isSelected ? 'Atacante seleccionado' : 'Seleccionar atacante') : 'No puede atacar'}
                   >
-                    <Card card={card} />
+                    <Card card={preview as any} />
                   </button>
                 )
               })}

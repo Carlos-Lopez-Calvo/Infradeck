@@ -4,14 +4,17 @@ import {
   GameState, createGame, startGame,
   startTurn as engineStartTurn, endTurn as engineEndTurn,
   beginCombat, endCombat,
-  setCardResolver, setPriorityWindow, playCard,
+  setCardResolver, setPriorityWindow, playCard, setDiscoverRequest,
   BASIC_CARDS_BY_ID, CLASS_CARDS_BY_ID, declareAttackHero, declareAttackCreature,
+  EffectActionType, EffectTarget,
 } from '@infradeck/shared'
+import { Card as UICard } from '../components/Card'
+
 import { sampleDecks } from '../utils/sample-decks'
 
 const delay = (ms: number) => new Promise(r => setTimeout(r, ms))
- const BOT_ENABLED = true
- const processedTurnRefInit = null as string | null
+const BOT_ENABLED = true
+const processedTurnRefInit = null as string | null
 
 type Ctx = {
   gameState: GameState
@@ -30,17 +33,36 @@ type Ctx = {
   }
 }
 
+type TargetModalState =
+  | null
+  | {
+      playerIndex: number
+      handIndex: number
+      choice: 'BASE' | 'BUFF'
+      targetKind: 'CREATURE_ENEMY'
+    }
+
 const GameEngineContext = createContext<Ctx | null>(null)
 
+type DiscoverModalState =
+  | null
+  | {
+      handIndex: number
+      playerIndex: number
+      title: string
+      baseLabel: string
+      buffLabel: string
+    }
+
 export function GameEngineProvider({ children }: { children: React.ReactNode }) {
-      const [gameState, setGameState] = useState<GameState>(() => {
+  const [gameState, setGameState] = useState<GameState>(() => {
     // Elige aquí los mazos a probar
-    const p1Class = 'ABOMINACION' as const
+    const p1Class = 'VITALIDAD' as const
     const p2Class = 'CAOS' as const
     const state = createGame(
-        { id: 'player1', name: 'Player 1', classType: p1Class, deck: [...sampleDecks[p1Class]], programmedSpecimenEffects: [] },
-        { id: 'player2', name: 'Player 2', classType: p2Class, deck: [...sampleDecks[p2Class]], programmedSpecimenEffects: [] },
-      )
+      { id: 'player1', name: 'Player 1', classType: p1Class, deck: [...sampleDecks[p1Class]], programmedSpecimenEffects: [] },
+      { id: 'player2', name: 'Player 2', classType: p2Class, deck: [...sampleDecks[p2Class]], programmedSpecimenEffects: [] },
+    )
     startGame(state)
     return state
   })
@@ -51,17 +73,174 @@ export function GameEngineProvider({ children }: { children: React.ReactNode }) 
 
   const getCardById = (id: string) => BASIC_CARDS_BY_ID[id] ?? CLASS_CARDS_BY_ID[id]
 
-  useLayoutEffect(() => {
-    setCardResolver(getCardById)              // disponible antes del primer paint
-    setPriorityWindow(() => setGameState(s => ({ ...s })))
-  }, [])
+  // Elección de “descubrir” (BASE/BUFF) para el siguiente efecto que la pida
+// Elección de “descubrir” (BASE/BUFF) sticky durante la resolución de la carta
+const nextDiscoverChoiceRef = useRef<{ choice: 'BASE' | 'BUFF' | null; usesLeft: number }>({ choice: null, usesLeft: 0 })
+const lastDiscoverChoiceRef = useRef<'BASE'|'BUFF'|null>(null)
+const [discoverModal, setDiscoverModal] = useState<DiscoverModalState>(null)
+const [targetModal, setTargetModal] = useState<TargetModalState>(null)
+
+useLayoutEffect(() => {
+  setCardResolver(getCardById)
+  setPriorityWindow(() => setGameState(s => ({ ...s })))
+
+  setDiscoverRequest((state, { playerIndex }) => {
+    const entry = nextDiscoverChoiceRef.current
+    // Si no hay elección explícita y hay crédito de vida, fuerza BUFF
+    if (!entry.choice) {
+      const p = state.players[playerIndex]
+      if ((p.lifeCredit ?? 0) > 0) return 'BUFF'
+      return 'BASE'
+    }
+    // Consumo normal del contador sticky
+    if (entry.usesLeft > 0) entry.usesLeft -= 1
+    const chosen = entry.choice
+    if (entry.usesLeft <= 0) nextDiscoverChoiceRef.current = { choice: null, usesLeft: 0 }
+    return chosen
+  })
+}, [])
+
+// Oculta overlay automáticamente cuando se active Final Stand
+useLayoutEffect(() => {
+  if (typeof gameState.finalStandJustActivated === 'number') {
+    const t = setTimeout(() => {
+      setGameState(prev => {
+        const next = { ...prev }
+        next.finalStandJustActivated = null
+        return next
+      })
+    }, 1500)
+    return () => clearTimeout(t)
+  }
+}, [gameState.finalStandJustActivated, setGameState])
 
   const meIndex = gameState.players[0].id === localPlayerId ? 0 : 1
   const currentPlayer = gameState.players[meIndex]
   const opponentPlayer = gameState.players[1 - meIndex]
   const isMyTurn = gameState.turn.currentPlayerIndex === meIndex
   const processedTurnRef = useRef(processedTurnRefInit)
-const botTurnKey = `${gameState.turn.turnNumber}:${gameState.turn.currentPlayerIndex}`
+  const botTurnKey = `${gameState.turn.turnNumber}:${gameState.turn.currentPlayerIndex}`
+
+  // Helpers UI “discover”
+  const cardHasDiscover = (cardId: string | undefined) => {
+    const countDiscoversInCard = (cardId?: string) => {
+      if (!cardId) return 0
+      const c = getCardById(cardId)
+      if (!c || !Array.isArray(c.effects)) return 0
+      return c.effects.filter(e =>
+        e?.action?.type === EffectActionType.DISCOVER_PAY_LIFE ||
+        e?.action?.type === EffectActionType.DISCOVER_PAY_ENTROPY
+      ).length
+    }
+    if (!cardId) return false
+    const c = getCardById(cardId)
+    if (!c || !Array.isArray(c.effects)) return false
+    return c.effects.some(e =>
+      e?.action?.type === EffectActionType.DISCOVER_PAY_LIFE ||
+      e?.action?.type === EffectActionType.DISCOVER_PAY_ENTROPY
+    )
+  }
+
+  const countDiscoversInCard = (cardId?: string) => {
+    if (!cardId) return 0
+    const c = getCardById(cardId)
+    if (!c || !Array.isArray(c.effects)) return 0
+    return c.effects.filter(e =>
+      e?.action?.type === EffectActionType.DISCOVER_PAY_LIFE ||
+      e?.action?.type === EffectActionType.DISCOVER_PAY_ENTROPY
+    ).length
+  }
+
+  // Aplica efectos simples de preview sobre una copia del card (solo para UI)
+  const applyPreviewEffect = (card: any, eff: any) => {
+    // below cardHasDiscover
+    if (!eff) return card
+    // Solo contemplamos SELF y acciones simples para preview
+    if (eff.type === EffectActionType.BUFF_STATS && eff.target) {
+      const v = String(eff.value ?? '')
+      const m = v.match(/^\+?(-?\d+)\/\+?(-?\d+)$/)
+      const addAtk = m ? parseInt(m[1], 10) : 0
+      const addHp = m ? parseInt(m[2], 10) : 0
+      return { ...card, attack: (card.attack ?? 0) + addAtk, health: (card.health ?? 0) + addHp }
+    }
+    if (eff.type === EffectActionType.GAIN_ABILITY && eff.target) {
+      const abil = String(eff.value ?? '')
+      const abilities = card.abilities ? Array.from(new Set([...card.abilities, abil])) : [abil]
+      return { ...card, abilities }
+    }
+    // Otros efectos (DAMAGE, SUMMON_CREATURE, etc.) no alteran stats de la carta misma en preview
+    return card
+  }
+
+  const buildDiscoverPreviews = (playerIndex: number, handIndex: number) => {
+    const p = gameState.players[playerIndex]
+    const cardId = p.hand[handIndex]
+    const card = getCardById(cardId)
+    if (!card) return null
+    const discover = card.effects?.find(e =>
+      e?.action?.type === EffectActionType.DISCOVER_PAY_LIFE ||
+      e?.action?.type === EffectActionType.DISCOVER_PAY_ENTROPY
+    )
+    if (!discover) return null
+    const baseEff = discover.action?.options?.base
+    const buffEff = discover.action?.options?.buff
+
+    const baseCard = applyPreviewEffect({ ...card }, baseEff)
+    const buffCard = applyPreviewEffect({ ...card }, buffEff)
+
+    return { baseCard, buffCard }
+  }
+
+  const openDiscoverForCard = (playerIndex: number, handIndex: number) => {
+    const p = gameState.players[playerIndex]
+    const cardId = p.hand[handIndex]
+    const card = getCardById(cardId)
+    if (!card) return false
+    // Etiquetas simples; el motor aplicará la lógica exacta
+    setDiscoverModal({
+      handIndex,
+      playerIndex,
+      title: 'Elige una opción',
+      baseLabel: 'Versión base',
+      buffLabel: 'Versión potenciada',
+    })
+    return true
+  }
+
+  const confirmDiscover = (choice: 'BASE' | 'BUFF') => {
+    console.log('[UI] confirmDiscover click', { choice })
+    if (!discoverModal) return
+    const { handIndex, playerIndex } = discoverModal
+  
+    // Decide con la acción real (BASE/BUFF)
+    const cardId = gameState.players[playerIndex].hand[handIndex]
+    const card = getCardById(cardId)
+    const discover = card?.effects?.find(e =>
+      e?.action?.type === EffectActionType.DISCOVER_PAY_LIFE ||
+      e?.action?.type === EffectActionType.DISCOVER_PAY_ENTROPY
+    )
+    const act = choice === 'BUFF' ? discover?.action?.options?.buff : discover?.action?.options?.base
+  
+    // Si requiere objetivo, abre modal y no juegues aún
+    if (act?.target === EffectTarget.TARGET_CREATURE) {
+      setDiscoverModal(null)
+      setTargetModal({ playerIndex, handIndex, choice, targetKind: 'CREATURE_ENEMY' })
+      return
+    }
+  
+    // Sticky choice (sin objetivo)
+    const uses = Math.max(1, countDiscoversInCard(cardId))
+    lastDiscoverChoiceRef.current = choice
+    nextDiscoverChoiceRef.current = { choice, usesLeft: uses }
+    setDiscoverModal(null)
+    setGameState(prev => {
+      const next: GameState = JSON.parse(JSON.stringify(prev))
+      if (next.turn.currentPlayerIndex !== playerIndex) return next
+      const res = playCard(next, playerIndex, handIndex, getCardById)
+      if (!res.ok) console.warn('playCard failed:', res)
+      return next
+    })
+  }
 
   const actions = useMemo(() => ({
     startTurn: () => {
@@ -95,14 +274,25 @@ const botTurnKey = `${gameState.turn.turnNumber}:${gameState.turn.currentPlayerI
         engineEndTurn(next)
         engineStartTurn(next)
         {
-            const i = next.turn.currentPlayerIndex
-            next.players[i].board.forEach(c => { c.exhausted = false; c.damagedThisTurn = false })
-            }
+          const i = next.turn.currentPlayerIndex
+          next.players[i].board.forEach(c => { c.exhausted = false; c.damagedThisTurn = false })
+        }
         return next
       })
     },
     playFromHand: (handIndex: number) => {
       if (!isMyTurn) return
+      const pIdx = gameState.turn.currentPlayerIndex
+      const hand = gameState.players[pIdx].hand
+      const cardId = hand[handIndex]
+
+      // Si la carta requiere “descubrir”, muestra overlay y detiene el flujo hasta elegir
+      if (cardHasDiscover(cardId)) {
+        openDiscoverForCard(pIdx, handIndex)
+        return
+      }
+
+      // Flujo normal
       setGameState(prev => {
         const next: GameState = JSON.parse(JSON.stringify(prev))
         const res = playCard(next, next.turn.currentPlayerIndex, handIndex, getCardById)
@@ -111,95 +301,174 @@ const botTurnKey = `${gameState.turn.turnNumber}:${gameState.turn.currentPlayerI
       })
     },
     attackHero: (attackerBoardIndex: number) => {
-             if (!isMyTurn) return
-             setGameState(prev => {
-             const next: GameState = JSON.parse(JSON.stringify(prev))
-             const res = declareAttackHero(next, next.turn.currentPlayerIndex, attackerBoardIndex)
-             if (!res.ok) console.warn('attackHero failed:', res.error)
-             return next
-             })
-        },
-        attackCreature: (attackerBoardIndex: number, defenderBoardIndex: number) => {
-             if (!isMyTurn) return
-             setGameState(prev => {
-             const next: GameState = JSON.parse(JSON.stringify(prev))
-             const res = declareAttackCreature(next, next.turn.currentPlayerIndex, attackerBoardIndex, defenderBoardIndex)
-             if (!res.ok) console.warn('attackCreature failed:', res.error)
-             return next
-             })
-        },
-  }), [isMyTurn, setGameState])
+      if (!isMyTurn) return
+      setGameState(prev => {
+        const next: GameState = JSON.parse(JSON.stringify(prev))
+        const res = declareAttackHero(next, next.turn.currentPlayerIndex, attackerBoardIndex)
+        if (!res.ok) console.warn('attackHero failed:', res.error)
+        return next
+      })
+    },
+    attackCreature: (attackerBoardIndex: number, defenderBoardIndex: number) => {
+      if (!isMyTurn) return
+      setGameState(prev => {
+        const next: GameState = JSON.parse(JSON.stringify(prev))
+        const res = declareAttackCreature(next, next.turn.currentPlayerIndex, attackerBoardIndex, defenderBoardIndex)
+        if (!res.ok) console.warn('attackCreature failed:', res.error)
+        return next
+      })
+    },
+  }), [isMyTurn, gameState.turn.currentPlayerIndex, gameState.players, setGameState])
 
-   useLayoutEffect(() => {
+  // Bot
+  useLayoutEffect(() => {
     if (!BOT_ENABLED) return
     const isBotTurn = !isMyTurn && (gameState.turn.phase === 'MAIN')
- if (!isBotTurn) return
-  // Evita re-ejecutar el bot más de una vez por el mismo turno
-  if (processedTurnRef.current === botTurnKey) return
-  processedTurnRef.current = botTurnKey
+    if (!isBotTurn) return
+    if (processedTurnRef.current === botTurnKey) return
+    processedTurnRef.current = botTurnKey
     ;(async () => {
-         // Jugar 1-2 cartas que pueda pagar
-         for (let plays = 0; plays < 2; plays++) {
-           let played = false
-           setGameState(prev => {
-             const next: GameState = JSON.parse(JSON.stringify(prev))
-             const botIdx = next.turn.currentPlayerIndex
-             if (botIdx === meIndex) return next
-             const bot = next.players[botIdx]
-             const handIdx = bot.hand.findIndex(id => {
-             const card = getCardById(id)
-             return card && bot.mana >= (card.mana ?? 0)
-             })
-             if (handIdx >= 0) {
-             const res = playCard(next, botIdx, handIdx, getCardById)
-             if (res.ok) played = true
-             }
-             return next
-             })
-             if (!played) break
-             await delay(300)
-             }
-         // Combate: atacar héroe con todo lo que pueda
-         setGameState(prev => {
-             const next: GameState = JSON.parse(JSON.stringify(prev))
-             if (next.turn.currentPlayerIndex === meIndex) return next
-             beginCombat(next)
-             return next
-             })
-             await delay(200)
-             setGameState(prev => {
-             const next: GameState = JSON.parse(JSON.stringify(prev))
-             const botIdx = next.turn.currentPlayerIndex
-             if (botIdx === meIndex) return next
-             const bot = next.players[botIdx]
-           for (let i = 0; i < bot.board.length; i++) {
-             // Declarar ataque al héroe si no está exhausta
-             if (!bot.board[i].exhausted && bot.board[i].attack > 0 && bot.board[i].health > 0) {
-             // Preferimos atacar criatura rival 0 si existe y no tiene Sigilo; si no, héroe
-             // Para simplificar: héroe
-             declareAttackHero(next, botIdx, i)
-             }
-           }
-           endCombat(next)
-           return next
-         })
-         await delay(200)
-         // Terminar turno del bot (esto activa automáticamente el MAIN del oponente en tu provider)
-         setGameState(prev => {
-           const next: GameState = JSON.parse(JSON.stringify(prev))
-           if (next.turn.currentPlayerIndex !== meIndex) {
-            engineEndTurn(next)
-            engineStartTurn(next)
-            const i = next.turn.currentPlayerIndex
-            next.players[i].board.forEach(c => { c.exhausted = false; c.damagedThisTurn = false })
-           }
-           return next
-         })
-       })()
-    }, [isMyTurn, gameState.turn.phase, botTurnKey])
+      for (let plays = 0; plays < 2; plays++) {
+        let played = false
+        setGameState(prev => {
+          const next: GameState = JSON.parse(JSON.stringify(prev))
+          const botIdx = next.turn.currentPlayerIndex
+          if (botIdx === meIndex) return next
+          const bot = next.players[botIdx]
+          const handIdx = bot.hand.findIndex(id => {
+            const card = getCardById(id)
+            return card && bot.mana >= (card.mana ?? 0)
+          })
+          if (handIdx >= 0) {
+            // El bot no abre overlay; el motor usará la elección por defecto (BASE)
+            const res = playCard(next, botIdx, handIdx, getCardById)
+            if (res.ok) played = true
+          }
+          return next
+        })
+        if (!played) break
+        await delay(300)
+      }
+      setGameState(prev => {
+        const next: GameState = JSON.parse(JSON.stringify(prev))
+        if (next.turn.currentPlayerIndex === meIndex) return next
+        beginCombat(next)
+        return next
+      })
+      await delay(200)
+      setGameState(prev => {
+        const next: GameState = JSON.parse(JSON.stringify(prev))
+        const botIdx = next.turn.currentPlayerIndex
+        if (botIdx === meIndex) return next
+        const bot = next.players[botIdx]
+        for (let i = 0; i < bot.board.length; i++) {
+          if (!bot.board[i].exhausted && bot.board[i].attack > 0 && bot.board[i].health > 0) {
+            declareAttackHero(next, botIdx, i)
+          }
+        }
+        endCombat(next)
+        return next
+      })
+      await delay(200)
+      setGameState(prev => {
+        const next: GameState = JSON.parse(JSON.stringify(prev))
+        if (next.turn.currentPlayerIndex !== meIndex) {
+          engineEndTurn(next)
+          engineStartTurn(next)
+          const i = next.turn.currentPlayerIndex
+          next.players[i].board.forEach(c => { c.exhausted = false; c.damagedThisTurn = false })
+        }
+        return next
+      })
+    })()
+  }, [isMyTurn, gameState.turn.phase, botTurnKey])
+
+  const chosenActionNeedsTarget = (playerIndex: number, handIndex: number, choice: 'BASE'|'BUFF') => {
+    const p = gameState.players[playerIndex]
+    const cardId = p.hand[handIndex]
+    const card = getCardById(cardId)
+    if (!card) return false
+    const discover = card.effects?.find(e =>
+      e?.action?.type === EffectActionType.DISCOVER_PAY_LIFE ||
+      e?.action?.type === EffectActionType.DISCOVER_PAY_ENTROPY
+    )
+    const act = choice === 'BUFF' ? discover?.action?.options?.buff : discover?.action?.options?.base
+    return act?.target === EffectTarget.TARGET_CREATURE
+  }
 
   const value: Ctx = { gameState, setGameState, currentPlayer, opponentPlayer, isMyTurn, actions }
-  return <GameEngineContext.Provider value={value}>{children}</GameEngineContext.Provider>
+  return (
+    <>
+      <GameEngineContext.Provider value={value}>{children}</GameEngineContext.Provider>
+
+      {/* Overlay Final Stand */}
+      {typeof gameState.finalStandJustActivated === 'number' && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 text-white">
+          <div className="text-center animate-pulse">
+            <div className="text-4xl font-extrabold mb-3">FINAL STAND</div>
+            <div className="text-xl">
+              Jugador {gameState.finalStandJustActivated + 1} activó Final Stand
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Overlay Discover (BASE/BUFF) */}
+      {discoverModal && (
+        <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/70 text-white">
+          <div className="bg-gray-900 rounded-xl border border-white/20 px-6 py-5 shadow-2xl w-[90%] max-w-md text-center">
+            <div className="text-2xl font-bold mb-4">{discoverModal.title}</div>
+            <div className="flex flex-col gap-3">
+              <button className="px-4 py-2 rounded bg-gray-700 hover:bg-gray-600 border border-white/20" onClick={() => confirmDiscover('BASE')}>Versión base</button>
+              <button className="px-4 py-2 rounded bg-amber-600 hover:bg-amber-500 border border-white/20" onClick={() => confirmDiscover('BUFF')}>Versión potenciada</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Overlay selección de objetivo */}
+      {targetModal && (() => {
+        const { playerIndex, handIndex, choice } = targetModal
+        const enemyIndex = 1 - playerIndex
+        const enemy = gameState.players[enemyIndex]
+        const onPick = (defenderIndex: number) => {
+          setTargetModal(null)
+          // sticky choice
+          const cardId = gameState.players[playerIndex].hand[handIndex]
+const uses = Math.max(1, countDiscoversInCard(cardId))
+lastDiscoverChoiceRef.current = choice
+nextDiscoverChoiceRef.current = { choice, usesLeft: uses }
+          setGameState(prev => {
+            const next: GameState = JSON.parse(JSON.stringify(prev))
+            const targets = [{ type: 'CREATURE_ENEMY', index: defenderIndex }] as any
+            next.pendingTargets = targets
+            if (next.turn.currentPlayerIndex !== playerIndex) return next
+            const res = playCard(next, playerIndex, handIndex, getCardById, { targets })
+            if (!res.ok) console.warn('playCard failed:', res)
+            return next
+          })
+        }
+        return (
+          <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/70 text-white">
+            <div className="bg-gray-900 rounded-xl border border-white/20 px-6 py-5 shadow-2xl w-[95%] max-w-4xl text-center">
+              <div className="text-2xl font-bold mb-4">Selecciona objetivo</div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 justify-center">
+                {enemy.board.map((crea, idx) => {
+                  const base = getCardById(crea.cardId)
+                  const preview = base ? { ...base, attack: crea.attack, health: crea.health, abilities: crea.abilities } : null
+                  return (
+                    <button key={crea.id} className="rounded-lg border border-white/20 hover:bg-white/5 p-2" onClick={() => onPick(idx)}>
+                      {preview && <UICard card={preview as any} />}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+    </>
+  )
 }
 
 export function useGameEngine() {

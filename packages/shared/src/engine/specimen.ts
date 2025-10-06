@@ -9,7 +9,13 @@ import { notifyEnterBattlefield } from './priority'
 
 // Comprueba si ya hay espécimen en mesa
 export function hasSpecimenOnBoard(p: PlayerState): boolean {
-  return p.board.some(e => e.cardId === 'SPECIMEN_TOKEN' || e.cardId === 'SPECIMEN_EVOLVED_TOKEN')
+  const isAnySpecimen = (id: string) =>
+    id === 'Especimen_Perfecto' ||
+    id === 'Especimen_Perfecto_Final_Stand' ||
+    id === 'Especimen_Perfecto_Evolucionado' ||
+    id === 'SPECIMEN_TOKEN' ||
+    id === 'SPECIMEN_EVOLVED_TOKEN'
+  return p.board.some(e => isAnySpecimen(e.cardId))
 }
 
 // Coste dinámico del espécimen
