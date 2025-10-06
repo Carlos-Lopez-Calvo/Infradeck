@@ -57,7 +57,7 @@ type DiscoverModalState =
 export function GameEngineProvider({ children }: { children: React.ReactNode }) {
   const [gameState, setGameState] = useState<GameState>(() => {
     // Elige aquí los mazos a probar
-    const p1Class = 'VITALIDAD' as const
+    const p1Class = 'CAOS' as const
     const p2Class = 'CAOS' as const
     const state = createGame(
       { id: 'player1', name: 'Player 1', classType: p1Class, deck: [...sampleDecks[p1Class]], programmedSpecimenEffects: [] },
