@@ -12,14 +12,14 @@ export function ContenidoDerecha() {
     const mana = currentPlayer.mana
 
     const cr = currentPlayer.classResource
-    const classResource =
-        cr?.type === 'ESTADO'
-            ? { name: cr.state ?? 'DIA', value: undefined }
-            : cr?.type === 'ENTROPIA' || cr?.type === 'CEMENTERIO'
-            ? { name: cr.type, value: cr.amount ?? 0 }
-            : cr?.type === 'VIDA'
-            ? { name: 'VIDA', value: currentPlayer.life }
-            : undefined
+const classResource =
+  cr?.type === 'ESTADO'
+    ? { name: cr.state ?? 'DIA', value: undefined }
+    : cr?.type === 'ENTROPIA' || cr?.type === 'CEMENTERIO'
+    ? { name: cr.type, value: cr.amount ?? 0 }
+    : cr?.type === 'VIDA'
+    ? { name: 'VIDA', value: currentPlayer.life }
+    : undefined
 
     return (
         <div className="w-full h-full flex flex-col items-center justify-center">

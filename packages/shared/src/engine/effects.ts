@@ -601,7 +601,11 @@ export function applyAction(
 
     case EffectActionType.GAIN_ENTROPY: {
       if (me.classResource?.type === 'ENTROPIA') {
-        me.classResource.amount = Math.min(10, (me.classResource.amount ?? 0) + (action.amount ?? 1))
+        const before = me.classResource.amount ?? 0
+        me.classResource.amount = Math.min(10, before + (action.amount ?? 1))
+        console.log('[ENTROPIA] GAIN_ENTROPY', { playerIndex, before, delta: (action.amount ?? 1), after: me.classResource.amount })
+      } else {
+        console.log('[ENTROPIA] GAIN_ENTROPY ignored (no ENTROPIA)', { playerIndex, classType: me.classType })
       }
       break
     }

@@ -132,7 +132,7 @@ export function createGame(
     hand: [],
     graveyard: [],
     board: [],
-    classResource: initialClassResource(p.classType),
+    classResource: initialClassResource(p.classType),  // <- debe existir
     specimenSummons: 0,
     permanentEclipse: false,
     specimenFreeThisTurn: false,
@@ -192,16 +192,11 @@ export function startGame(state: GameState): void {
 
 function initialClassResource(classType: string): PlayerState['classResource'] {
   switch (classType) {
-    case 'CAOS':
-      return { type: 'ENTROPIA', amount: 0 }
-    case 'CICLO':
-      return { type: 'ESTADO', state: 'DIA' }
-    case 'VITALIDAD':
-      return { type: 'VIDA' }
-    case 'ABOMINACION':
-      return { type: 'CEMENTERIO', amount: 0 }
-    default:
-      return undefined
+    case 'CAOS':         return { type: 'ENTROPIA', amount: 0 }
+    case 'CICLO':        return { type: 'ESTADO', state: 'DIA' }
+    case 'VITALIDAD':    return { type: 'VIDA' }
+    case 'ABOMINACION':  return { type: 'CEMENTERIO', amount: 0 }
+    default:             return undefined
   }
 }
 
@@ -267,11 +262,17 @@ export function playCard(
     return { ok: false, error: 'No tienes suficiente maná' }
   }
 
-  // Paga el coste
+     // Paga el coste
   player.mana -= card.mana ?? 0
 
   // Elimina la carta de la mano
   player.hand.splice(handIndex, 1)
+
+  // Entropía base: +1 por cada carta jugada si tu clase usa ENTROPIA
+  gainEntropyOnPlay(player)
+  if (player.classResource?.type === 'ENTROPIA') {
+    console.log('[ENTROPIA] on any play', { playerIndex, after: player.classResource.amount })
+  }
 
   // Si es criatura, invócala al campo
   if (card.type === CardType.CREATURE) {
@@ -281,7 +282,7 @@ export function playCard(
       ownerId: player.id,
       attack: card.attack ?? 0,
       health: card.health ?? 1,
-      exhausted: !(card.abilities?.includes(Ability.PRISA)), // <- si tiene PRISA, no entra exhausta
+      exhausted: !(card.abilities?.includes(Ability.PRISA)),
       abilities: card.abilities ? [...card.abilities] : [],
       effects: [],
     }
@@ -290,9 +291,12 @@ export function playCard(
     applyOnEnterEffects(state, entity, playerIndex, card)
   } else {
     // Si es hechizo, resuelve efectos y manda al cementerio
+    console.log('[SPELL] playing spell', { cardId: card.id, effects: card.effects })
     if (card.effects) {
       for (const eff of card.effects) {
+        console.log('[SPELL] checking effect', { timing: eff.timing, action: eff.action })
         if (eff.timing === EffectTiming.ON_PLAY) {
+          console.log('[SPELL] applying ON_PLAY effect', eff.action)
           applyAction(state, playerIndex, eff.action, options?.targets)
         }
       }
@@ -302,7 +306,10 @@ export function playCard(
 
   // Notifica que se ha jugado la carta
   notifyCardPlayed(state, playerIndex, card.id)
-
+  const cr = state.players[playerIndex].classResource
+  if (cr?.type === 'ENTROPIA') {
+    console.log('[ENTROPIA] after playCard', { playerIndex, amount: cr.amount })
+  }
   return { ok: true }
 }
 

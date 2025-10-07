@@ -6,7 +6,7 @@ import {
   beginCombat, endCombat,
   setCardResolver, setPriorityWindow, playCard, setDiscoverRequest,
   BASIC_CARDS_BY_ID, CLASS_CARDS_BY_ID, declareAttackHero, declareAttackCreature,
-  EffectActionType, EffectTarget,
+  EffectActionType, EffectTarget, EffectTiming
 } from '@infradeck/shared'
 import { Card as UICard } from '../components/Card'
 
@@ -38,7 +38,7 @@ type TargetModalState =
   | {
       playerIndex: number
       handIndex: number
-      choice: 'BASE' | 'BUFF'
+      choice?: 'BASE' | 'BUFF'   // <- ahora opcional
       targetKind: 'CREATURE_ENEMY'
     }
 
@@ -58,7 +58,7 @@ export function GameEngineProvider({ children }: { children: React.ReactNode }) 
   const [gameState, setGameState] = useState<GameState>(() => {
     // Elige aquí los mazos a probar
     const p1Class = 'CAOS' as const
-    const p2Class = 'CAOS' as const
+    const p2Class = 'VITALIDAD' as const
     const state = createGame(
       { id: 'player1', name: 'Player 1', classType: p1Class, deck: [...sampleDecks[p1Class]], programmedSpecimenEffects: [] },
       { id: 'player2', name: 'Player 2', classType: p2Class, deck: [...sampleDecks[p2Class]], programmedSpecimenEffects: [] },
@@ -285,13 +285,26 @@ useLayoutEffect(() => {
       const pIdx = gameState.turn.currentPlayerIndex
       const hand = gameState.players[pIdx].hand
       const cardId = hand[handIndex]
-
-      // Si la carta requiere “descubrir”, muestra overlay y detiene el flujo hasta elegir
-      if (cardHasDiscover(cardId)) {
+      const card = getCardById(cardId)
+      if (!card) return
+    
+      // Discover → overlay
+      if (card.effects?.some(e =>
+             e.action?.type === EffectActionType.DISCOVER_PAY_LIFE ||
+             e.action?.type === EffectActionType.DISCOVER_PAY_ENTROPY)) {
         openDiscoverForCard(pIdx, handIndex)
         return
       }
-
+    
+      // Hechizos con objetivo → abrir selector
+      const needsTarget = card.effects?.some(
+           e => e.timing === EffectTiming.ON_PLAY && e.action?.target === EffectTarget.TARGET_CREATURE
+         )
+      if (needsTarget) {
+        setTargetModal({ playerIndex: pIdx, handIndex, targetKind: 'CREATURE_ENEMY' })
+        return
+      }
+    
       // Flujo normal
       setGameState(prev => {
         const next: GameState = JSON.parse(JSON.stringify(prev))
@@ -433,15 +446,19 @@ useLayoutEffect(() => {
         const enemy = gameState.players[enemyIndex]
         const onPick = (defenderIndex: number) => {
           setTargetModal(null)
-          // sticky choice
-          const cardId = gameState.players[playerIndex].hand[handIndex]
-const uses = Math.max(1, countDiscoversInCard(cardId))
-lastDiscoverChoiceRef.current = choice
-nextDiscoverChoiceRef.current = { choice, usesLeft: uses }
           setGameState(prev => {
             const next: GameState = JSON.parse(JSON.stringify(prev))
             const targets = [{ type: 'CREATURE_ENEMY', index: defenderIndex }] as any
             next.pendingTargets = targets
+        
+            // Si venía de discover, respeta la elección sticky
+            if (choice) {
+              const cardId = gameState.players[playerIndex].hand[handIndex]
+              const uses = Math.max(1, countDiscoversInCard(cardId))
+              lastDiscoverChoiceRef.current = choice
+              nextDiscoverChoiceRef.current = { choice, usesLeft: uses }
+            }
+        
             if (next.turn.currentPlayerIndex !== playerIndex) return next
             const res = playCard(next, playerIndex, handIndex, getCardById, { targets })
             if (!res.ok) console.warn('playCard failed:', res)

@@ -470,7 +470,7 @@ export const APRENDIZ_ERRATICO: Card = {
     {
       id: 'Aprendiz_Extra_Entropy',
       description: 'Al ser jugado: Gana 1 Entropía adicional (total: 2 Entropía de esta carta)',
-      timing: EffectTiming.ON_PLAY,
+      timing: EffectTiming.ON_ENTER,
       action: {
         type: EffectActionType.GAIN_ENTROPY,
         target: EffectTarget.FRIENDLY_HERO,
@@ -517,7 +517,7 @@ export const MAGO_DEL_CAOS: Card = {
     {
       id: 'Mago_Gain_Entropy',
       description: 'Al ser jugado: Gana 1 Entropía',
-      timing: EffectTiming.ON_PLAY,
+      timing: EffectTiming.ON_ENTER,
       action: {
         type: EffectActionType.GAIN_ENTROPY,
         target: EffectTarget.FRIENDLY_HERO,
@@ -562,7 +562,7 @@ export const RITUAL_CAOTICO: Card = {
     {
       id: 'Ritual_Extra_Entropy',
       description: 'Gana 2 Entropía adicional (total: 3 Entropía de esta carta)',
-      timing: EffectTiming.ON_PLAY,
+      timing: EffectTiming.ON_ENTER,
       action: {
         type: EffectActionType.GAIN_ENTROPY,
         target: EffectTarget.FRIENDLY_HERO,
@@ -573,7 +573,7 @@ export const RITUAL_CAOTICO: Card = {
     {
       id: 'Ritual_Steal_Card',
       description: 'Además, roba 1 carta aleatoria del mazo del oponente',
-      timing: EffectTiming.ON_PLAY,
+      timing: EffectTiming.ON_ENTER,
       condition: {
         type: 'CLASS_RESOURCE',
         value: 5,
@@ -581,7 +581,7 @@ export const RITUAL_CAOTICO: Card = {
       },
       action: {
         type: EffectActionType.DRAW_CARDS,
-        target: EffectTarget.ENEMY_HERO,
+        target: EffectTarget.FRIENDLY_HERO,
         amount: 1,
         duration: 'PERMANENT'
       }
