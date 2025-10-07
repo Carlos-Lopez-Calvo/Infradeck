@@ -89,6 +89,7 @@ export function endTurn(state: GameState): void {
   state.players[i].lifeCredit = undefined
   state.players[i].freeLifeCosts = false
   const p = state.players[i]
+  p.cardCostReduction = undefined   // ← limpia descuento global al final del turno
   
 
   state.turn.phase = GamePhase.END

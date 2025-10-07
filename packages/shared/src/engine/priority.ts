@@ -1,7 +1,7 @@
 import { GameState, GamePhase, StackItem } from './game-state'
 import { onPriorityWindow } from './game-state'
 import { getCurrentPlayerIndex } from './turns'
-
+import { EffectAction } from '../types/cards'   // ← add
 // Helper para disparar prioridad en el jugador activo
 export function triggerPriority(state: GameState, phase: GamePhase) {
   onPriorityWindow(state, { phase, activePlayer: getCurrentPlayerIndex(state) })
@@ -45,11 +45,23 @@ export function resolveStack(state: GameState): void {
   }
 }
 
-// Notificar que se ha jugado una carta
 export function notifyCardPlayed(state: GameState, playerIndex: number, cardId: string): void {
-  // Aquí iría encolado a la pila si hay efectos
+  try {
+    const getCard = require('./game-state').getCardByIdGlobal as (id: string) => any
+    const card = getCard(cardId)
+    if (card?.classType === 'CAOS' && Array.isArray(card.effects)) {
+      const actions: EffectAction[] = card.effects
+        .filter((e: any) => e?.timing === 'ON_PLAY' && e?.action)
+        .map((e: any) => e.action as EffectAction)
+      if (actions.length) {
+        const arr = state.players[playerIndex].playedChaosEffects ?? (state.players[playerIndex].playedChaosEffects = [] as EffectAction[])
+        actions.forEach((a: EffectAction) => arr.push({ ...a }))
+      }
+    }
+  } catch {}
   triggerPriority(state, state.turn.phase)
 }
+
 
 // Notificar que se ha disparado un efecto
 export function notifyEffectTriggered(

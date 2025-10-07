@@ -73,7 +73,12 @@ export interface PlayerState {
   finalStandBonusApplied?: boolean 
   freeLifeCosts?: boolean
   programmedSpecimenEffects: (EffectActionType | string)[]
-  lifeCredit?: number          // crédito de vida para pagar costes sin tocar la vida real
+  lifeCredit?: number
+  cardCostReduction?: { amount: number, remaining: number | 'ALL' }
+  cardCostReductionSkipOnce?: boolean        // ← nuevo
+  playedChaosEffects?: EffectAction[]        // ← nuevo historial
+  forceDiscoverBuff?: boolean                // ← NUEVO
+  
 }
 
 export interface TurnState {
@@ -142,6 +147,7 @@ export function createGame(
     attackersDeclaredThisTurn: 0,
     lastAttackTargetHero: false,
     programmedSpecimenEffects: [],
+    playedChaosEffects: [],                           // ← inicializa historial
   })
   return {
     players: [base(p1), base(p2)],
@@ -257,13 +263,21 @@ export function playCard(
   const card = getCardById(cardId)
   if (!card) return { ok: false, error: 'Carta no encontrada' }
 
-  // Verifica coste de maná
-  if (player.mana < (card.mana ?? 0)) {
-    return { ok: false, error: 'No tienes suficiente maná' }
-  }
-
-     // Paga el coste
-  player.mana -= card.mana ?? 0
+     // Verifica coste de maná (aplica reducción global de coste de carta si existe)
+    // Verifica coste de maná (aplica reducción global de coste de carta si existe)
+    let effectiveCost = card.mana ?? 0
+    {
+      const red = player.cardCostReduction
+      if (red && red.amount > 0 && (red.remaining === 'ALL' || (red.remaining ?? 0) > 0)) {
+        console.log('[COST] applying reduction', { base: effectiveCost, red })  // ← trace
+        effectiveCost = Math.max(0, effectiveCost - red.amount)
+      }
+    }
+    console.log('[COST] paying', { cardId: card.id, effectiveCost })             // ← trace
+    if (player.mana < effectiveCost) {
+      return { ok: false, error: 'No tienes suficiente maná' }
+    }
+    player.mana -= effectiveCost
 
   // Elimina la carta de la mano
   player.hand.splice(handIndex, 1)
@@ -296,6 +310,11 @@ export function playCard(
       for (const eff of card.effects) {
         console.log('[SPELL] checking effect', { timing: eff.timing, action: eff.action })
         if (eff.timing === EffectTiming.ON_PLAY) {
+          // Respeta condiciones del efecto (p.ej., ENTROPÍA >= 5)
+          if (!effectConditionPasses(state, playerIndex, eff)) {
+            console.log('[SPELL] condition failed, skipping effect', eff.id)
+            continue
+          }
           console.log('[SPELL] applying ON_PLAY effect', eff.action)
           applyAction(state, playerIndex, eff.action, options?.targets)
         }
@@ -304,11 +323,22 @@ export function playCard(
     player.graveyard.unshift(card.id)
   }
 
-  // Notifica que se ha jugado la carta
   notifyCardPlayed(state, playerIndex, card.id)
   const cr = state.players[playerIndex].classResource
   if (cr?.type === 'ENTROPIA') {
     console.log('[ENTROPIA] after playCard', { playerIndex, amount: cr.amount })
+  }
+  // Consumir 1 uso de reducción si aplica y no es 'ALL'
+    // Consumir 1 uso de reducción si aplica y no es 'ALL'
+      // Consumir 1 uso de reducción si aplica y no es 'ALL'
+  {
+    const red = player.cardCostReduction
+    if (player.cardCostReductionSkipOnce) {
+      player.cardCostReductionSkipOnce = false
+    } else if (red && typeof red.remaining === 'number' && red.remaining > 0) {
+      red.remaining -= 1
+      console.log('[COST] use consumed', red)
+    }
   }
   return { ok: true }
 }

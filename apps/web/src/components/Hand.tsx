@@ -55,8 +55,9 @@ export function Hand() {
             onMouseEnter={() => setHovered(i)}
             onMouseLeave={() => setHovered(null)}
             onClick={() => isMyTurn && actions.playFromHand(handIndex)}
-            disabled={!isMyTurn}
-          >
+  disabled={!isMyTurn /* || isBusy */}
+>
+          
             {card ? <Card card={card} /> : <ReversoCard />}
           </button>
         )

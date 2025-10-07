@@ -18,15 +18,8 @@ export function GameBoard() {
         {/* 20% - 60% - 20% */}
         <div className="class-left w-1/5 h-full flex items-center justify-center bg-purple-500">
           {/* Contenido izquierdo */}
-          <ContenidoIzquierdaOponente
-            life={opponentPlayer.life}
-            onAttackHero={() => {
-              if (selectedAttacker != null && canAct) {
-                actions.attackHero(selectedAttacker)
-                setSelectedAttacker(null)
-              }
-            }}
-          />
+          <ContenidoDerechaOponente />
+          
         </div>
         <div className="w-3/5 h-full flex flex-col">
   {/* Mitad superior */}
@@ -70,7 +63,16 @@ export function GameBoard() {
 </div>
         <div className="class-right w-1/5 h-full flex items-center justify-center">
           {/* Contenido derecho */}
-           <ContenidoDerechaOponente />
+          <ContenidoIzquierdaOponente
+            life={opponentPlayer.life}
+            onAttackHero={() => {
+              if (selectedAttacker != null && canAct) {
+                actions.attackHero(selectedAttacker)
+                setSelectedAttacker(null)
+              }
+            }}
+          />
+         
         </div>
       </div>
       {/* Div intermedio */}

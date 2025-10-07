@@ -74,7 +74,7 @@ export enum EffectActionType {
   // Stats modification
   BUFF_ATTACK = 'BUFF_ATTACK',
   BUFF_HEALTH = 'BUFF_HEALTH', 
-  BUFF_STATS = 'BUFF_STATS',        // +X/+Y combined
+  BUFF_STATS = 'BUFF_STATS',
   
   // Abilities
   GAIN_ABILITY = 'GAIN_ABILITY',
@@ -92,6 +92,9 @@ export enum EffectActionType {
   DISCOVER_PAY_LIFE = 'DISCOVER_PAY_LIFE',
 
   ATTACK_SPELL = 'ATTACK_SPELL',
+  REDUCE_CARD_COST = 'REDUCE_CARD_COST',    // ← renombrado: aplica a cualquier carta
+
+  REUSE_RANDOM_PAST_CHAOS_EFFECT = 'REUSE_RANDOM_PAST_CHAOS_EFFECT'   // ← NUEVO
 }
 
 export interface CardEffect {
@@ -126,15 +129,15 @@ export enum EffectTiming {
      comparison?: 'EQUAL' | 'GREATER' | 'LESS' | 'GREATER_EQUAL' | 'LESS_EQUAL'
   }
 
-export interface EffectAction {
-  type: EffectActionType
-  target: EffectTarget
-  value?: number | string | Ability
-  amount?: number              // Para stats separados
-  duration?: 'PERMANENT' | 'END_OF_TURN' | 'UNTIL_DEATH'
-  consumeEntropy?: number      // Opcional: consumo por disparo/uso (CAOS)
-  options?: DiscoverPayLifeOptions | DiscoverPayEntropyOptions
-}
+  export interface EffectAction {
+    type: EffectActionType
+    target: EffectTarget
+    value?: number | string | Ability
+    amount?: number              // Para stats separados
+    duration?: 'PERMANENT' | 'END_OF_TURN' | 'UNTIL_DEATH'
+    consumeEntropy?: number      // Opcional: consumo por disparo/uso (CAOS)
+    options?: DiscoverPayLifeOptions | DiscoverPayEntropyOptions | CostReductionScalingOptions
+  }
 
 export enum EffectTarget {
   SELF = 'SELF',
@@ -146,6 +149,7 @@ export enum EffectTarget {
   ALL_ENEMIES = 'ALL_ENEMIES',          // Para REALIDAD_FRACTURADA
   ALL_CREATURES = 'ALL_CREATURES',
   RANDOM_ENEMY = 'RANDOM_ENEMY',
+  RANDOM_CREATURE = 'RANDOM_CREATURE',  // ← nuevo: criatura aleatoria aliada o enemiga
   RANDOM_CHARACTER = 'RANDOM_CHARACTER',
   TARGET_SPELL = 'TARGET_SPELL',        // Hechizo/instantánea objetivo
   CYCLE_CARDS = 'CYCLE_CARDS'           // Para transformaciones de CICLO
@@ -333,4 +337,9 @@ export interface DiscoverPayEntropyOptions {
   entropyCost: number
   base?: EffectAction
   buff?: EffectAction
+}
+
+// Nuevo: configuración escalable de reducción de coste
+export interface CostReductionScalingOptions {
+  thresholds: Array<{ min: number, uses: number | 'ALL' }>
 }

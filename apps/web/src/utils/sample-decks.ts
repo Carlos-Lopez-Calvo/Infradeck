@@ -16,10 +16,10 @@ export const sampleDecks = {
     // Cartas básicas
     'Ultima_Oportunidad', 'Ultima_Oportunidad',
     'Mercenario', 'Mercenario',
-    'Explorador_Astuto', 'Explorador_Astuto',
-    'Asesino_delarossa', 'Asesino_delarossa',
+    'Explorador_Audaz', 'Explorador_Audaz',
+    'Asesino_Delarossa', 'Asesino_Delarossa',
     'Guardian_Novato', 'Guardian_Novato',
-    'Reflejo_Rapido', 'Reflejo_Rapido'
+    'Primera_Oportunidad', 'Primera_Oportunidad'
   ],
 
   CAOS: [
@@ -38,10 +38,10 @@ export const sampleDecks = {
     // Cartas básicas
     'Ultima_Oportunidad', 'Ultima_Oportunidad',
     'Mercenario', 'Mercenario',
-    'Explorador_Astuto', 'Explorador_Astuto',
-    'Asesino_delarossa', 'Asesino_delarossa',
+    'Explorador_Audaz', 'Explorador_Audaz',
+    'Asesino_Delarossa', 'Asesino_Delarossa',
     'Guardian_Novato', 'Guardian_Novato',
-    'Reflejo_Rapido', 'Reflejo_Rapido'
+    'Primera_Oportunidad', 'Primera_Oportunidad'
   ],
 
   CICLO: [
@@ -60,10 +60,10 @@ export const sampleDecks = {
     // Cartas básicas
     'Ultima_Oportunidad', 'Ultima_Oportunidad',
     'Mercenario', 'Mercenario',
-    'Explorador_Astuto', 'Explorador_Astuto',
-    'Asesino_delarossa', 'Asesino_delarossa',
+    'Explorador_Audaz', 'Explorador_Audaz',
+    'Asesino_Delarossa', 'Asesino_Delarossa',
     'Guardian_Novato', 'Guardian_Novato',
-    'Reflejo_Rapido', 'Reflejo_Rapido'
+    'Primera_Oportunidad', 'Primera_Oportunidad'
   ],
 
   VITALIDAD: [
@@ -82,9 +82,9 @@ export const sampleDecks = {
     // Cartas básicas
     'Ultima_Oportunidad', 'Ultima_Oportunidad',
     'Mercenario', 'Mercenario',
-    'Explorador_Astuto', 'Explorador_Astuto',
-    'Asesino_delarossa', 'Asesino_delarossa',
+    'Explorador_Audaz', 'Explorador_Audaz',
+    'Asesino_Delarossa', 'Asesino_Delarossa',
     'Guardian_Novato', 'Guardian_Novato',
-    'Reflejo_Rapido', 'Reflejo_Rapido'
+    'Primera_Oportunidad', 'Primera_Oportunidad'
   ]
 }

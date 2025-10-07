@@ -73,6 +73,12 @@ export function GameEngineProvider({ children }: { children: React.ReactNode }) 
 
   const getCardById = (id: string) => BASIC_CARDS_BY_ID[id] ?? CLASS_CARDS_BY_ID[id]
 
+  const isPlayingRef = useRef(false)
+  // dentro de GameEngineProvider, junto a otros refs
+const lastPlaySigRef = useRef<{ turn: string; key: string; at: number } | null>(null)
+const turnKey = `${gameState.turn.turnNumber}:${gameState.turn.currentPlayerIndex}`
+
+
   // Elección de “descubrir” (BASE/BUFF) para el siguiente efecto que la pida
 // Elección de “descubrir” (BASE/BUFF) sticky durante la resolución de la carta
 const nextDiscoverChoiceRef = useRef<{ choice: 'BASE' | 'BUFF' | null; usesLeft: number }>({ choice: null, usesLeft: 0 })
@@ -86,16 +92,16 @@ useLayoutEffect(() => {
 
   setDiscoverRequest((state, { playerIndex }) => {
     const entry = nextDiscoverChoiceRef.current
-    // Si no hay elección explícita y hay crédito de vida, fuerza BUFF
+    console.log('[UI] discover entry before resolve', entry) // debug
     if (!entry.choice) {
       const p = state.players[playerIndex]
       if ((p.lifeCredit ?? 0) > 0) return 'BUFF'
       return 'BASE'
     }
-    // Consumo normal del contador sticky
     if (entry.usesLeft > 0) entry.usesLeft -= 1
     const chosen = entry.choice
     if (entry.usesLeft <= 0) nextDiscoverChoiceRef.current = { choice: null, usesLeft: 0 }
+    console.log('[UI] discover chosen', chosen) // debug
     return chosen
   })
 }, [])
@@ -171,7 +177,10 @@ useLayoutEffect(() => {
     // Otros efectos (DAMAGE, SUMMON_CREATURE, etc.) no alteran stats de la carta misma en preview
     return card
   }
-
+// helper to narrow options to discover types
+function asDiscoverOptions(o: any): { base?: any; buff?: any } | undefined {
+  return o && (('base' in o) || ('buff' in o)) ? o : undefined
+}
   const buildDiscoverPreviews = (playerIndex: number, handIndex: number) => {
     const p = gameState.players[playerIndex]
     const cardId = p.hand[handIndex]
@@ -182,8 +191,9 @@ useLayoutEffect(() => {
       e?.action?.type === EffectActionType.DISCOVER_PAY_ENTROPY
     )
     if (!discover) return null
-    const baseEff = discover.action?.options?.base
-    const buffEff = discover.action?.options?.buff
+    const opts = asDiscoverOptions(discover.action?.options)
+    const baseEff = opts?.base
+    const buffEff = opts?.buff
 
     const baseCard = applyPreviewEffect({ ...card }, baseEff)
     const buffCard = applyPreviewEffect({ ...card }, buffEff)
@@ -208,38 +218,46 @@ useLayoutEffect(() => {
   }
 
   const confirmDiscover = (choice: 'BASE' | 'BUFF') => {
+    if (!discoverModal || isPlayingRef.current) return
+    isPlayingRef.current = true
     console.log('[UI] confirmDiscover click', { choice })
-    if (!discoverModal) return
     const { handIndex, playerIndex } = discoverModal
   
-    // Decide con la acción real (BASE/BUFF)
     const cardId = gameState.players[playerIndex].hand[handIndex]
+// guard anti-duplicados
+const sig = { turn: turnKey, key: `${cardId}:${handIndex}`, at: Date.now() }
+const last = lastPlaySigRef.current
+if (last && last.turn === sig.turn && last.key === sig.key && (sig.at - last.at) < 300) {
+  isPlayingRef.current = false
+  return
+}
+lastPlaySigRef.current = sig
+  
     const card = getCardById(cardId)
     const discover = card?.effects?.find(e =>
       e?.action?.type === EffectActionType.DISCOVER_PAY_LIFE ||
       e?.action?.type === EffectActionType.DISCOVER_PAY_ENTROPY
     )
-    const act = choice === 'BUFF' ? discover?.action?.options?.buff : discover?.action?.options?.base
+    const opts = asDiscoverOptions(discover?.action?.options)
+    const act = choice === 'BUFF' ? opts?.buff : opts?.base
   
-    // Si requiere objetivo, abre modal y no juegues aún
     if (act?.target === EffectTarget.TARGET_CREATURE) {
       setDiscoverModal(null)
       setTargetModal({ playerIndex, handIndex, choice, targetKind: 'CREATURE_ENEMY' })
+      isPlayingRef.current = false
       return
     }
   
-    // Sticky choice (sin objetivo)
     const uses = Math.max(1, countDiscoversInCard(cardId))
     lastDiscoverChoiceRef.current = choice
     nextDiscoverChoiceRef.current = { choice, usesLeft: uses }
     setDiscoverModal(null)
-    setGameState(prev => {
-      const next: GameState = JSON.parse(JSON.stringify(prev))
-      if (next.turn.currentPlayerIndex !== playerIndex) return next
-      const res = playCard(next, playerIndex, handIndex, getCardById)
-      if (!res.ok) console.warn('playCard failed:', res)
-      return next
-    })
+ const next: GameState = JSON.parse(JSON.stringify(gameState))
+ const res = playCard(next, playerIndex, handIndex, getCardById)
+ if (!res.ok) console.warn('playCard failed:', res)
+ setGameState(next)
+   
+    setTimeout(() => { isPlayingRef.current = false }, 0)
   }
 
   const actions = useMemo(() => ({
@@ -280,38 +298,48 @@ useLayoutEffect(() => {
         return next
       })
     },
-    playFromHand: (handIndex: number) => {
-      if (!isMyTurn) return
-      const pIdx = gameState.turn.currentPlayerIndex
-      const hand = gameState.players[pIdx].hand
-      const cardId = hand[handIndex]
-      const card = getCardById(cardId)
-      if (!card) return
+
     
-      // Discover → overlay
+      
+    playFromHand: (handIndex: number) => {
+      if (!isMyTurn || isPlayingRef.current) return
+      isPlayingRef.current = true
+      const pIdx = gameState.turn.currentPlayerIndex
+      const cardId = gameState.players[pIdx].hand[handIndex]
+// guard anti-duplicados
+const sig = { turn: turnKey, key: `${cardId}:${handIndex}`, at: Date.now() }
+const last = lastPlaySigRef.current
+if (last && last.turn === sig.turn && last.key === sig.key && (sig.at - last.at) < 300) {
+  isPlayingRef.current = false
+  return
+}
+lastPlaySigRef.current = sig
+    
+      const card = getCardById(cardId)
+      if (!card) { isPlayingRef.current = false; return }
+    
       if (card.effects?.some(e =>
-             e.action?.type === EffectActionType.DISCOVER_PAY_LIFE ||
-             e.action?.type === EffectActionType.DISCOVER_PAY_ENTROPY)) {
+            e.action?.type === EffectActionType.DISCOVER_PAY_LIFE ||
+            e.action?.type === EffectActionType.DISCOVER_PAY_ENTROPY)) {
         openDiscoverForCard(pIdx, handIndex)
+        isPlayingRef.current = false
         return
       }
     
-      // Hechizos con objetivo → abrir selector
       const needsTarget = card.effects?.some(
            e => e.timing === EffectTiming.ON_PLAY && e.action?.target === EffectTarget.TARGET_CREATURE
          )
       if (needsTarget) {
         setTargetModal({ playerIndex: pIdx, handIndex, targetKind: 'CREATURE_ENEMY' })
+        isPlayingRef.current = false
         return
       }
     
-      // Flujo normal
-      setGameState(prev => {
-        const next: GameState = JSON.parse(JSON.stringify(prev))
-        const res = playCard(next, next.turn.currentPlayerIndex, handIndex, getCardById)
-        if (!res.ok) console.warn('playCard failed:', res)
-        return next
-      })
+      const next: GameState = JSON.parse(JSON.stringify(gameState))
+ const res = playCard(next, next.turn.currentPlayerIndex, handIndex, getCardById)
+ if (!res.ok) console.warn('playCard failed:', res)
+ setGameState(next)
+      setTimeout(() => { isPlayingRef.current = false }, 0)
     },
     attackHero: (attackerBoardIndex: number) => {
       if (!isMyTurn) return
@@ -400,13 +428,14 @@ useLayoutEffect(() => {
     const p = gameState.players[playerIndex]
     const cardId = p.hand[handIndex]
     const card = getCardById(cardId)
-    if (!card) return false
-    const discover = card.effects?.find(e =>
-      e?.action?.type === EffectActionType.DISCOVER_PAY_LIFE ||
-      e?.action?.type === EffectActionType.DISCOVER_PAY_ENTROPY
-    )
-    const act = choice === 'BUFF' ? discover?.action?.options?.buff : discover?.action?.options?.base
-    return act?.target === EffectTarget.TARGET_CREATURE
+if (!card) return false
+const discover = card.effects?.find(e =>
+  e?.action?.type === EffectActionType.DISCOVER_PAY_LIFE ||
+  e?.action?.type === EffectActionType.DISCOVER_PAY_ENTROPY
+)
+const opts = asDiscoverOptions(discover?.action?.options)
+const act = choice === 'BUFF' ? opts?.buff : opts?.base
+return act?.target === EffectTarget.TARGET_CREATURE
   }
 
   const value: Ctx = { gameState, setGameState, currentPlayer, opponentPlayer, isMyTurn, actions }

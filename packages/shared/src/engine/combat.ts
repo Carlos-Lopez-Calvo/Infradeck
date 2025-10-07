@@ -1,4 +1,4 @@
-import { GameState, CreatureOnBoard, AttackResult, GamePhase } from './game-state'
+import { GameState, CreatureOnBoard, GamePhase, AttackResult } from './game-state'
 import { getCurrentPlayerIndex, getOpponentPlayerIndex } from './turns'
 import { hasFinalStandImmunity, checkAndActivateFinalStand } from './final-stand'
 import { notifyEffectTriggered, notifyLeaveBattlefield, triggerPriority } from './priority'

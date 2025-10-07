@@ -91,6 +91,10 @@ export function ContenidoDerechaOponente() {
     return (
         <div className="w-full h-full flex flex-col items-center justify-center">
             <div className="w-full h-1/2 bg-gray-800 rounded-lg flex flex-row items-center justify-center">
+                
+                <div className="w-1/2 h-full bg-red-800 rounded-lg flex flex-col items-center justify-center">
+                    <StackMazo count={deckCount} handCount={handCount} />
+                </div>
                 <div className="w-1/2 h-full bg-blue-800 rounded-lg flex flex-col items-center justify-center">
                     <div
                         className='w-24 h-24 flex flex-col justify-center items-center rounded-full border'
@@ -104,15 +108,13 @@ export function ContenidoDerechaOponente() {
                         <span className="text-white font-bold pt-4 text-6xl">{mana}</span>
                     </div>
                 </div>
-                <div className="w-1/2 h-full bg-red-800 rounded-lg flex flex-col items-center justify-center">
-                    <StackMazo count={deckCount} handCount={handCount} />
-                </div>
             </div>
             <div className="w-full h-1/2 bg-purple-800 rounded-lg flex flex-row items-center justify-center">
+            <div className="w-1/2 h-full bg-blue-800 rounded-lg flex flex-col items-center justify-center"></div>
+
                 <div className="w-1/2 h-full bg-red-800 rounded-lg flex flex-col items-center justify-center">
                     <span className="text-white text-xs">Sin recurso especial</span>
                 </div>
-                <div className="w-1/2 h-full bg-blue-800 rounded-lg flex flex-col items-center justify-center"></div>
             </div>
         </div>
     )

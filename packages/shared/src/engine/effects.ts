@@ -18,6 +18,7 @@ import { hasSpecimenOnBoard, getSpecimenCost, summonSpecimenToken, handleSpecime
 import { checkAndActivateFinalStand, hasFinalStandImmunity } from './final-stand'
 import { draw } from './turns' // solo si usas draw aquí
 import { declareAttackCreature } from './combat'
+import { BASIC_CARDS } from '../cards/basic-cards'
 
 // Si usas getCardByIdGlobal, asegúrate de que esté accesible (importa o declara externamente)
 // declare const getCardByIdGlobal: (id: string) => Card | undefined;
@@ -182,46 +183,59 @@ export function applyAction(
 
   switch (action.type as EffectActionType) {
     case EffectActionType.DAMAGE: {
-      // RANDOM_BY_ENTROPY: dispara 1 daño aleatorio N veces consumiendo 1 por disparo
-      if (String(action.value) === 'RANDOM_BY_ENTROPY' && me.classResource?.type === 'ENTROPIA') {
+      // RANDOM_BY_ENTROPY: N disparos completamente aleatorios (héroes y criaturas de ambos lados)
+      if (String(action.value) === 'RANDOM_BY_ENTROPY' && action.target === EffectTarget.RANDOM_CHARACTER && me.classResource?.type === 'ENTROPIA') {
         let shots = Math.min(10, me.classResource.amount ?? 0)
         while (shots-- > 0 && consumeEntropy(state, playerIndex, 1)) {
-          if (opp.board.length > 0) {
-            const idx = Math.floor(Math.random() * opp.board.length)
-            const c = opp.board[idx]
-            c.health -= (action.amount ?? 1)
-            c.damagedThisTurn = true
-            if (c.health <= 0) {
-              const [dead] = opp.board.splice(idx, 1)
-              opp.graveyard.unshift(dead.cardId)
-              notifyLeaveBattlefield(state, oppIndex, dead.id)
-              notifyEffectTriggered(state, oppIndex, dead.cardId, 'ON_DEATH')
+          const pool: Array<{ kind: 'HERO' | 'CREATURE'; pi: number; bi?: number }> = [
+            { kind: 'HERO', pi: playerIndex },
+            { kind: 'HERO', pi: oppIndex }
+          ]
+          me.board.forEach((_, i) => pool.push({ kind: 'CREATURE', pi: playerIndex, bi: i }))
+          opp.board.forEach((_, i) => pool.push({ kind: 'CREATURE', pi: oppIndex, bi: i }))
+          if (!pool.length) break
+          const pick = pool[Math.floor(Math.random() * pool.length)]
+          if (pick.kind === 'HERO') {
+            if (!hasFinalStandImmunity(state, pick.pi)) {
+              const tgt = state.players[pick.pi]
+              const old = tgt.life
+              tgt.life = Math.max(0, tgt.life - (action.amount ?? 1))
+              if (tgt.life <= 0 && old > 0) checkAndActivateFinalStand(state, pick.pi, playerIndex)
             }
-          } else {
-            if (!hasFinalStandImmunity(state, oppIndex)) {
-              const old = opp.life
-              opp.life = Math.max(0, opp.life - (action.amount ?? 1))
-              if (opp.life <= 0 && old > 0) {
-                checkAndActivateFinalStand(state, oppIndex, playerIndex)
+          } else if (pick.kind === 'CREATURE' && pick.bi != null) {
+            const owner = state.players[pick.pi]
+            const cr = owner.board[pick.bi]
+            if (cr) {
+              cr.health -= (action.amount ?? 1)
+              cr.damagedThisTurn = true
+              if (cr.health <= 0) {
+                const [dead] = owner.board.splice(pick.bi, 1)
+                owner.graveyard.unshift(dead.cardId)
+                notifyLeaveBattlefield(state, pick.pi, dead.id)
+                notifyEffectTriggered(state, pick.pi, dead.cardId, 'ON_DEATH')
               }
             }
           }
         }
         break
       }
+        // REPEAT_N:x → repite x impactos de amount contra enemigos aleatorios
+              // REPEAT_N:x → repite x impactos de amount contra enemigos aleatorios (héroe o criaturas)
+      if (typeof action.value === 'string' && action.value.startsWith('REPEAT_N:') && action.target === EffectTarget.RANDOM_ENEMY) {
+        const n = Math.max(0, parseInt(action.value.split(':')[1] ?? '0', 10) || 0)
+        const amount = action.amount ?? 0
+        for (let k = 0; k < n; k++) {
+          // Construye pool con héroe enemigo + criaturas enemigas
+          const pool: Array<{ kind: 'HERO' | 'CREATURE'; index?: number }> = [{ kind: 'HERO' }]
+          for (let i = 0; i < opp.board.length; i++) pool.push({ kind: 'CREATURE', index: i })
+          const pick = pool[Math.floor(Math.random() * pool.length)]
 
-      // RANDOM_BY_ENTROPY_PLUS_2: N+2 disparos (previo discover paga entropía)
-      if (String(action.value) === 'RANDOM_BY_ENTROPY_PLUS_2' && me.classResource?.type === 'ENTROPIA') {
-        const base = Math.min(10, me.classResource.amount ?? 0)
-        let shots = base + 2
-        while (shots-- > 0) {
-          if (opp.board.length > 0) {
-            const idx = Math.floor(Math.random() * opp.board.length)
-            const c = opp.board[idx]
-            c.health -= (action.amount ?? 1)
+          if (pick.kind === 'CREATURE' && pick.index != null && opp.board[pick.index]) {
+            const c = opp.board[pick.index]
+            c.health -= amount
             c.damagedThisTurn = true
             if (c.health <= 0) {
-              const [dead] = opp.board.splice(idx, 1)
+              const [dead] = opp.board.splice(pick.index, 1)
               opp.graveyard.unshift(dead.cardId)
               notifyLeaveBattlefield(state, oppIndex, dead.id)
               notifyEffectTriggered(state, oppIndex, dead.cardId, 'ON_DEATH')
@@ -229,7 +243,7 @@ export function applyAction(
           } else {
             if (!hasFinalStandImmunity(state, oppIndex)) {
               const old = opp.life
-              opp.life = Math.max(0, opp.life - (action.amount ?? 1))
+              opp.life = Math.max(0, opp.life - amount)
               if (opp.life <= 0 && old > 0) checkAndActivateFinalStand(state, oppIndex, playerIndex)
             }
           }
@@ -388,33 +402,55 @@ export function applyAction(
       break
     }
 
-    case EffectActionType.DISCOVER_PAY_LIFE: {
-      const baseCost = Number(action.options?.lifeCost ?? 0)
-      const p = state.players[playerIndex]
-      const available = p.lifeCredit != null ? p.lifeCredit : p.life
-    
-      const uiChoice = onDiscoverRequest(state, {
-        playerIndex,
-        options: [
-          { id: 'BASE', label: 'Versión base' },
-          { id: 'BUFF', label: baseCost > 0 ? `Potenciada (-${baseCost} vida)` : 'Potenciada' },
-        ],
-      })
-    
-      // Si hay crédito de vida y hay opción BUFF, fuerza BUFF
-      const choice = (available >= baseCost && action.options?.buff) ? 'BUFF' : uiChoice
-    
-      if (choice === 'BUFF' && baseCost > 0) {
-        if (available < baseCost) break
-        if (p.lifeCredit != null) p.lifeCredit = Math.max(0, p.lifeCredit - baseCost)
-        else p.life -= baseCost
+   // Dentro de applyAction(...) - bloque DISCOVER_PAY_LIFE completo
+case EffectActionType.DISCOVER_PAY_LIFE: {
+  const baseCost = Number(action.options?.lifeCost ?? 0)
+  const p = state.players[playerIndex]
+  const available = p.lifeCredit != null ? p.lifeCredit : p.life
+
+  let choice = onDiscoverRequest(state, {
+    playerIndex,
+    options: [
+      { id: 'BASE', label: 'Versión base' },
+      { id: 'BUFF', label: baseCost > 0 ? `Potenciada (-${baseCost} vida)` : 'Potenciada' },
+    ],
+  })
+
+  if (p.forceDiscoverBuff) choice = 'BUFF'
+
+  if (choice === 'BUFF' && baseCost > 0) {
+    if (available < baseCost) break
+    if (p.lifeCredit != null) p.lifeCredit = Math.max(0, p.lifeCredit - baseCost)
+    else p.life -= baseCost
+  }
+
+  if (choice === 'BUFF' && action.options?.buff) {
+    applyAction(state, playerIndex, action.options.buff, targetsHints)
+  } else if (action.options?.base) {
+    applyAction(state, playerIndex, action.options.base, targetsHints)
+  }
+  break
+}
+
+    case EffectActionType.REDUCE_CARD_COST: {
+      const me = state.players[playerIndex]
+      const ent = me.classResource?.type === 'ENTROPIA' ? (me.classResource.amount ?? 0) : 0
+
+      let remaining: number | 'ALL' = 0
+      const cfg = (action.options && (action.options as any).thresholds) as Array<{ min: number, uses: number | 'ALL' }> | undefined
+      if (cfg && cfg.length) {
+        const hit = [...cfg].sort((a,b) => a.min - b.min).filter(t => ent >= t.min).pop()
+        remaining = hit ? hit.uses : 0
+      } else {
+        if (ent >= 8) remaining = 'ALL'
+        else if (ent >= 4) remaining = 2
+        else if (ent >= 2) remaining = 1
       }
-    
-      if (choice === 'BUFF' && action.options?.buff) {
-        applyAction(state, playerIndex, action.options.buff, targetsHints)
-      } else if (action.options?.base) {
-        applyAction(state, playerIndex, action.options.base, targetsHints)
-      }
+      const amountAbs = Math.abs(action.amount ?? 0) || 0
+      if (remaining === 0 || amountAbs === 0) break
+
+      me.cardCostReduction = { amount: amountAbs, remaining }
+      me.cardCostReductionSkipOnce = true       // ← no consumir en esta misma carta
       break
     }
 
@@ -433,15 +469,24 @@ export function applyAction(
     case EffectActionType.SUMMON_CREATURE: {
       if (String(action.value) === 'RANDOM_BY_ENTROPY' && me.classResource?.type === 'ENTROPIA') {
         const ent = me.classResource.amount ?? 0
-        const maxCost = ent >= 9 ? Infinity : (ent >= 6 ? 6 : (ent >= 3 ? 3 : 0))
-        const tokenVal = maxCost >= 9 ? 'TOKEN_5_5' : maxCost >= 6 ? 'TOKEN_3_3' : maxCost >= 3 ? 'TOKEN_2_2' : 'TOKEN_1_1'
-        const token = createTokenFromValue(tokenVal)
-        if (token) {
-          token.ownerId = me.id
-          token.exhausted = true
-          me.board.push(token)
-          notifyEnterBattlefield(state, playerIndex, token.id)
+        if (ent < 3) break
+        const maxCost = ent >= 9 ? Infinity : (ent >= 6 ? 6 : 3)
+        const pool = BASIC_CARDS.filter(c => c.type === CardType.CREATURE && (maxCost === Infinity || (c.mana ?? 0) <= maxCost))
+        if (!pool.length) break
+        const pick = pool[Math.floor(Math.random() * pool.length)]
+        const entity: CreatureOnBoard = {
+          id: `creature-${Date.now()}-${Math.floor(Math.random()*1e6)}`,
+          cardId: pick.id,
+          ownerId: me.id,
+          attack: pick.attack ?? 0,
+          health: pick.health ?? 1,
+          exhausted: true,
+          abilities: pick.abilities ? pick.abilities.map(a => String(a)) : [],
+          effects: [],
         }
+        me.board.push(entity)
+        notifyEnterBattlefield(state, playerIndex, entity.id)
+        applyOnEnterEffects(state, entity, playerIndex, pick)
         break
       }
       const token = createTokenFromValue(String(action.value ?? 'TOKEN_1_1'))
@@ -452,7 +497,6 @@ export function applyAction(
       notifyEnterBattlefield(state, playerIndex, token.id)
       break
     }
-
     case EffectActionType.BUFF_ATTACK: {
       const amount = action.amount ?? 0
       const t = ensureTarget()
@@ -537,49 +581,53 @@ export function applyAction(
       break
     }
 
-    case EffectActionType.DISCOVER_PAY_ENTROPY: {
-      const p = state.players[playerIndex]
-      const baseCost = Number(action.options?.entropyCost ?? 0)
-      const have = p.classResource?.type === 'ENTROPIA' ? (p.classResource.amount ?? 0) : 0
-      const canPay = have >= baseCost
-      console.log('[DISCOVER_PAY_ENTROPY] request', {
-        playerIndex,
-        entropy: state.players[playerIndex].classResource?.amount,
-        base: action.options?.base,
-        buff: action.options?.buff,
-      })
-      
-      const choice = onDiscoverRequest(state, {
-        playerIndex,
-        options: [
-          { id: 'BASE', label: 'Versión base' },
-          { id: 'BUFF', label: canPay ? `Potenciada (-${baseCost} entropía)` : 'Potenciada (sin entropía suficiente)' },
-        ],
-      })
-      
-      console.log('[DISCOVER_PAY_ENTROPY] choice returned by UI:', choice)
-      
-      if (choice === 'BUFF') {
-        if (!canPay || !consumeEntropy(state, playerIndex, baseCost)) {
-          console.warn('[DISCOVER_PAY_ENTROPY] cannot pay entropy', { have, need: baseCost })
-          break
-        }
-        console.log('[DISCOVER_PAY_ENTROPY] entropy paid', {
-          newEntropy: state.players[playerIndex].classResource?.amount,
-          paid: baseCost
-        })
-        if (action.options?.buff) {
-          console.log('[DISCOVER_PAY_ENTROPY] applying BUFF action', action.options.buff)
-          applyAction(state, playerIndex, action.options.buff, targetsHints)
-        }
-      } else {
-        if (action.options?.base) {
-          console.log('[DISCOVER_PAY_ENTROPY] applying BASE action', action.options.base)
-          applyAction(state, playerIndex, action.options.base, targetsHints)
-        }
-      }
+    // Dentro de applyAction(...) - bloque DISCOVER_PAY_ENTROPY completo
+case EffectActionType.DISCOVER_PAY_ENTROPY: {
+  const p = state.players[playerIndex]
+  const baseCost = Number(action.options?.entropyCost ?? 0)
+  const have = p.classResource?.type === 'ENTROPIA' ? (p.classResource.amount ?? 0) : 0
+  const canPay = have >= baseCost
+
+  console.log('[DISCOVER_PAY_ENTROPY] request', {
+    playerIndex,
+    entropy: state.players[playerIndex].classResource?.amount,
+    base: action.options?.base,
+    buff: action.options?.buff,
+  })
+  
+  let choice = onDiscoverRequest(state, {
+    playerIndex,
+    options: [
+      { id: 'BASE', label: 'Versión base' },
+      { id: 'BUFF', label: canPay ? `Potenciada (-${baseCost} entropía)` : 'Potenciada (sin entropía suficiente)' },
+    ],
+  })
+
+  if (p.forceDiscoverBuff) choice = 'BUFF'
+
+  console.log('[DISCOVER_PAY_ENTROPY] choice returned by UI:', choice)
+  
+  if (choice === 'BUFF') {
+    if (!canPay || !consumeEntropy(state, playerIndex, baseCost)) {
+      console.warn('[DISCOVER_PAY_ENTROPY] cannot pay entropy', { have, need: baseCost })
       break
     }
+    console.log('[DISCOVER_PAY_ENTROPY] entropy paid', {
+      newEntropy: state.players[playerIndex].classResource?.amount,
+      paid: baseCost
+    })
+    if (action.options?.buff) {
+      console.log('[DISCOVER_PAY_ENTROPY] applying BUFF action', action.options.buff)
+      applyAction(state, playerIndex, action.options.buff, targetsHints)
+    }
+  } else {
+    if (action.options?.base) {
+      console.log('[DISCOVER_PAY_ENTROPY] applying BASE action', action.options.base)
+      applyAction(state, playerIndex, action.options.base, targetsHints)
+    }
+  }
+  break
+}
 
     case EffectActionType.CHANGE_CYCLE_STATE: {
       if (!me.classResource || me.classResource.type !== 'ESTADO') break
@@ -642,28 +690,45 @@ export function applyAction(
       break
     }
 
-    case EffectActionType.TRANSFORM: {
-      const v = String(action.value || '')
-      const playAll = (passes: number) => {
-        for (let pass = 0; pass < passes; pass++) {
-          const snapshot = [...me.hand]
-          for (const cid of snapshot) {
-            const idxNow = me.hand.indexOf(cid)
-            if (idxNow === -1) continue
-            const card = getCardByIdGlobal(cid)
-            if (!card) continue
-            const targets = getRandomTargetsForCard(state, playerIndex, card)
-            playCard(state, playerIndex, idxNow, getCardByIdGlobal, { targets })
-          }
+   // Dentro de applyAction(...) - sección TRANSFORM completa con cartas gratis + BUFF forzado
+case EffectActionType.TRANSFORM: {
+  const v = String(action.value || '')
+  const playAll = (passes: number) => {
+    const savedRed = me.cardCostReduction
+    const savedSkip = me.cardCostReductionSkipOnce
+    const savedForce = me.forceDiscoverBuff
+
+    // Jugar todas las cartas gratis y forzar BUFF en discovers durante esta resolución
+    me.cardCostReduction = { amount: 99, remaining: 'ALL' }
+    me.cardCostReductionSkipOnce = true
+    me.forceDiscoverBuff = true
+
+    try {
+      for (let pass = 0; pass < passes; pass++) {
+        const snapshot = [...me.hand]
+        for (const cid of snapshot) {
+          const idxNow = me.hand.indexOf(cid)
+          if (idxNow === -1) continue
+          const card = getCardByIdGlobal(cid)
+          if (!card) continue
+          const targets = getRandomTargetsForCard(state, playerIndex, card)
+          playCard(state, playerIndex, idxNow, getCardByIdGlobal, { targets })
         }
       }
-      if (v === 'PLAY_ALL_HAND_RANDOM_TARGETS') {
-        playAll(1)
-      } else if (v === 'PLAY_ALL_HAND_TWICE_RANDOM_TARGETS') {
-        playAll(2)
-      }
-      break
+    } finally {
+      me.cardCostReduction = savedRed
+      me.cardCostReductionSkipOnce = savedSkip
+      me.forceDiscoverBuff = savedForce
     }
+  }
+
+  if (v === 'PLAY_ALL_HAND_RANDOM_TARGETS') {
+    playAll(1)
+  } else if (v === 'PLAY_ALL_HAND_TWICE_RANDOM_TARGETS') {
+    playAll(2)
+  }
+  break
+}
 
     case EffectActionType.ATTACK_SPELL: {
       const hintAtk = targetsHints?.find(h => h.type === 'CREATURE_SELF') as any
@@ -673,8 +738,15 @@ export function applyAction(
       }
       break
     }
+    case EffectActionType.REUSE_RANDOM_PAST_CHAOS_EFFECT: {
+      const pool = state.players[playerIndex].playedChaosEffects ?? []
+      if (!pool.length) break
+      const pick = pool[Math.floor(Math.random() * pool.length)]
+      const hints = getRandomHintsForAction(state, playerIndex, pick)
+      applyAction(state, playerIndex, pick, hints)
+      break
+    }
     
-
     default:
       break
   }
@@ -717,6 +789,15 @@ export function resolveSingleTarget(
     case EffectTarget.ALL_FRIENDLY_CREATURES: return { kind: 'MULTI', scope: 'FRIENDLY' }
     case EffectTarget.ALL_ENEMY_CREATURES:    return { kind: 'MULTI', scope: 'ENEMY' }
     case EffectTarget.RANDOM_ENEMY:           return { kind: 'RANDOM_ENEMY' }
+    case EffectTarget.RANDOM_CREATURE: {
+      // Resuelve a una criatura concreta aleatoria entre ambas mesas
+      const pool: Array<{ pi: number; bi: number }> = []
+      me.board.forEach((_, i) => pool.push({ pi: playerIndex, bi: i }))
+      opp.board.forEach((_, i) => pool.push({ pi: getOpponentPlayerIndex(state), bi: i }))
+      if (!pool.length) return undefined
+      const pick = pool[Math.floor(Math.random() * pool.length)]
+      return { kind: 'CREATURE', playerIndex: pick.pi, index: pick.bi }
+    }
     case EffectTarget.SELF: {
       // Usa hint CREATURE_SELF si viene de ON_ENTER
       if (hint && hint.type === 'CREATURE_SELF' && me.board[hint.index]) {
@@ -823,6 +904,37 @@ function getRandomTargetsForCard(state: GameState, playerIndex: number, card: Ca
     } else if (tgt === EffectTarget.ALL_FRIENDLY_CREATURES || tgt === EffectTarget.ALL_ENEMY_CREATURES || tgt === EffectTarget.RANDOM_ENEMY) {
       // No requieren hints específicos
     }
+  }
+  return hints
+}
+
+function getRandomHintsForAction(state: GameState, playerIndex: number, action: any): TargetRef[] {
+  const me = state.players[playerIndex]
+  const oppIdx = (playerIndex === 0 ? 1 : 0)
+  const opp = state.players[oppIdx]
+  const hints: TargetRef[] = []
+
+  switch (action?.target) {
+    case EffectTarget.TARGET_CREATURE: {
+      if (opp.board.length > 0) {
+        const i = Math.floor(Math.random() * opp.board.length)
+        hints.push({ type: 'CREATURE_ENEMY', index: i } as any)
+      } else {
+        hints.push({ type: 'HERO_ENEMY' } as any)
+      }
+      break
+    }
+    case EffectTarget.ALL_FRIENDLY_CREATURES:
+    case EffectTarget.ALL_ENEMY_CREATURES:
+    case EffectTarget.ALL_CREATURES:
+    case EffectTarget.RANDOM_ENEMY:
+    case EffectTarget.RANDOM_CREATURE:
+    case EffectTarget.RANDOM_CHARACTER:
+    case EffectTarget.FRIENDLY_HERO:
+    case EffectTarget.ENEMY_HERO:
+    case EffectTarget.SELF:
+    default:
+      break
   }
   return hints
 }

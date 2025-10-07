@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import type { Card as CardType, Ability } from '@infradeck/shared'
 import { EffectTiming } from '@infradeck/shared'
+import { useGameEngine } from '../context/GameEngineProvider'
 
 const timingTooltips: Record<string, string> = {
   ON_PLAY: "Se activa al jugar la carta desde tu mano.",
@@ -56,6 +57,13 @@ export function Card({ card }: { card: CardType }) {
   // Si no hay classType, usa blanco por defecto
   const classColor = card.classType ? classTypeColors[card.classType] || '#fff' : '#fff'
 
+  // Descuento activo y coste efectivo
+  const { currentPlayer } = useGameEngine()
+  const red = currentPlayer?.cardCostReduction
+  const redActive = !!(red && red.amount > 0 && (red.remaining === 'ALL' || (typeof red.remaining === 'number' && red.remaining > 0)))
+  const baseMana = card.mana ?? 0
+  const effectiveMana = redActive ? Math.max(0, baseMana - (red?.amount ?? 0)) : baseMana
+
   return (
     <div
       className="card w-36 h-48 bg-gray-700 rounded-lg shadow-md flex flex-col items-center justify-center border-2 relative"
@@ -78,7 +86,7 @@ export function Card({ card }: { card: CardType }) {
             borderColor: classColor,
           }}
         >
-          <span className="text-white font-bold text-lg">{card.mana}</span>
+            <span className={`font-bold text-lg ${redActive ? 'text-green-400' : 'text-white'}`}>{effectiveMana}</span>
         </div>
       </div>
       <div

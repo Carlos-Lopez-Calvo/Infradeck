@@ -480,7 +480,7 @@ export const APRENDIZ_ERRATICO: Card = {
     },
     {
       id: 'Aprendiz_Random_Buff',
-      description: 'Gana +1/+1 aleatorio al final del turno',
+      description: 'Entropía 3+: Una criatura aleatoria gana +1/+1',
       timing: EffectTiming.END_OF_TURN,
       condition: {
         type: 'CLASS_RESOURCE',
@@ -489,7 +489,7 @@ export const APRENDIZ_ERRATICO: Card = {
       },
       action: {
         type: EffectActionType.BUFF_STATS,
-        target: EffectTarget.SELF,
+        target: EffectTarget.RANDOM_CREATURE,
         value: '+1/+1',
         duration: 'PERMANENT'
       }
@@ -562,7 +562,7 @@ export const RITUAL_CAOTICO: Card = {
     {
       id: 'Ritual_Extra_Entropy',
       description: 'Gana 2 Entropía adicional (total: 3 Entropía de esta carta)',
-      timing: EffectTiming.ON_ENTER,
+      timing: EffectTiming.ON_PLAY,
       action: {
         type: EffectActionType.GAIN_ENTROPY,
         target: EffectTarget.FRIENDLY_HERO,
@@ -572,8 +572,8 @@ export const RITUAL_CAOTICO: Card = {
     },
     {
       id: 'Ritual_Steal_Card',
-      description: 'Además, roba 1 carta aleatoria del mazo del oponente',
-      timing: EffectTiming.ON_ENTER,
+      description: 'Entropía 5+: Además, roba 2 cartas',
+      timing: EffectTiming.ON_PLAY,
       condition: {
         type: 'CLASS_RESOURCE',
         value: 5,
@@ -582,7 +582,7 @@ export const RITUAL_CAOTICO: Card = {
       action: {
         type: EffectActionType.DRAW_CARDS,
         target: EffectTarget.FRIENDLY_HERO,
-        amount: 1,
+        amount: 2,
         duration: 'PERMANENT'
       }
     }
@@ -608,11 +608,11 @@ export const MERCADER_LOCO: Card = {
   effects: [
     {
       id: 'Mercader_Card_Exchange',
-      description: 'Al entrar: Intercambia cartas aleatorias con el oponente (1 cada uno)',
+      description: 'Entropía 2+: Roba 1 carta',
       timing: EffectTiming.ON_ENTER,
       condition: {
         type: 'CLASS_RESOURCE',
-        value: 4,
+        value: 2,
         comparison: 'GREATER_EQUAL'
       },
       action: {
@@ -625,9 +625,9 @@ export const MERCADER_LOCO: Card = {
   ],
   classResource: {
     type: 'ENTROPIA',
-    amount: 4
+    amount: 2
   },
-  description: '2/2. Entropía 4+: Al entrar: Intercambia cartas aleatorias con el oponente (1 cada uno)',
+  description: '2/2. Entropía 2+: Al entrar: Roba 1 carta',
   flavorText: 'Comercia lo imposible por lo improbable.'
 }
 
@@ -643,26 +643,26 @@ export const MANIPULADOR_DEL_DESTINO: Card = {
   abilities: [Ability.VUELO],
   effects: [
     {
-      id: 'Manipulador_Entropy_Shots_Discover',
-      description: 'Al entrar: Elige N disparos (N = Entropía), o N+2 disparos pagando 2 Entropía',
+      id: 'Manipulador_Entropy_Burst_Option',
+      description: 'Al entrar: Puedes pagar 4 Entropía para hacer 2 de daño N veces a enemigos aleatorios.',
       timing: EffectTiming.ON_ENTER,
       action: {
         type: EffectActionType.DISCOVER_PAY_ENTROPY,
         target: EffectTarget.FRIENDLY_HERO,
         options: {
-          entropyCost: 2,
-          base:  { type: EffectActionType.DAMAGE, target: EffectTarget.RANDOM_ENEMY, amount: 1, value: 'RANDOM_BY_ENTROPY', duration: 'PERMANENT' },
-          buff:  { type: EffectActionType.DAMAGE, target: EffectTarget.RANDOM_ENEMY, amount: 1, value: 'RANDOM_BY_ENTROPY_PLUS_2', duration: 'PERMANENT' }
+          entropyCost: 4,
+          buff: { type: EffectActionType.DAMAGE, target: EffectTarget.RANDOM_ENEMY, amount: 2, value: 'REPEAT_N:3', duration: 'PERMANENT' }
         }
       }
     }
   ],
-  description: '2/3 con Vuelo. Al entrar: N proyectiles (N = Entropía) o N+2 pagando 2 Entropía.',
+  description: '2/3 con Vuelo. Al entrar: puedes pagar 4 Entropía para lanzar N impactos de 2 a enemigos aleatorios (N=3).',
   flavorText: 'El destino obedece a quien comprende el caos.'
 }
 export const PORTAL_INESTABLE: Card = {
   id: 'Portal_Inestable',
   name: 'Portal Inestable',
+  image: '/imgCards/portal_inestable.jpg',
   type: CardType.SPELL,
   rarity: CardRarity.RARE,
   classType: ClassType.CAOS,
@@ -671,7 +671,7 @@ export const PORTAL_INESTABLE: Card = {
   effects: [
     {
       id: 'Portal_Scaling_Summon',
-      description: 'Entropía 3: Invoca una criatura aleatoria de costo 3 o menos. Entropía 6: de costo 6 o menos. Entropía 9: de cualquier costo',
+      description: 'Entropía 3: Invoca una criatura aleatoria de costo 3 o menos. Entropía 6: de costo 6 o menos. Entropía 9: de cualquier costo (solo criaturas del set base)',
       timing: EffectTiming.ON_PLAY,
       action: {
         type: EffectActionType.SUMMON_CREATURE,
@@ -691,22 +691,29 @@ export const CAOS_CONTROLADO: Card = {
   type: CardType.SPELL,
   rarity: CardRarity.RARE,
   classType: ClassType.CAOS,
-  mana: 4,
+  mana: 1,
   abilities: [],
   effects: [
     {
       id: 'Caos_Scaling_Cost_Reduction',
-      description: 'Entropía 2: El próximo hechizo cuesta 2 menos. Entropía 4: Los próximos 2 hechizos. Entropía 8: Todos los hechizos hasta final del turno',
+      description: 'Entropía 4: La próxima carta cuesta 2 menos. Entropía 7: Las próximas 2 cartas. Entropía 10: Todas tus cartas hasta fin de turno',
       timing: EffectTiming.ON_PLAY,
       action: {
-        type: EffectActionType.BUFF_STATS,
+        type: EffectActionType.REDUCE_CARD_COST,
         target: EffectTarget.FRIENDLY_HERO,
-        amount: -2,
-        duration: 'END_OF_TURN'
+        amount: 2,
+        duration: 'END_OF_TURN',
+        options: {
+          thresholds: [
+            { min: 4, uses: 1 },
+            { min: 7, uses: 2 },
+            { min: 10, uses: 'ALL' }
+          ]
+        }
       }
     }
   ],
-  description: 'Entropía 2: El próximo hechizo cuesta 2 menos. Entropía 4: Los próximos 2 hechizos cuestan 2 menos cada uno. Entropía 8: Todos tus hechizos cuestan 2 menos hasta final del turno',
+  description: 'Entropía 4: Próxima carta -2. Entropía 7: Próximas 2 cartas -2. Entropía 10: Todas tus cartas -2 hasta fin de turno',
   flavorText: 'Dominar el caos es el arte supremo.'
 }
 
@@ -761,8 +768,9 @@ export const TORMENTA_IMPREDECIBLE: Card = {
       timing: EffectTiming.ON_PLAY,
       action: {
         type: EffectActionType.DAMAGE,
-        target: EffectTarget.RANDOM_CHARACTER, // ✅ Ahora es verdaderamente caótico
+        target: EffectTarget.RANDOM_CHARACTER,
         amount: 2,
+        value: 'RANDOM_BY_ENTROPY', // ← usa entropía, N disparos aleatorios
         duration: 'PERMANENT'
       }
     }
@@ -783,35 +791,37 @@ export const REALIDAD_FRACTURADA: Card = {
   abilities: [],
   classResource: { type: 'ENTROPIA', amount: 8 },
   effects: [
-  {
-    id: 'realidad_fracturada_8',
-    description: 'Entropía 8+: Juega todas las cartas de tu mano con objetivos aleatorios',
-    timing: EffectTiming.ON_PLAY,
-    condition: {
-      type: 'CLASS_RESOURCE',
-      value: 8
+    {
+      id: 'realidad_fracturada_8',
+      description: 'Entropía 8+: Juega todas las cartas de tu mano con objetivos aleatorios',
+      timing: EffectTiming.ON_PLAY,
+      condition: {
+        type: 'CLASS_RESOURCE',
+        value: 8,
+        comparison: 'GREATER_EQUAL'          // ← añadir
+      },
+      action: {
+        type: EffectActionType.TRANSFORM,
+        target: EffectTarget.SELF,
+        value: 'PLAY_ALL_HAND_RANDOM_TARGETS'
+      }
     },
-    action: {
-      type: EffectActionType.TRANSFORM, // Or a new effect type like PLAY_HAND
-      target: EffectTarget.SELF,
-      value: 'PLAY_ALL_HAND_RANDOM_TARGETS'
+    {
+      id: 'realidad_fracturada_10',
+      description: 'Entropía 10: Todas las cartas se juegan dos veces',
+      timing: EffectTiming.ON_PLAY,
+      condition: {
+        type: 'CLASS_RESOURCE',
+        value: 10,
+        comparison: 'GREATER_EQUAL'          // ← añadir
+      },
+      action: {
+        type: EffectActionType.TRANSFORM,
+        target: EffectTarget.SELF,
+        value: 'PLAY_ALL_HAND_TWICE_RANDOM_TARGETS'
+      }
     }
-  },
-  {
-    id: 'realidad_fracturada_10',
-    description: 'Entropía 10: Todas las cartas se juegan dos veces',
-    timing: EffectTiming.ON_PLAY,
-    condition: {
-      type: 'CLASS_RESOURCE',
-      value: 10
-    },
-    action: {
-      type: EffectActionType.TRANSFORM,
-      target: EffectTarget.SELF,
-      value: 'PLAY_ALL_HAND_TWICE_RANDOM_TARGETS'
-    }
-  }
-]
+  ]
 }
 
 // ==========================================
