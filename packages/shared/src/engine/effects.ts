@@ -558,10 +558,16 @@ case EffectActionType.DISCOVER_PAY_LIFE: {
       if (t.kind === 'CREATURE') {
         const owner = state.players[t.playerIndex]
         const cr = owner.board[t.index]
-        if (cr && !cr.abilities.includes(String(abil))) cr.abilities.push(String(abil))
+        if (cr && !cr.abilities.includes(String(abil))) {
+          cr.abilities.push(String(abil))
+          if (abil === Ability.PRISA) cr.exhausted = false   // ← quita el exhaust
+        }
       } else if (t.kind === 'MULTI') {
         const list = t.scope === 'FRIENDLY' ? me.board : opp.board
-        for (const c of list) if (!c.abilities.includes(String(abil))) c.abilities.push(String(abil))
+        for (const c of list) {
+          if (!c.abilities.includes(String(abil))) c.abilities.push(String(abil))
+          if (abil === Ability.PRISA) c.exhausted = false    // ← quita el exhaust a todos
+        }
       }
       break
     }
@@ -771,6 +777,10 @@ export function resolveSingleTarget(
     case EffectTarget.ENEMY_HERO:    return { kind: 'HERO', playerIndex: getOpponentPlayerIndex(state) }
     case EffectTarget.TARGET_CREATURE: {
       if (!hint) return undefined
+      // ← nuevo: permitir targetear al héroe enemigo cuando la UI lo pida
+      if (hint.type === 'HERO_ENEMY') {
+        return { kind: 'HERO', playerIndex: getOpponentPlayerIndex(state) }
+      }
       if (hint.type === 'CREATURE_SELF' && me.board[hint.index]) {
         return { kind: 'CREATURE', playerIndex, index: hint.index }
       }

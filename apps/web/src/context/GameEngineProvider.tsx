@@ -57,7 +57,7 @@ type DiscoverModalState =
 export function GameEngineProvider({ children }: { children: React.ReactNode }) {
   const [gameState, setGameState] = useState<GameState>(() => {
     // Elige aquí los mazos a probar
-    const p1Class = 'CAOS' as const
+    const p1Class = 'VITALIDAD' as const
     const p2Class = 'VITALIDAD' as const
     const state = createGame(
       { id: 'player1', name: 'Player 1', classType: p1Class, deck: [...sampleDecks[p1Class]], programmedSpecimenEffects: [] },
@@ -455,49 +455,82 @@ return act?.target === EffectTarget.TARGET_CREATURE
         </div>
       )}
 
-      {/* Overlay Discover (BASE/BUFF) */}
-      {discoverModal && (
-        <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/70 text-white">
-          <div className="bg-gray-900 rounded-xl border border-white/20 px-6 py-5 shadow-2xl w-[90%] max-w-md text-center">
-            <div className="text-2xl font-bold mb-4">{discoverModal.title}</div>
-            <div className="flex flex-col gap-3">
-              <button className="px-4 py-2 rounded bg-gray-700 hover:bg-gray-600 border border-white/20" onClick={() => confirmDiscover('BASE')}>Versión base</button>
-              <button className="px-4 py-2 rounded bg-amber-600 hover:bg-amber-500 border border-white/20" onClick={() => confirmDiscover('BUFF')}>Versión potenciada</button>
+            {/* Overlay Discover (BASE/BUFF) */}
+            {discoverModal && (() => {
+        const { playerIndex, handIndex } = discoverModal
+        const previews = buildDiscoverPreviews(playerIndex, handIndex)
+        return (
+          <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/70 text-white">
+            <div className="rounded-xl px-6 py-5 shadow-2xl w-full h-auto text-center">
+              <div className="text-6xl font-bold mb-24">Elige una opción</div>
+              <div className="flex items-center justify-center gap-40">
+              <button className="rounded-2xl p-4 border border-white/30 hover:bg-white/5 scale-[1.5] transition" onClick={() => confirmDiscover('BASE')}>
+                <div className="transform origin-top">
+                  {previews?.baseCard && <UICard card={previews.baseCard as any} />}
+                </div>
+            </button>
+
+              <button
+                className="relative rounded-2xl p-4 border border-amber-400 scale-[1.5] shadow-[0_0_24px_rgba(251,191,36,0.65)] hover:shadow-[0_0_32px_rgba(251,191,36,0.9)] hover:bg-amber-500/10 transition"
+                onClick={() => confirmDiscover('BUFF')}
+              >
+                <div className="rounded-xl overflow-hidden ring-2 ring-amber-400">
+                  <div className="transform origin-top">
+                    {previews?.buffCard && <UICard card={previews.buffCard as any} />}
+                  </div>
+                </div>
+              </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
 
-      {/* Overlay selección de objetivo */}
-      {targetModal && (() => {
+            {/* Overlay selección de objetivo */}
+            {targetModal && (() => {
         const { playerIndex, handIndex, choice } = targetModal
         const enemyIndex = 1 - playerIndex
         const enemy = gameState.players[enemyIndex]
-        const onPick = (defenderIndex: number) => {
+
+        const commitWithTargets = (targets: any[]) => {
           setTargetModal(null)
           setGameState(prev => {
             const next: GameState = JSON.parse(JSON.stringify(prev))
-            const targets = [{ type: 'CREATURE_ENEMY', index: defenderIndex }] as any
             next.pendingTargets = targets
-        
-            // Si venía de discover, respeta la elección sticky
+
             if (choice) {
               const cardId = gameState.players[playerIndex].hand[handIndex]
               const uses = Math.max(1, countDiscoversInCard(cardId))
               lastDiscoverChoiceRef.current = choice
               nextDiscoverChoiceRef.current = { choice, usesLeft: uses }
             }
-        
+
             if (next.turn.currentPlayerIndex !== playerIndex) return next
             const res = playCard(next, playerIndex, handIndex, getCardById, { targets })
             if (!res.ok) console.warn('playCard failed:', res)
             return next
           })
         }
+
+        const onPickHero = () => commitWithTargets([{ type: 'HERO_ENEMY' } as any])
+        const onPick = (defenderIndex: number) => commitWithTargets([{ type: 'CREATURE_ENEMY', index: defenderIndex } as any])
+
         return (
           <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/70 text-white">
             <div className="bg-gray-900 rounded-xl border border-white/20 px-6 py-5 shadow-2xl w-[95%] max-w-4xl text-center">
               <div className="text-2xl font-bold mb-4">Selecciona objetivo</div>
+
+              {/* Primero: héroe enemigo */}
+              <div className="mb-4 flex justify-center">
+                <button
+                  className="rounded-lg border border-red-400 hover:bg-red-500/10 px-4 py-2 text-red-300 font-semibold"
+                  onClick={onPickHero}
+                >
+                  Héroe enemigo
+                </button>
+              </div>
+
+              {/* Luego: criaturas enemigas */}
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 justify-center">
                 {enemy.board.map((crea, idx) => {
                   const base = getCardById(crea.cardId)
@@ -515,6 +548,10 @@ return act?.target === EffectTarget.TARGET_CREATURE
       })()}
     </>
   )
+}
+
+export function useGameEngineOptional() {
+  return useContext(GameEngineContext)
 }
 
 export function useGameEngine() {

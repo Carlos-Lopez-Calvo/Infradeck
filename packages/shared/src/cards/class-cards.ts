@@ -1409,24 +1409,24 @@ export const RITUAL_SANGRIENTO: Card = {
   effects: [
     {
       id: 'Ritual_Descubrir',
-      description: 'Al jugar: Elige 3 de daño al oponente, o 6 de daño pagando 6 de vida',
+      description: 'Al jugar: Elige 3 de daño al héroe enemigo, o pagando 3 de vida: 3 de daño a una criatura o al héroe enemigo objetivo',
       timing: EffectTiming.ON_PLAY,
       action: {
         type: EffectActionType.DISCOVER_PAY_LIFE,
         target: EffectTarget.FRIENDLY_HERO,
         options: {
-          lifeCost: 6,
+          lifeCost: 3,
           base: { type: EffectActionType.DAMAGE, target: EffectTarget.ENEMY_HERO, amount: 3, duration: 'PERMANENT' },
-          buff: { type: EffectActionType.DAMAGE, target: EffectTarget.ENEMY_HERO, amount: 6, duration: 'PERMANENT' }
+          buff: { type: EffectActionType.DAMAGE, target: EffectTarget.TARGET_CREATURE, amount: 3, duration: 'PERMANENT' }
         }
       }
     }
   ],
   classResource: {
     type: 'VIDA',
-    amount: 6
+    amount: 3
   },
-  description: 'Elige: Haz 3 de daño al oponente o 6 de daño pagando 6 de vida',
+  description: 'Elige: 3 de daño al héroe enemigo; o pagando 3 de vida: 3 de daño a una criatura o al héroe enemigo objetivo',
   flavorText: 'El dolor compartido duele más.'
 }
 
