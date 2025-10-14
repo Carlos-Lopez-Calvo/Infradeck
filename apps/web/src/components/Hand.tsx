@@ -18,11 +18,11 @@ export function Hand() {
       onMouseEnter={() => setIsHandHovered(true)}
       onMouseLeave={() => setIsHandHovered(false)}
     >
-      {handItems.map(({ card, handIndex }, i) => {
+            {handItems.map(({ card, handIndex }, i) => {
         const total = handItems.length
         const denom = Math.max(total - 1, 1)
-        const invRatio = Math.max(10 / Math.max(total, 1), 1) // menos cartas → más espacio
-        const dirRatio = Math.min(total / 10, 1)              // menos cartas → menos zoom
+        const invRatio = Math.max(10 / Math.max(total, 1), 1)
+        const dirRatio = Math.min(total / 10, 1)
 
         const baseSpread = 20
         const baseOffset = isHandHovered ? 80 : 60
@@ -30,18 +30,20 @@ export function Hand() {
         const baseLift = 60
         const baseScaleHover = 1.5
 
-        const spread = baseSpread * invRatio
+        // ↓ Desactiva arco/rotación/desplazamiento con 1 carta
+        const isSingle = total === 1
+        const spread = isSingle ? 0 : baseSpread * invRatio
         const start = -spread / 2
-        const angle = isHandHovered ? 0 : start + (spread / denom) * i
-        const offsetX = (i - denom / 2) * (baseOffset * invRatio)
-        const arcHeight = baseArc
+        const angle = isSingle ? 0 : (isHandHovered ? 0 : start + (spread / denom) * i)
+        const offsetX = isSingle ? 0 : (i - denom / 2) * (baseOffset * invRatio)
+        const arcHeight = isSingle ? 0 : baseArc
         const t = (i - denom / 2) / (denom / 2)
-        const offsetY = isHandHovered ? 0 : -arcHeight * (1 - t * t)
+        const offsetY = isSingle ? 0 : (isHandHovered ? 0 : -arcHeight * (1 - t * t))
         const hoverLift = baseLift * invRatio
         const scaleHovered = 1 + (baseScaleHover - 1) * dirRatio
 
         const isHovered = hovered === i
-
+       
         return (
           <button
             key={handIndex}
@@ -52,6 +54,7 @@ export function Hand() {
               opacity: isMyTurn ? 1 : 0.6,
               cursor: isMyTurn ? 'pointer' : 'not-allowed',
             }}
+    
             onMouseEnter={() => setHovered(i)}
             onMouseLeave={() => setHovered(null)}
             onClick={() => isMyTurn && actions.playFromHand(handIndex)}

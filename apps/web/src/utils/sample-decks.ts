@@ -4,7 +4,7 @@ export const sampleDecks = {
     // Cartas de clase
     'Ritual_de_Perfeccion',
     'Maestro_Necromantico',
-    'Evolucion_Perfecta',
+    'Evolucion_Perfecta','Evolucion_Perfecta','Evolucion_Perfecta','Evolucion_Perfecta','Evolucion_Perfecta','Evolucion_Perfecta','Evolucion_Perfecta','Evolucion_Perfecta',
     'Explorador_Infectado', 'Explorador_Infectado',
     'Recolector_de_Tejidos', 'Recolector_de_Tejidos',
     'Necrofago_Hambriento', 'Necrofago_Hambriento',
@@ -70,7 +70,7 @@ export const sampleDecks = {
     // Cartas de clase
     'Pacto_Final',
     'Frenesi_Final',
-    'Avatar_de_la_Destruccion',
+    'Avatar_de_la_Destruccion','Avatar_de_la_Destruccion','Avatar_de_la_Destruccion','Avatar_de_la_Destruccion','Avatar_de_la_Destruccion',
     'Fanatico_Desesperado', 'Fanatico_Desesperado',
     'Berserker_Sanguinario', 'Berserker_Sanguinario',
     'Cazador_de_Recompensas', 'Cazador_de_Recompensas',
@@ -78,7 +78,7 @@ export const sampleDecks = {
     'Guerrero_Herido', 'Guerrero_Herido',
     'Senor_de_la_Sangre', 'Senor_de_la_Sangre',
     'Pacto_de_Poder', 'Pacto_de_Poder',
-
+   
     // Cartas básicas
     'Ultima_Oportunidad', 'Ultima_Oportunidad',
     'Mercenario', 'Mercenario',

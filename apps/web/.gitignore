@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+coverage/
+
+# Vite cache (a veces en raíz del proyecto)
+.vite/
+
+# TypeScript
+*.tsbuildinfo
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Env files
+.env
+.env.*
+
+# Editors/OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp

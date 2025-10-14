@@ -106,7 +106,7 @@ export function declareAttackHero(state: GameState, attackerIndex: number, attac
     }
   }
 
-  // Exhaust atacante
+  // Exhaust solo el atacante
   atk.exhausted = true
 
   // Prioridad después del ataque
@@ -192,10 +192,6 @@ export function declareAttackCreature(state: GameState, attackerIndex: number, a
     opp.graveyard.unshift(dead.cardId)
     notifyLeaveBattlefield(state, oppIndex, dead.id)
     notifyEffectTriggered(state, oppIndex, dead.cardId, 'ON_DEATH')
-    // ON_KILL para el atacante si sobrevive
-    if (atk.health > 0) {
-      applyAbilityEffects(state, atk, attackerIndex, 'ON_KILL')
-    }
   }
   if (atk.health <= 0) {
     const [dead] = me.board.splice(attackerBoardIndex, 1)
@@ -204,7 +200,7 @@ export function declareAttackCreature(state: GameState, attackerIndex: number, a
     notifyEffectTriggered(state, attackerIndex, dead.cardId, 'ON_DEATH')
   }
 
-  // Exhaust atacante tras atacar si sigue vivo
+  // Exhaust solo el atacante si sigue vivo
   if (me.board[attackerBoardIndex]) {
     me.board[attackerBoardIndex].exhausted = true
   }

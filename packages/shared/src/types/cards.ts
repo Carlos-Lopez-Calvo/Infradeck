@@ -92,9 +92,16 @@ export enum EffectActionType {
   DISCOVER_PAY_LIFE = 'DISCOVER_PAY_LIFE',
 
   ATTACK_SPELL = 'ATTACK_SPELL',
-  REDUCE_CARD_COST = 'REDUCE_CARD_COST',    // ← renombrado: aplica a cualquier carta
+  REDUCE_CARD_COST = 'REDUCE_CARD_COST',
 
-  REUSE_RANDOM_PAST_CHAOS_EFFECT = 'REUSE_RANDOM_PAST_CHAOS_EFFECT'   // ← NUEVO
+  REUSE_RANDOM_PAST_CHAOS_EFFECT = 'REUSE_RANDOM_PAST_CHAOS_EFFECT',
+
+  // NUEVO: Avatar destruye y absorbe
+  BOARD_NUKE_AND_ABSORB = 'BOARD_NUKE_AND_ABSORB',
+    // NUEVO
+  DISCOVER_SUMMON_FROM_GRAVEYARD = 'DISCOVER_SUMMON_FROM_GRAVEYARD',
+  DAMAGE_AND_SUMMON_SAME_COST_IF_KILL = 'DAMAGE_AND_SUMMON_SAME_COST_IF_KILL'
+  
 }
 
 export interface CardEffect {
@@ -139,21 +146,22 @@ export enum EffectTiming {
     options?: DiscoverPayLifeOptions | DiscoverPayEntropyOptions | CostReductionScalingOptions
   }
 
-export enum EffectTarget {
-  SELF = 'SELF',
-  ENEMY_HERO = 'ENEMY_HERO',
-  FRIENDLY_HERO = 'FRIENDLY_HERO', 
-  TARGET_CREATURE = 'TARGET_CREATURE',
-  ALL_FRIENDLY_CREATURES = 'ALL_FRIENDLY_CREATURES',
-  ALL_ENEMY_CREATURES = 'ALL_ENEMY_CREATURES',
-  ALL_ENEMIES = 'ALL_ENEMIES',          // Para REALIDAD_FRACTURADA
-  ALL_CREATURES = 'ALL_CREATURES',
-  RANDOM_ENEMY = 'RANDOM_ENEMY',
-  RANDOM_CREATURE = 'RANDOM_CREATURE',  // ← nuevo: criatura aleatoria aliada o enemiga
-  RANDOM_CHARACTER = 'RANDOM_CHARACTER',
-  TARGET_SPELL = 'TARGET_SPELL',        // Hechizo/instantánea objetivo
-  CYCLE_CARDS = 'CYCLE_CARDS'           // Para transformaciones de CICLO
-}
+  export enum EffectTarget {
+    SELF = 'SELF',
+    ENEMY_HERO = 'ENEMY_HERO',
+    FRIENDLY_HERO = 'FRIENDLY_HERO', 
+    TARGET_CREATURE = 'TARGET_CREATURE',
+   TARGET_FRIENDLY_CREATURE = 'TARGET_FRIENDLY_CREATURE',
+    ALL_FRIENDLY_CREATURES = 'ALL_FRIENDLY_CREATURES',
+    ALL_ENEMY_CREATURES = 'ALL_ENEMY_CREATURES',
+    ALL_ENEMIES = 'ALL_ENEMIES',          // Para REALIDAD_FRACTURADA
+    ALL_CREATURES = 'ALL_CREATURES',
+    RANDOM_ENEMY = 'RANDOM_ENEMY',
+    RANDOM_CREATURE = 'RANDOM_CREATURE',  // ← nuevo: criatura aleatoria aliada o enemiga
+    RANDOM_CHARACTER = 'RANDOM_CHARACTER',
+    TARGET_SPELL = 'TARGET_SPELL',        // Hechizo/instantánea objetivo
+    CYCLE_CARDS = 'CYCLE_CARDS'           // Para transformaciones de CICLO
+  }
 
 // ===== DEFINICIÓN PRINCIPAL DE CARTA =====
 

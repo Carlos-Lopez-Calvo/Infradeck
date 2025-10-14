@@ -316,7 +316,12 @@ export function playCard(
             continue
           }
           console.log('[SPELL] applying ON_PLAY effect', eff.action)
-          applyAction(state, playerIndex, eff.action, options?.targets)
+
+         const autoHints = (!options?.targets || options.targets.length === 0)
+           ? getRandomHintsForAction(state, playerIndex, eff.action as any)
+           : []
+         const hints = (options?.targets && options.targets.length ? options.targets : autoHints)
+         applyAction(state, playerIndex, eff.action, hints)
         }
       }
     }
@@ -368,12 +373,14 @@ export type DiscoverHandler = (state: GameState, info: {
 export let onDiscoverRequest: DiscoverHandler = () => 'BASE'
 export function setDiscoverRequest(handler: DiscoverHandler) { onDiscoverRequest = handler }
 
+// Targeting request: permite a la UI pedir objetivos puntuales (e.g., ON_DEATH TARGET_CREATURE)
 
 // =======================
 // Import helpers de otros módulos
 // =======================
 import { triggerPriority, addToStack, getStack, passPriority, resolveStack, notifyCardPlayed, notifyEffectTriggered, notifyEnterBattlefield, notifyLeaveBattlefield, applyStackItem } from './priority'
-import { effectConditionPasses, triggerBoardEffects, applyOnEnterEffects, applyAction, resolveSingleTarget, consumeEntropy, gainEntropyOnPlay } from './effects'
+
+import { effectConditionPasses, triggerBoardEffects, applyOnEnterEffects, applyAction, resolveSingleTarget, consumeEntropy, gainEntropyOnPlay, getRandomHintsForAction } from './effects'
 import { summonSpecimen, handleSpecimenOnEnter, getUniqueAbilitiesFromGraveyard, hasSpecimenOnBoard, getSpecimenCost } from './specimen'
 import { declareAttackHero, declareAttackCreature, hasAbility, enemyHasTaunt, applyAbilityEffects, canTargetCreature } from './combat'
 import { activateFinalStand, checkAndActivateFinalStand, hasFinalStandImmunity, applyFinalStandBonus } from './final-stand'

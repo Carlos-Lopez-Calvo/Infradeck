@@ -21,7 +21,8 @@ import {
 
 export const ESPECIMEN_PERFECTO: Card = {
   id: 'Especimen_Perfecto',
-  name: 'Espécimen Perfecto',
+  name: 'G4BR13L',
+  image: '/imgCards/terminus.jpeg',
   type: CardType.CREATURE,
   rarity: CardRarity.RARE,
   classType: ClassType.ABOMINACION,
@@ -40,17 +41,6 @@ export const ESPECIMEN_PERFECTO: Card = {
         value: 'INHERIT_FROM_GRAVEYARD',
         duration: 'PERMANENT'
       }
-    },
-    {
-      id: 'Especimen_Inherit_Programmed_Effects',
-      description: 'Al entrar: Ejecuta todos los efectos programados por cartas de ABOMINACIÓN',
-      timing: EffectTiming.ON_ENTER,
-      action: {
-        type: EffectActionType.SUMMON_SPECIMEN,
-        target: EffectTarget.SELF,
-        value: 'EXECUTE_PROGRAMMED_EFFECTS',
-        duration: 'PERMANENT'
-      }
     }
   ],
   classResource: {
@@ -63,18 +53,19 @@ export const ESPECIMEN_PERFECTO: Card = {
 
 export const ESPECIMEN_PERFECTO_FINAL_STAND: Card = {
   id: 'Especimen_Perfecto_Final_Stand',  
-  name: 'Espécimen Imperfecto',
+  name: 'Amalgama',
+  image: '/imgCards/amalgama.jpeg',
   type: CardType.CREATURE,
   rarity: CardRarity.LEGENDARY,
   classType: ClassType.ABOMINACION,
   mana: 0, // Se invoca gratis durante Final Stand
   attack: 2,
   health: 2,
-  abilities: [],
+  abilities: [], // Se heredan dinámicamente
   effects: [
     {
-      id: 'Especimen_FS_Inherit_Abilities_Only',
-      description: 'Hereda solo las habilidades únicas de criaturas en tu cementerio',
+      id: 'Especimen_Inherit_Abilities',
+      description: 'Hereda todas las habilidades únicas de criaturas en tu cementerio',
       timing: EffectTiming.PASSIVE,
       action: {
         type: EffectActionType.GAIN_ABILITY,
@@ -82,26 +73,20 @@ export const ESPECIMEN_PERFECTO_FINAL_STAND: Card = {
         value: 'INHERIT_FROM_GRAVEYARD',
         duration: 'PERMANENT'
       }
-    },
-    {
-      id: 'Especimen_FS_Scaling',
-      description: 'Al entrar: +1/+1 por cada habilidad diferente que tenga',
-      timing: EffectTiming.ON_ENTER,
-      action: {
-        type: EffectActionType.BUFF_STATS,
-        target: EffectTarget.SELF,
-        value: '+1/+1_PER_ABILITY',
-        duration: 'PERMANENT'
-      }
     }
   ],
-  description: '2/2. Solo durante Final Stand. Hereda solo habilidades del cementerio (no efectos programados). Al entrar: +1/+1 por cada habilidad diferente',
-  flavorText: 'En la desesperación, surge la esencia pura.'
+  classResource: {
+    type: 'CEMENTERIO',
+    amount: 1
+  },
+  description: '3/3. Hereda habilidades del cementerio y efectos programados por cartas de clase.',
+  flavorText: 'La suma perfecta de todas las partes.'
 }
 
 export const ESPECIMEN_PERFECTO_EVOLUCIONADO: Card = {
   id: 'Especimen_Perfecto_Evolucionado',
-  name: 'Apex de la evolución',
+  name: 'T3RM1NU5',
+  image: '/imgCards/terminusevo.jpg',
   type: CardType.CREATURE,
   rarity: CardRarity.LEGENDARY,
   classType: ClassType.ABOMINACION,
@@ -111,18 +96,24 @@ export const ESPECIMEN_PERFECTO_EVOLUCIONADO: Card = {
   abilities: [],
   effects: [
     {
-      id: 'Especimen_Evo_Inherit_All',
-      description: 'Hereda habilidades + efectos programados + dispara todos los efectos "Al entrar" de todos los cementerios',
-      timing: EffectTiming.ON_ENTER,
+      id: 'Evo_Inherit_Abilities',
+      description: 'Al entrar: hereda todas las habilidades únicas de criaturas en todos los cementerios',
+      timing: EffectTiming.ON_ENTER,             // ← antes era PASSIVE
       action: {
-        type: EffectActionType.SUMMON_SPECIMEN,
+        type: EffectActionType.GAIN_ABILITY,
         target: EffectTarget.SELF,
-        value: 'ULTIMATE_EVOLUTION_10_10',
+        value: 'INHERIT_FROM_GRAVEYARD',
         duration: 'PERMANENT'
       }
+    },
+    {
+      id: 'Evo_Discover_Summon_3',
+      description: 'Al entrar: Descubre 3 veces entre criaturas de los cementerios y luego invócalas; sus ON_ENTER se resuelven con objetivos aleatorios',
+      timing: EffectTiming.ON_ENTER,
+      action: { type: EffectActionType.DISCOVER_SUMMON_FROM_GRAVEYARD, target: EffectTarget.FRIENDLY_HERO, amount: 3 }
     }
   ],
-  description: '10/10. Solo mediante "Evolución Perfecta". Hereda todo + dispara efectos "Al entrar" de todos los cementerios',
+  description: '10/10. Solo mediante "Evolución Perfecta". Hereda todas las habilidades de criaturas en ambos cementerios.',
   flavorText: 'La perfección absoluta trasciende la muerte.'
 }
 
@@ -144,13 +135,8 @@ export const EXPLORADOR_INFECTADO: Card = {
   effects: [
     {
       id: 'Explorador_Death_Draw',
-      description: 'Roba 1 carta si han muerto 3+ criaturas',
+      description: 'Roba 1 carta',
       timing: EffectTiming.ON_DEATH,
-      condition: {
-        type: 'GRAVEYARD_COUNT',
-        value: 3,
-        comparison: 'GREATER_EQUAL'
-      },
       action: {
         type: EffectActionType.DRAW_CARDS,
         target: EffectTarget.FRIENDLY_HERO,
@@ -159,7 +145,7 @@ export const EXPLORADOR_INFECTADO: Card = {
       }
     }
   ],
-  description: '1/1 con Veneno. Al morir: Roba 1 carta si tu cementerio tiene 3+ criaturas',
+  description: '1/1 con Veneno. Al morir: Roba 1 carta',
   flavorText: 'Su muerte alimenta el conocimiento.'
 }
 
@@ -175,18 +161,18 @@ export const RECOLECTOR_DE_TEJIDOS: Card = {
   abilities: [Ability.ROBO_DE_VIDA],
   effects: [
     {
-      id: 'Recolector_Specimen_Enhancement',
-      description: 'Al morir: Tu próximo Espécimen Perfecto gana "Al entrar: Haz 3 de daño a un objetivo"',
+      id: 'Recolector_Death_Damage2',
+      description: 'Al morir: haz 2 de daño a una criatura enemiga aleatoria',
       timing: EffectTiming.ON_DEATH,
       action: {
-        type: EffectActionType.SUMMON_SPECIMEN,
-        target: EffectTarget.FRIENDLY_HERO,
-        value: 'DAMAGE_3_ON_ENTER',
+        type: EffectActionType.DAMAGE,
+        target: EffectTarget.RANDOM_ENEMY,
+        amount: 2,
         duration: 'PERMANENT'
       }
     }
   ],
-  description: '1/3 con Robo de vida. Al morir: Tu próximo Espécimen Perfecto gana "Al entrar: Haz 3 de daño a un objetivo"',
+  description: '1/3 con Robo de vida. Al morir: haz 2 de daño a una criatura enemiga aleatoria',
   flavorText: 'Las partes útiles nunca se desperdician.'
 }
 
@@ -205,15 +191,10 @@ export const NECROFAGO_HAMBRIENTO: Card = {
       id: 'Necrofago_Graveyard_Scaling',
       description: 'Al entrar: Gana +1/+1 por cada tipo de habilidad diferente en tu cementerio',
       timing: EffectTiming.ON_ENTER,
-      condition: {
-        type: 'GRAVEYARD_COUNT',
-        value: 2,
-        comparison: 'GREATER_EQUAL'
-      },
       action: {
         type: EffectActionType.BUFF_STATS,
         target: EffectTarget.SELF,
-        value: '+1/+1',
+        value: 'UNIQUE_ABILITIES_IN_GRAVEYARD',
         duration: 'PERMANENT'
       }
     }
@@ -241,7 +222,7 @@ export const RITUAL_MENOR: Card = {
       timing: EffectTiming.ON_PLAY,
       action: {
         type: EffectActionType.DAMAGE,
-        target: EffectTarget.TARGET_CREATURE,
+        target: EffectTarget.TARGET_FRIENDLY_CREATURE,
         amount: 999,
         duration: 'PERMANENT'
       }
@@ -263,8 +244,8 @@ export const ANATOMISTA_EXPERTO: Card = {
   abilities: [],
   effects: [
     {
-      id: 'Anatomista_Conditional_Regeneration',
-      description: 'Si una criatura aliada murió este turno, esta carta gana Regeneración hasta tu próximo turno',
+      id: 'Anatomista_AllyDeath_Damage2',
+      description: 'Cuando una criatura aliada muera, haz 2 de daño al héroe enemigo',
       timing: EffectTiming.TRIGGERED,
       condition: {
         type: 'BOARD_STATE',
@@ -272,14 +253,14 @@ export const ANATOMISTA_EXPERTO: Card = {
         comparison: 'EQUAL'
       },
       action: {
-        type: EffectActionType.GAIN_ABILITY,
-        target: EffectTarget.SELF,
-        value: Ability.REGENERACION,
-        duration: 'UNTIL_DEATH'
+        type: EffectActionType.DAMAGE,
+        target: EffectTarget.ENEMY_HERO,
+        amount: 2,
+        duration: 'PERMANENT'
       }
     }
   ],
-  description: '2/4. Si una criatura aliada murió este turno, esta carta gana Regeneración hasta tu próximo turno',
+  description: '2/4. Cuando una criatura aliada muera, haz 2 de daño al héroe enemigo',
   flavorText: 'Cada muerte enseña resistencia.'
 }
 
@@ -293,19 +274,14 @@ export const INVOCACION_SINIESTRA: Card = {
   abilities: [],
   effects: [
     {
-      id: 'Invocacion_Graveyard_Recursion',
-      description: 'Descubre X criaturas de cualquier cementerio, puedes invocar una. Hasta el final del turno obtiene Prisa',
+      id: 'Invocacion_Damage3_SummonSameCostIfKill',
+      description: 'Haz 3 de daño a una criatura enemiga. Si muere, invoca una criatura aleatoria del mismo coste en tu campo.',
       timing: EffectTiming.ON_PLAY,
-      condition: {
-        type: 'GRAVEYARD_COUNT',
-        value: 1,
-        comparison: 'GREATER_EQUAL'
-      },
       action: {
-        type: EffectActionType.SUMMON_CREATURE,
-        target: EffectTarget.FRIENDLY_HERO,
-        value: 'DISCOVER_FROM_GRAVEYARD',
-        duration: 'END_OF_TURN'
+        type: EffectActionType.DAMAGE_AND_SUMMON_SAME_COST_IF_KILL,
+        target: EffectTarget.TARGET_CREATURE,
+        amount: 3,
+        duration: 'PERMANENT'
       }
     }
   ],
@@ -313,7 +289,7 @@ export const INVOCACION_SINIESTRA: Card = {
     type: 'CEMENTERIO',
     amount: 1
   },
-  description: 'Cementerio X: Descubre X criaturas de cualquier cementerio, puedes invocar una. Hasta el final del turno obtiene Prisa',
+  description: 'Haz 3 de daño a una criatura enemiga. Si muere, invoca una criatura aleatoria del mismo coste en tu campo.',
   flavorText: 'Los muertos sirven una vez más.'
 }
 
@@ -386,30 +362,13 @@ export const MAESTRO_NECROMANTICO: Card = {
   abilities: [Ability.TAUNT],
   effects: [
     {
-      id: 'Maestro_Grant_Stealth',
-      description: 'Al entrar: Todas las criaturas en tu cementerio ganan Sigilo hasta el final de la partida',
-      timing: EffectTiming.ON_ENTER,
+      id: 'Maestro_Summon_Random_1',
+      description: 'Al final del turno: Invoca una criatura aleatoria de coste 1',
+      timing: EffectTiming.END_OF_TURN,
       action: {
-        type: EffectActionType.GAIN_ABILITY,
+        type: EffectActionType.SUMMON_CREATURE,
         target: EffectTarget.FRIENDLY_HERO,
-        value: Ability.SIGILO,
-        duration: 'PERMANENT'
-      }
-    },
-    {
-      id: 'Maestro_Emergency_Specimen',
-      description: 'Tu Espécimen Perfecto puede ser invocado este turno sin importar el mana',
-      timing: EffectTiming.ON_ENTER,
-      condition: {
-        type: 'GRAVEYARD_COUNT',
-        value: 6,
-        comparison: 'GREATER_EQUAL'
-      },
-      action: {
-        type: EffectActionType.SUMMON_SPECIMEN,
-        target: EffectTarget.FRIENDLY_HERO,
-        value: 'FREE_SUMMON_THIS_TURN',
-        duration: 'END_OF_TURN'
+        value: 'RANDOM_COST:1'
       }
     }
   ],
@@ -417,13 +376,14 @@ export const MAESTRO_NECROMANTICO: Card = {
     type: 'CEMENTERIO',
     amount: 6
   },
-  description: '4/6 con Taunt. Al entrar: Todas las criaturas en tu cementerio ganan Sigilo hasta el final de la partida. Cementerio 6+: Tu Espécimen Perfecto puede ser invocado este turno sin importar el mana',
+  description: '4/6 con Taunt. Al final del turno: Invoca una criatura aleatoria de coste 1.',
   flavorText: 'Domina tanto la vida como la muerte.'
 }
 
 export const EVOLUCION_PERFECTA: Card = {
   id: 'Evolucion_Perfecta',
-  name: 'Evolución Perfecta',
+  name: 'Proyecto T3RMINU5',
+  image: '/imgCards/terminusevo.jpg',
   type: CardType.SPELL,
   rarity: CardRarity.LEGENDARY,
   classType: ClassType.ABOMINACION,
@@ -1290,6 +1250,40 @@ export const CONVERGENCIA_CELESTIAL: Card = {
 // Mecánica: Vida como recurso + All-in Aggro  
 // ==========================================
 
+// Ejemplo en class-cards.ts
+export const TOKEN_2_2_PRISA: Card = {
+  id: 'TOKEN_2_2_PRISA',
+  name: 'Siervo embelesado',
+  type: CardType.CREATURE,
+  rarity: CardRarity.BASIC,
+  classType: ClassType.VITALIDAD,
+  mana: 0,
+  attack: 2,
+  health: 2,
+  abilities: [Ability.PRISA],
+  effects: [],
+  description: 'Token',
+  flavorText: ''
+}
+
+export const TOKEN_4_4_PRISA_LIFESTEAL: Card = {
+  id: 'TOKEN_4_4_PRISA_LIFESTEAL',
+  name: 'Siervo frenético',
+  type: CardType.CREATURE,
+  rarity: CardRarity.BASIC,
+  classType: ClassType.VITALIDAD,
+  mana: 0,
+  attack: 4,
+  health: 4,
+  abilities: [Ability.PRISA, Ability.ROBO_DE_VIDA],
+  effects: [],
+  description: 'Token',
+  flavorText: ''
+}
+
+// Añádelas a CLASS_CARDS o BASIC_CARDS según dónde las definas
+
+
 export const FANATICO_DESESPERADO: Card = {
   id: 'Fanatico_Desesperado',
   name: 'Fanático Desesperado',
@@ -1578,7 +1572,7 @@ export const FRENESI_FINAL: Card = {
   type: CardType.SPELL,
   rarity: CardRarity.LEGENDARY,
   classType: ClassType.VITALIDAD,
-  mana: 4,
+  mana: 6,
   abilities: [],
   effects: [
     {
@@ -1591,23 +1585,13 @@ export const FRENESI_FINAL: Card = {
         comparison: 'LESS_EQUAL'
       },
       action: {
-        type: EffectActionType.DISCOVER_PAY_LIFE,
-        target: EffectTarget.FRIENDLY_HERO,
-        options: {
-          lifeCost: 6,
-          // Base: sin efecto (no-op)
-          base: { type: EffectActionType.BUFF_STATS, target: EffectTarget.FRIENDLY_HERO, value: '+0/+0', duration: 'PERMANENT' },
-          // Buff: todas tus criaturas “atacan inmediatamente” (flag 999), hasta fin de turno
-          buff: { type: EffectActionType.BUFF_ATTACK, target: EffectTarget.ALL_FRIENDLY_CREATURES, amount: 999, duration: 'END_OF_TURN' }
-        }
+        type: EffectActionType.DAMAGE,
+        target: EffectTarget.ENEMY_HERO,
+        value: 'SUM_FRIENDLY_ATTACK'
       }
     }
   ],
-  classResource: {
-    type: 'VIDA',
-    amount: 6
-  },
-  description: 'Solo si tienes 10 o menos vida. Elige: no hacer nada, o todas tus criaturas atacan inmediatamente pagando 6 de vida (no bloqueable).',
+  description: 'Solo si tienes 10 o menos vida. Inflige al héroe enemigo daño igual a la suma del ataque de todas tus criaturas.',
   flavorText: 'Cuando todo está perdido, todo vale.'
 }
 
@@ -1623,38 +1607,17 @@ export const AVATAR_DE_LA_DESTRUCCION: Card = {
   abilities: [],
   effects: [
     {
-      id: 'Avatar_Descubrir_Poder',
-      description: 'Al entrar: Elige sin cambios, o +5/+5 pagando 5 de vida',
+      id: 'Avatar_Nuke_And_Absorb',
+      description: 'Al entrar: Destruye todas las criaturas. Su ATQ y VIDA se convierten en la suma del ATQ y VIDA de todas las criaturas destruidas por este efecto.',
       timing: EffectTiming.ON_ENTER,
       action: {
-        type: EffectActionType.DISCOVER_PAY_LIFE,
-        target: EffectTarget.SELF,
-        options: {
-          lifeCost: 5,
-          base: { type: EffectActionType.BUFF_STATS, target: EffectTarget.SELF, value: '+0/+0', duration: 'PERMANENT' },
-          buff: { type: EffectActionType.BUFF_STATS, target: EffectTarget.SELF, value: '+5/+5', duration: 'PERMANENT' }
-        }
-      }
-    },
-    {
-      id: 'Avatar_Double_Strike',
-      description: 'Al atacar: Si tienes 5 o menos vida, gana Doble golpe',
-      timing: EffectTiming.ON_ATTACK,
-      condition: {
-        type: 'HEALTH_THRESHOLD',
-        value: 5,
-        comparison: 'LESS_EQUAL'
-      },
-      action: {
-        type: EffectActionType.GAIN_ABILITY,
-        target: EffectTarget.SELF,
-        value: 'DOBLE_GOLPE',
-        duration: 'END_OF_TURN'
+        type: EffectActionType.BOARD_NUKE_AND_ABSORB,
+        target: EffectTarget.SELF
       }
     }
   ],
-  description: '1/1. Al entrar: Elige sin cambios o +5/+5 pagando 5 de vida. Al atacar: Si tienes 5 o menos vida, gana Doble golpe',
-  flavorText: 'Más cerca de la muerte, más cerca de la perfección.'
+  description: 'Al entrar: Destruye todas las criaturas. Luego su ATQ/VIDA se convierten en la suma del ATQ/VIDA de todas las destruidas.',
+  flavorText: 'Del fin de todo, nace uno.'
 }
 
 // Al final del archivo
@@ -1709,6 +1672,8 @@ export const CLASS_CARDS = [
   PACTO_FINAL,
   FRENESI_FINAL,
   AVATAR_DE_LA_DESTRUCCION,
+  TOKEN_2_2_PRISA,
+  TOKEN_4_4_PRISA_LIFESTEAL,
 ] as const
 
 export const CLASS_CARDS_BY_ID = Object.fromEntries(

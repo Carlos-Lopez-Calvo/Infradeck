@@ -10,8 +10,18 @@ import { useGameEngine } from '../context/GameEngineProvider'
 export function GameBoard() {
   const { currentPlayer, opponentPlayer, actions, isMyTurn, gameState } = useGameEngine()
   const [selectedAttacker, setSelectedAttacker] = useState<number | null>(null)
-  const canAct = isMyTurn && (gameState.turn.phase === 'MAIN' || gameState.turn.phase === 'COMBAT')
+  const canAct = isMyTurn
+  const [hoverPreview, setHoverPreview] = useState<any | null>(null)
   return (
+    <>
+    {Boolean(hoverPreview) && (
+      <div className="fixed top-4 left-4 z-[999] pointer-events-none">
+        <div className="scale-[1.6] origin-top-left drop-shadow-xl">
+          <Card card={hoverPreview as any} showMana={false} />
+        </div>
+      </div>
+    )}
+    
     <div className="game-board flex flex-col h-screen bg-gray-900 text-white">
       {/* Parte superior */}
       <div className="h-[40%] w-full border-b border-gray-800 flex items-center justify-center">
@@ -53,8 +63,17 @@ export function GameBoard() {
                       }
                     }}
                     title="Click para atacar a esta criatura (si tienes un atacante seleccionado)"
+                    onMouseEnter={() => {
+                      const base = getCardByIdGlobal(c.cardId)
+                      const preview = base
+                        ? { ...base, attack: c.attack, health: c.health, abilities: c.abilities }
+                        : { id: c.cardId, name: 'Token', type: 'CREATURE', rarity: 'BASIC', mana: 0, attack: c.attack, health: c.health, abilities: c.abilities, effects: [], description: '', flavorText: '' }
+                      setHoverPreview(preview as any)
+                    }}
+                    onMouseLeave={() => setHoverPreview(null)}
                   >
-                    <Card card={preview as any} />
+                  
+                    <Card card={preview as any} showMana={false} />
                   </button>
                 )
               })}
@@ -109,8 +128,16 @@ export function GameBoard() {
                       setSelectedAttacker(isSelected ? null : idx)
                     }}
                     title={canSelect ? (isSelected ? 'Atacante seleccionado' : 'Seleccionar atacante') : 'No puede atacar'}
+                    onMouseEnter={() => {
+                      const base = getCardByIdGlobal(c.cardId)
+                      const preview = base
+                        ? { ...base, attack: c.attack, health: c.health, abilities: c.abilities }
+                        : { id: c.cardId, name: 'Token', type: 'CREATURE', rarity: 'BASIC', mana: 0, attack: c.attack, health: c.health, abilities: c.abilities, effects: [], description: '', flavorText: '' }
+                      setHoverPreview(preview as any)
+                    }}
+                    onMouseLeave={() => setHoverPreview(null)}
                   >
-                    <Card card={preview as any} />
+                    <Card card={preview as any} showMana={false} />
                   </button>
                 )
               })}
@@ -126,5 +153,6 @@ export function GameBoard() {
         </div>
       </div>
     </div>
+    </>
   )
 }

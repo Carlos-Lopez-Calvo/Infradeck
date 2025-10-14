@@ -69,7 +69,11 @@ export function summonSpecimen(state: GameState, playerIndex: number): boolean {
   if (player.mana < cost) return false
 
   // Hereda habilidades únicas del cementerio
-  const inheritedAbilities = getUniqueAbilitiesFromGraveyard(player)
+   // Hereda habilidades únicas del cementerio
+   const inheritedAbilities = Array.from(new Set([
+    ...getUniqueAbilitiesFromGraveyard(player),
+    ...getUniqueAbilitiesFromGraveyard(state.players[1 - playerIndex])
+  ]))
 
   // Hereda efectos programados
   const programmedEffects = player.programmedSpecimenEffects ?? []
@@ -88,6 +92,7 @@ export function summonSpecimen(state: GameState, playerIndex: number): boolean {
     programmedEffects: [...programmedEffects],
     effects: [],
   })
+
 
   // Ejecuta efectos programados al entrar
   const boardIndex = player.board.length - 1
@@ -109,34 +114,35 @@ export function handleSpecimenOnEnter(state: GameState, playerIndex: number, boa
 
   for (const effect of specimen.programmedEffects) {
     switch (effect) {
-      case 'DAMAGE_3_ON_ENTER':
-        // Aplica 3 de daño a un objetivo (elige el primero enemigo por defecto)
-        if (state.players[1 - playerIndex].board.length > 0) {
-          state.players[1 - playerIndex].board[0].health -= 3
+      case 'DAMAGE_3_ON_ENTER': {
+        const hints = (state.pendingTargets && state.pendingTargets.length) ? state.pendingTargets as any : []
+        const pick = hints[0]
+        if (pick?.type === 'CREATURE_ENEMY' && typeof pick.index === 'number') {
+          const enemy = state.players[1 - playerIndex]
+          const c = enemy.board[pick.index]
+          if (c) {
+            c.health -= 3
+            c.damagedThisTurn = true
+          }
+        } else if (pick?.type === 'HERO_ENEMY') {
+          const enemy = state.players[1 - playerIndex]
+          enemy.life = Math.max(0, enemy.life - 3)
         } else {
-          state.players[1 - playerIndex].life = Math.max(0, state.players[1 - playerIndex].life - 3)
+          const enemy = state.players[1 - playerIndex]
+          if (enemy.board.length > 0) {
+            enemy.board[0].health -= 3
+            enemy.board[0].damagedThisTurn = true
+          } else {
+            enemy.life = Math.max(0, enemy.life - 3)
+          }
         }
         break
-      case 'IMMEDIATE_SUMMON_WITH_SCALING':
-        // Buffea al espécimen +1/+1 por cada habilidad diferente que tenga
-        const uniqueAbilities = new Set(specimen.abilities || [])
-        specimen.attack += uniqueAbilities.size
-        specimen.health += uniqueAbilities.size
-        break
-      case 'TAUNT_AND_BUFF':
-        // Gana Taunt y +2/+2
-        if (!specimen.abilities.includes(String(Ability.TAUNT))) {
-          specimen.abilities.push(String(Ability.TAUNT))
-        }
-        specimen.attack += 2
-        specimen.health += 2
-        break
-      // Agrega más casos según los efectos que programes
+      }
       default:
         break
     }
   }
 
-  // Limpia los efectos tras ejecutarlos
+  state.pendingTargets = []
   specimen.programmedEffects = []
 }

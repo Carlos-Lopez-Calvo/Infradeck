@@ -14,12 +14,18 @@ import { CardType, Ability } from '../types/cards'
 import { getOpponentPlayerIndex } from './turns'
 import { notifyEffectTriggered, notifyLeaveBattlefield, notifyEnterBattlefield } from './priority'
 import { hasAbility, canTargetCreature } from './combat'
-import { hasSpecimenOnBoard, getSpecimenCost, summonSpecimenToken, handleSpecimenOnEnter, summonSpecimen } from './specimen'
+import { hasSpecimenOnBoard, getSpecimenCost, summonSpecimenToken, handleSpecimenOnEnter, summonSpecimen, getUniqueAbilitiesFromGraveyard } from './specimen'
 import { checkAndActivateFinalStand, hasFinalStandImmunity } from './final-stand'
 import { draw } from './turns' // solo si usas draw aquí
 import { declareAttackCreature } from './combat'
-import { BASIC_CARDS } from '../cards/basic-cards'
 
+import { BASIC_CARDS } from '../cards/basic-cards'
+// packages/shared/src/engine/effects.ts
+import { CLASS_CARDS } from '../cards/class-cards'
+
+function isCreatureCard(c: any): c is Card {
+  return c && c.type === CardType.CREATURE
+}
 // Si usas getCardByIdGlobal, asegúrate de que esté accesible (importa o declara externamente)
 // declare const getCardByIdGlobal: (id: string) => Card | undefined;
 
@@ -55,6 +61,15 @@ export function effectConditionPasses(state: GameState, playerIndex: number, eff
     if (c.comparison === 'GREATER_EQUAL') return p.hand.length >= c.value
     return false
   }
+ if (c.type === 'GRAVEYARD_COUNT') {
+   const n = state.players[playerIndex].graveyard.length
+   if (c.comparison === 'EQUAL') return n === (c.value ?? 0)
+   if (c.comparison === 'GREATER') return n > (c.value ?? 0)
+   if (c.comparison === 'LESS') return n < (c.value ?? 0)
+   if (c.comparison === 'GREATER_EQUAL') return n >= (c.value ?? 0)
+   if (c.comparison === 'LESS_EQUAL') return n <= (c.value ?? 0)
+   return false
+ }
   if (c.type === 'MANA_X_PLUS') {
     return p.mana >= (c.value ?? 0)
   }
@@ -72,6 +87,8 @@ export function effectConditionPasses(state: GameState, playerIndex: number, eff
       case 'SOLO_ATTACKER':             return (p.attackersDeclaredThisTurn ?? 0) === 1
       case 'ATTACKING_HERO':            return !!p.lastAttackTargetHero
       case 'DID_NOT_ATTACK':            return (p.attackersDeclaredThisTurn ?? 0) === 0
+      case 'SPECIMEN_DAMAGE3_ENABLED':
+  return (p.programmedSpecimenEffects ?? []).includes('ENABLE_DAMAGE3')
       case 'HAS_OTHER_CREATURES':       return p.board.length > 1
       default:                          return false
     }
@@ -117,6 +134,8 @@ export function applyOnEnterEffects(
   if (card.effects) {
     for (const eff of card.effects) {
       if (eff.timing === EffectTiming.ON_ENTER && effectConditionPasses(state, playerIndex, eff)) {
+        console.log('[ON_ENTER] applying', { cardId: card.id, effectId: eff.id })
+       
         // Prioriza objetivos UI (pendingTargets); si no hay y el target es SELF, usa SELF
         const uiHints: TargetRef[] =
           state.pendingTargets && state.pendingTargets.length
@@ -127,6 +146,7 @@ export function applyOnEnterEffects(
             ? ([{ type: 'CREATURE_SELF', index: state.players[playerIndex].board.length - 1 }] as TargetRef[])
             : ([] as TargetRef[])
         const hints: TargetRef[] = uiHints.length ? uiHints : selfHints
+        console.log('[ON_ENTER] hints', { hints, action: eff.action })
         applyAction(state, playerIndex, eff.action, hints)
       }
     }
@@ -403,11 +423,13 @@ export function applyAction(
     }
 
    // Dentro de applyAction(...) - bloque DISCOVER_PAY_LIFE completo
+// packages/shared/src/engine/effects.ts (dentro de applyAction → DISCOVER_PAY_LIFE)
 case EffectActionType.DISCOVER_PAY_LIFE: {
   const baseCost = Number(action.options?.lifeCost ?? 0)
   const p = state.players[playerIndex]
   const available = p.lifeCredit != null ? p.lifeCredit : p.life
-
+  console.log('[DISCOVER_PAY_LIFE] options:', action.options)
+  console.log('[DISCOVER_PAY_LIFE] available life/credit:', { life: p.life, credit: p.lifeCredit })
   let choice = onDiscoverRequest(state, {
     playerIndex,
     options: [
@@ -415,18 +437,20 @@ case EffectActionType.DISCOVER_PAY_LIFE: {
       { id: 'BUFF', label: baseCost > 0 ? `Potenciada (-${baseCost} vida)` : 'Potenciada' },
     ],
   })
-
-  if (p.forceDiscoverBuff) choice = 'BUFF'
+  console.log('[DISCOVER_PAY_LIFE] choice:', choice)
 
   if (choice === 'BUFF' && baseCost > 0) {
+    console.log('[DISCOVER_PAY_LIFE] paying life:', baseCost)
     if (available < baseCost) break
     if (p.lifeCredit != null) p.lifeCredit = Math.max(0, p.lifeCredit - baseCost)
     else p.life -= baseCost
   }
 
   if (choice === 'BUFF' && action.options?.buff) {
+    console.log('[DISCOVER_PAY_LIFE] applying BUFF ->', action.options.buff)
     applyAction(state, playerIndex, action.options.buff, targetsHints)
   } else if (action.options?.base) {
+    console.log('[DISCOVER_PAY_LIFE] applying BASE ->', action.options.base)
     applyAction(state, playerIndex, action.options.base, targetsHints)
   }
   break
@@ -466,35 +490,51 @@ case EffectActionType.DISCOVER_PAY_LIFE: {
       break
     }
 
+    // dentro de applyAction(...)
     case EffectActionType.SUMMON_CREATURE: {
-      if (String(action.value) === 'RANDOM_BY_ENTROPY' && me.classResource?.type === 'ENTROPIA') {
-        const ent = me.classResource.amount ?? 0
-        if (ent < 3) break
-        const maxCost = ent >= 9 ? Infinity : (ent >= 6 ? 6 : 3)
-        const pool = BASIC_CARDS.filter(c => c.type === CardType.CREATURE && (maxCost === Infinity || (c.mana ?? 0) <= maxCost))
+      const val = String(action.value ?? '')
+
+      // Soporte: invocación aleatoria por coste exacto → 'RANDOM_COST:X'
+      if (val.startsWith('RANDOM_COST:')) {
+        const n = Math.max(0, parseInt(val.split(':')[1] ?? '0', 10) || 0)
+        const pool = [...BASIC_CARDS, ...CLASS_CARDS]
+          .filter(isCreatureCard)
+          .filter(c => (c.mana ?? 0) === n)
+
         if (!pool.length) break
-        const pick = pool[Math.floor(Math.random() * pool.length)]
+        const ref = pool[Math.floor(Math.random() * pool.length)]
         const entity: CreatureOnBoard = {
           id: `creature-${Date.now()}-${Math.floor(Math.random()*1e6)}`,
-          cardId: pick.id,
+          cardId: ref.id,
           ownerId: me.id,
-          attack: pick.attack ?? 0,
-          health: pick.health ?? 1,
-          exhausted: true,
-          abilities: pick.abilities ? pick.abilities.map(a => String(a)) : [],
+          attack: ref.attack ?? 0,
+          health: ref.health ?? 1,
+          exhausted: !(ref.abilities?.includes(Ability.PRISA)),
+          abilities: ref.abilities ? ref.abilities.map(a => String(a)) : [],
           effects: [],
         }
         me.board.push(entity)
         notifyEnterBattlefield(state, playerIndex, entity.id)
-        applyOnEnterEffects(state, entity, playerIndex, pick)
         break
       }
-      const token = createTokenFromValue(String(action.value ?? 'TOKEN_1_1'))
-      if (!token) break
-      token.ownerId = me.id
-      token.exhausted = true
-      me.board.push(token)
-      notifyEnterBattlefield(state, playerIndex, token.id)
+
+      const ref = getCardByIdGlobal(val)
+      if (!ref) {
+        console.warn('[SUMMON_CREATURE] cardId not found in catalog:', val)
+        break
+      }
+      const entity: CreatureOnBoard = {
+        id: `creature-${Date.now()}-${Math.floor(Math.random()*1e6)}`,
+        cardId: ref.id,
+        ownerId: me.id,
+        attack: ref.attack ?? 0,
+        health: ref.health ?? 1,
+        exhausted: !(ref.abilities?.includes(Ability.PRISA)),
+        abilities: ref.abilities ? ref.abilities.map(a => String(a)) : [],
+        effects: [],
+      }
+      me.board.push(entity)
+      notifyEnterBattlefield(state, playerIndex, entity.id)
       break
     }
     case EffectActionType.BUFF_ATTACK: {
@@ -530,7 +570,21 @@ case EffectActionType.DISCOVER_PAY_LIFE: {
     case EffectActionType.BUFF_STATS: {
       let addAtk = 0, addHp = 0
       const val = String(action.value ?? '')
-      if (val === 'LIFE_DIFFERENTIAL') {
+      console.log('[BUFF_STATS] start', { value: val })
+      if (val === 'UNIQUE_ABILITIES_IN_GRAVEYARD') {
+        const gy = state.players[playerIndex].graveyard
+        console.log('[BUFF_STATS][UAG] graveyard ids:', gy)
+        const set = new Set<string>()
+        for (const cid of gy) {
+          const cc = getCardByIdGlobal(cid)
+          if (cc && cc.type === CardType.CREATURE && Array.isArray(cc.abilities)) {
+            for (const ab of cc.abilities) set.add(String(ab))
+          }
+        }
+        const x = set.size
+        console.log('[BUFF_STATS][UAG] uniqueAbilitiesCount:', x, 'abilities:', Array.from(set))
+        addAtk = x; addHp = x
+      } else if (val === 'LIFE_DIFFERENTIAL') {
         const x = Math.max(0, (me.maxLife ?? 20) - me.life)
         addAtk = x; addHp = x
       } else {
@@ -539,34 +593,74 @@ case EffectActionType.DISCOVER_PAY_LIFE: {
         addHp = m ? parseInt(m[2], 10) : 0
       }
       const t = ensureTarget()
+      console.log('[BUFF_STATS] target resolved:', t, 'add', { atk: addAtk, hp: addHp })
       if (!t) break
       if (t.kind === 'CREATURE') {
         const owner = state.players[t.playerIndex]
         const cr = owner.board[t.index]
-        if (cr) { cr.attack += addAtk; cr.health += addHp }
+        if (cr) {
+          const before = { atk: cr.attack, hp: cr.health }
+          cr.attack += addAtk
+          cr.health += addHp
+          console.log('[BUFF_STATS] applied to CREATURE', { before, add: { atk: addAtk, hp: addHp }, after: { atk: cr.attack, hp: cr.health } })
+        }
       } else if (t.kind === 'MULTI') {
         const list = t.scope === 'FRIENDLY' ? me.board : opp.board
+        console.log('[BUFF_STATS] applying to MULTI', { scope: t.scope, count: list.length })
         for (const c of list) { c.attack += addAtk; c.health += addHp }
       }
       break
     }
-
     case EffectActionType.GAIN_ABILITY: {
-      const abil = action.value as Ability
+      const val = String(action.value ?? '')
       const t = ensureTarget()
       if (!t) break
+
+      // Especial: heredar TODAS las habilidades únicas de TODOS los cementerios (ambos jugadores)
+      if (val === 'INHERIT_FROM_GRAVEYARD') {
+        const gather = (pi: number) => {
+          const set = new Set<string>()
+          for (const cid of state.players[pi].graveyard) {
+            const card = getCardByIdGlobal(cid)
+            if (card && card.type === CardType.CREATURE && card.abilities) {
+              for (const ab of card.abilities) set.add(String(ab))
+            }
+          }
+          return Array.from(set)
+        }
+        const inherited = Array.from(new Set([...gather(0), ...gather(1)]))
+
+        const applyTo = (c: any) => {
+          for (const ab of inherited) {
+            if (!c.abilities.includes(String(ab))) c.abilities.push(String(ab))
+          }
+        }
+
+        if (t.kind === 'CREATURE') {
+          const owner = state.players[t.playerIndex]
+          const cr = owner.board[t.index]
+          if (cr) applyTo(cr)
+        } else if (t.kind === 'MULTI') {
+          const list = t.scope === 'FRIENDLY' ? me.board : opp.board
+          for (const c of list) applyTo(c)
+        }
+        break
+      }
+
+      // Comportamiento normal: añadir una habilidad concreta
+      const abil = val as Ability
       if (t.kind === 'CREATURE') {
         const owner = state.players[t.playerIndex]
         const cr = owner.board[t.index]
         if (cr && !cr.abilities.includes(String(abil))) {
           cr.abilities.push(String(abil))
-          if (abil === Ability.PRISA) cr.exhausted = false   // ← quita el exhaust
+          if (abil === Ability.PRISA) cr.exhausted = false
         }
       } else if (t.kind === 'MULTI') {
         const list = t.scope === 'FRIENDLY' ? me.board : opp.board
         for (const c of list) {
           if (!c.abilities.includes(String(abil))) c.abilities.push(String(abil))
-          if (abil === Ability.PRISA) c.exhausted = false    // ← quita el exhaust a todos
+          if (abil === Ability.PRISA) c.exhausted = false
         }
       }
       break
@@ -674,25 +768,168 @@ case EffectActionType.DISCOVER_PAY_ENTROPY: {
     case EffectActionType.SUMMON_SPECIMEN: {
       const p = state.players[playerIndex]
       if (p.classType !== 'ABOMINACION') break
-      if (hasSpecimenOnBoard(p)) break
+    
+      // Programar “al entrar: 3 de daño” desde ON_DEATH del Recolector
+      if (String(action.value) === 'ENABLE_DAMAGE3') {
+        const arr = p.programmedSpecimenEffects ?? (p.programmedSpecimenEffects = [])
+        if (!arr.includes('ENABLE_DAMAGE3')) arr.push('ENABLE_DAMAGE3')
+        break
+      }
+  
+        // Invocación normal (botón de clase) ...
 
+        if (String(action.value) === 'ULTIMATE_EVOLUTION_10_10') {
+          const idx = p.board.findIndex(e => e.cardId === 'Especimen_Perfecto')
+          if (idx === -1) break
+          const [dead] = p.board.splice(idx, 1)
+          p.graveyard.unshift(dead.cardId)
+          notifyLeaveBattlefield(state, playerIndex, dead.id)
+          notifyEffectTriggered(state, playerIndex, dead.cardId, 'ON_DEATH')
+        
+          const evolved = getCardByIdGlobal('Especimen_Perfecto_Evolucionado')
+          if (evolved) {
+            const ent = {
+              id: `specimen-evolved-${Date.now()}`,
+              cardId: evolved.id,
+              ownerId: p.id,
+              attack: evolved.attack ?? 10,
+              health: evolved.health ?? 10,
+              exhausted: true,
+              abilities: evolved.abilities ? evolved.abilities.map(a => String(a)) : [],
+              effects: [],
+            }
+            p.board.push(ent)
+            notifyEnterBattlefield(state, playerIndex, ent.id)
+            applyOnEnterEffects(state, ent as any, playerIndex, evolved)
+          }
+          break
+        }
+
+      // Invocación normal (botón de clase)
+      if (hasSpecimenOnBoard(p)) break
       const cost = getSpecimenCost(p)
       const hasFSBonus = !!p.freeSpecimenThisTurn
       const freeFlag = p.specimenFreeThisTurn || hasFSBonus
       const free = !!freeFlag
-
       if (!free) {
         if (p.mana < cost) break
       }
-
       const beforeMana = p.mana
       const ok = summonSpecimen(state, playerIndex)
       if (!ok) break
-
       if (free && p.mana < beforeMana) {
         p.mana = beforeMana
       }
       p.specimenFreeThisTurn = false
+      break
+    }
+
+    case EffectActionType.DISCOVER_SUMMON_FROM_GRAVEYARD: {
+      const count = 3
+
+      // Excluir G4BR13L y variantes del pool
+      const specimenIds = new Set([
+        'Especimen_Perfecto',
+        'Especimen_Perfecto_Final_Stand',
+        'Especimen_Perfecto_Evolucionado',
+        'SPECIMEN_TOKEN',
+        'SPECIMEN_EVOLVED_TOKEN'
+      ])
+
+      // Pool único de criaturas en ambos cementerios
+      const poolSet = new Set<string>()
+      for (const pi of [playerIndex, getOpponentPlayerIndex(state)]) {
+        for (const cid of state.players[pi].graveyard) {
+          const c = getCardByIdGlobal(cid)
+          if (c && c.type === 'CREATURE' && !specimenIds.has(c.id)) {
+            poolSet.add(c.id)
+          }
+        }
+      }
+      const pool = Array.from(poolSet)
+      if (!pool.length) break
+
+      // Barajar y tomar hasta 3 únicas
+      const shuffled = [...pool]
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1))
+        const t = shuffled[i]; shuffled[i] = shuffled[j]; shuffled[j] = t
+      }
+      const picks = shuffled.slice(0, Math.min(count, shuffled.length))
+
+      // Invocar y ejecutar ON_ENTER con hints aleatorios
+      for (const cid of picks) {
+        const ref = getCardByIdGlobal(cid)
+        if (!ref) continue
+        const ent = {
+          id: `summoned-${cid}-${Date.now()}-${Math.floor(Math.random()*1e6)}`,
+          cardId: ref.id,
+          ownerId: state.players[playerIndex].id,
+          attack: ref.attack ?? 0,
+          health: ref.health ?? 1,
+          exhausted: !(ref.abilities?.includes(Ability.PRISA)),
+          abilities: ref.abilities ? ref.abilities.map(a => String(a)) : [],
+          effects: []
+        }
+        const bi = state.players[playerIndex].board.push(ent) - 1
+        notifyEnterBattlefield(state, playerIndex, ent.id)
+
+        if (Array.isArray(ref.effects)) {
+          for (const eff of ref.effects) {
+            if (eff.timing !== EffectTiming.ON_ENTER || !eff.action) continue
+            const hints = getRandomHintsForAction(state, playerIndex, eff.action)
+            const fixedHints = hints?.length ? hints : [{ type: 'CREATURE_SELF', index: bi }] as any
+            applyAction(state, playerIndex, eff.action, fixedHints)
+          }
+        }
+      }
+      break
+    }
+
+    case EffectActionType.DAMAGE_AND_SUMMON_SAME_COST_IF_KILL: {
+      const amount = action.amount ?? 0
+      const t = ensureTarget()
+      if (!t) break
+    
+      if (t.kind === 'CREATURE') {
+        const ownerIdx = t.playerIndex
+        const owner = state.players[ownerIdx]
+        const cr = owner.board[t.index]
+        if (!cr) break
+    
+        const killedCardRef = getCardByIdGlobal(cr.cardId)
+        const killedMana = killedCardRef?.mana ?? 0
+    
+        cr.health -= amount
+        cr.damagedThisTurn = true
+    
+        if (cr.health <= 0) {
+          const [dead] = owner.board.splice(t.index, 1)
+          owner.graveyard.unshift(dead.cardId)
+          notifyLeaveBattlefield(state, ownerIdx, dead.id)
+          notifyEffectTriggered(state, ownerIdx, dead.cardId, 'ON_DEATH')
+    
+          const pool = [...BASIC_CARDS, ...CLASS_CARDS]
+            .filter(isCreatureCard)
+            .filter(c => (c.mana ?? 0) === killedMana)
+    
+          if (pool.length > 0) {
+            const ref = pool[Math.floor(Math.random() * pool.length)]
+            const entity: CreatureOnBoard = {
+              id: `creature-${Date.now()}-${Math.floor(Math.random()*1e6)}`,
+              cardId: ref.id,
+              ownerId: me.id,
+              attack: ref.attack ?? 0,
+              health: ref.health ?? 1,
+              exhausted: !(ref.abilities?.includes(Ability.PRISA)),
+              abilities: ref.abilities ? ref.abilities.map(a => String(a)) : [],
+              effects: [],
+            }
+            me.board.push(entity)
+            notifyEnterBattlefield(state, playerIndex, entity.id)
+          }
+        }
+      }
       break
     }
 
@@ -736,25 +973,66 @@ case EffectActionType.TRANSFORM: {
   break
 }
 
-    case EffectActionType.ATTACK_SPELL: {
-      const hintAtk = targetsHints?.find(h => h.type === 'CREATURE_SELF') as any
-      const hintDef = targetsHints?.find(h => h.type === 'CREATURE_ENEMY') as any
-      if (hintAtk && hintDef) {
-        declareAttackCreature(state, playerIndex, hintAtk.index, hintDef.index)
+case EffectActionType.ATTACK_SPELL: {
+  const hintAtk = targetsHints?.find(h => h.type === 'CREATURE_SELF') as any
+  const hintDef = targetsHints?.find(h => h.type === 'CREATURE_ENEMY') as any
+  if (hintAtk && hintDef) {
+    declareAttackCreature(state, playerIndex, hintAtk.index, hintDef.index)
+  }
+  break
+}
+case EffectActionType.REUSE_RANDOM_PAST_CHAOS_EFFECT: {
+  const pool = state.players[playerIndex].playedChaosEffects ?? []
+  if (!pool.length) break
+  const pick = pool[Math.floor(Math.random() * pool.length)]
+  const hints = getRandomHintsForAction(state, playerIndex, pick)
+  applyAction(state, playerIndex, pick, hints)
+  break
+}
+
+// NUEVO: destruye todas las criaturas excepto a sí mismo y absorbe sus stats
+// NUEVO: destruye todas las criaturas excepto a sí mismo y absorbe sus stats
+case EffectActionType.BOARD_NUKE_AND_ABSORB: {
+  // En ON_ENTER el Avatar acaba de ser pusheado al final de la mesa del jugador
+  const selfOwnerIdx = playerIndex
+  const selfIdx = Math.max(0, state.players[selfOwnerIdx].board.length - 1)
+
+  let totalAtk = 0
+  let totalHp = 0
+
+  const processOwner = (ownerIdx: number) => {
+    const owner = state.players[ownerIdx]
+    const survivors: typeof owner.board = []
+    for (let i = 0; i < owner.board.length; i++) {
+      const ent = owner.board[i]
+      const isSelf = (ownerIdx === selfOwnerIdx && i === selfIdx)
+      if (isSelf) {
+        survivors.push(ent)
+        continue
       }
-      break
+      totalAtk += Math.max(0, ent.attack ?? 0)
+      totalHp += Math.max(0, ent.health ?? 0)
+      owner.graveyard.unshift(ent.cardId)
+      notifyLeaveBattlefield(state, ownerIdx, ent.id)
+      notifyEffectTriggered(state, ownerIdx, ent.cardId, 'ON_DEATH')
     }
-    case EffectActionType.REUSE_RANDOM_PAST_CHAOS_EFFECT: {
-      const pool = state.players[playerIndex].playedChaosEffects ?? []
-      if (!pool.length) break
-      const pick = pool[Math.floor(Math.random() * pool.length)]
-      const hints = getRandomHintsForAction(state, playerIndex, pick)
-      applyAction(state, playerIndex, pick, hints)
-      break
-    }
-    
-    default:
-      break
+    owner.board = survivors
+  }
+
+  processOwner(playerIndex)
+  processOwner(oppIndex)
+
+  const selfOwner = state.players[selfOwnerIdx]
+  const avatar = selfOwner.board[Math.min(selfIdx, selfOwner.board.length - 1)]
+  if (avatar) {
+    avatar.attack = totalAtk
+    avatar.health = Math.max(1, totalHp)
+  }
+  break
+}
+
+default:
+  break
   }
 
   notifyEffectTriggered(state, playerIndex, 'ACTION', 'ON_PLAY')
@@ -793,6 +1071,16 @@ export function resolveSingleTarget(
         if (owner.board[hint.index]) {
           return { kind: 'CREATURE', playerIndex: ownerIdx, index: hint.index }
         }
+      }
+      return undefined
+    }
+    case EffectTarget.TARGET_FRIENDLY_CREATURE: {
+      // Requiere un hint que apunte a una criatura aliada
+      if (hint && hint.type === 'CREATURE_SELF' && me.board[hint.index]) {
+        return { kind: 'CREATURE', playerIndex, index: hint.index }
+      }
+      if (hint && hint.type === 'ANY_CREATURE' && (hint as any).owner === 'SELF' && me.board[hint.index]) {
+        return { kind: 'CREATURE', playerIndex, index: hint.index }
       }
       return undefined
     }
@@ -839,22 +1127,43 @@ export function gainEntropyOnPlay(player: PlayerState) {
 }
 
 export function createTokenFromValue(value: string): CreatureOnBoard | undefined {
-  // ...lógica de creación de tokens...
-  // Example placeholder implementation:
-  // Replace this with your actual token creation logic.
-  if (value) {
-    return {
-      id: `token_${value}`,
-      cardId: value,
-      ownerId: '',
-      attack: 1,
-      health: 1,
-      exhausted: false,
-      abilities: [],
-      effects: [],
-    }
+  if (!value) return undefined
+  console.log('[createTokenFromValue] value:', value)
+  switch (String(value)) {
+    case 'TOKEN_2_2_PRISA':
+      return {
+        id: `token_${value}_${Date.now()}`,
+        cardId: value,
+        ownerId: '',
+        attack: 2,
+        health: 2,
+        exhausted: false,
+        abilities: [String(Ability.PRISA)],
+        effects: [],
+      }
+    case 'TOKEN_4_4_PRISA_LIFESTEAL':
+      return {
+        id: `token_${value}_${Date.now()}`,
+        cardId: value,
+        ownerId: '',
+        attack: 4,
+        health: 4,
+        exhausted: false,
+        abilities: [String(Ability.PRISA), String(Ability.ROBO_DE_VIDA)],
+        effects: [],
+      }
+    default:
+      return {
+        id: `token_${value}_${Date.now()}`,
+        cardId: value,
+        ownerId: '',
+        attack: 1,
+        health: 1,
+        exhausted: false,
+        abilities: [],
+        effects: [],
+      }
   }
-  return undefined;
 }
 
 // =======================
@@ -918,7 +1227,10 @@ function getRandomTargetsForCard(state: GameState, playerIndex: number, card: Ca
   return hints
 }
 
-function getRandomHintsForAction(state: GameState, playerIndex: number, action: any): TargetRef[] {
+
+
+
+export function getRandomHintsForAction(state: GameState, playerIndex: number, action: any): TargetRef[] {
   const me = state.players[playerIndex]
   const oppIdx = (playerIndex === 0 ? 1 : 0)
   const opp = state.players[oppIdx]
@@ -934,6 +1246,13 @@ function getRandomHintsForAction(state: GameState, playerIndex: number, action: 
       }
       break
     }
+   case EffectTarget.TARGET_FRIENDLY_CREATURE: {
+     if (me.board.length > 0) {
+       const i = Math.floor(Math.random() * me.board.length)
+       hints.push({ type: 'CREATURE_SELF', index: i } as any)
+     }
+     break
+   }
     case EffectTarget.ALL_FRIENDLY_CREATURES:
     case EffectTarget.ALL_ENEMY_CREATURES:
     case EffectTarget.ALL_CREATURES:

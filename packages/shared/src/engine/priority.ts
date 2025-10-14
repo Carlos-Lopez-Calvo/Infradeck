@@ -1,7 +1,9 @@
-import { GameState, GamePhase, StackItem } from './game-state'
+import { GameState, GamePhase, StackItem, getCardByIdGlobal, } from './game-state'
 import { onPriorityWindow } from './game-state'
 import { getCurrentPlayerIndex } from './turns'
-import { EffectAction } from '../types/cards'   // ← add
+import { EffectAction } from '../types/cards'
+import { effectConditionPasses, applyAction } from './effects'
+
 // Helper para disparar prioridad en el jugador activo
 export function triggerPriority(state: GameState, phase: GamePhase) {
   onPriorityWindow(state, { phase, activePlayer: getCurrentPlayerIndex(state) })
@@ -47,8 +49,7 @@ export function resolveStack(state: GameState): void {
 
 export function notifyCardPlayed(state: GameState, playerIndex: number, cardId: string): void {
   try {
-    const getCard = require('./game-state').getCardByIdGlobal as (id: string) => any
-    const card = getCard(cardId)
+    const card = getCardByIdGlobal(cardId)
     if (card?.classType === 'CAOS' && Array.isArray(card.effects)) {
       const actions: EffectAction[] = card.effects
         .filter((e: any) => e?.timing === 'ON_PLAY' && e?.action)
@@ -62,7 +63,6 @@ export function notifyCardPlayed(state: GameState, playerIndex: number, cardId: 
   triggerPriority(state, state.turn.phase)
 }
 
-
 // Notificar que se ha disparado un efecto
 export function notifyEffectTriggered(
   state: GameState,
@@ -70,7 +70,24 @@ export function notifyEffectTriggered(
   sourceId: string,
   timing: 'ON_PLAY'|'ON_ENTER'|'ON_DEATH'|'ON_ATTACK'|'END_OF_TURN'
 ): void {
-  triggerPriority(state, state.turn.phase)
+  try {
+    const card = getCardByIdGlobal(sourceId)
+    if (!card || !card.effects) {
+      return triggerPriority(state, state.turn.phase)
+    }
+
+    for (const eff of card.effects) {
+      if (eff.timing !== timing) continue
+      if (!effectConditionPasses(state, playerIndex, eff)) continue
+    const hints = state.pendingTargets && state.pendingTargets.length ? ([...state.pendingTargets] as any[]) : undefined
+
+      applyAction(state, playerIndex, eff.action, hints)
+    }
+  } catch {
+  } finally {
+    state.pendingTargets = []
+    triggerPriority(state, state.turn.phase)
+  }
 }
 
 // Notificar que una entidad entra al campo de batalla

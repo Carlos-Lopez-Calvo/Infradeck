@@ -6,8 +6,10 @@ import {
   beginCombat, endCombat,
   setCardResolver, setPriorityWindow, playCard, setDiscoverRequest,
   BASIC_CARDS_BY_ID, CLASS_CARDS_BY_ID, declareAttackHero, declareAttackCreature,
-  EffectActionType, EffectTarget, EffectTiming
+  EffectActionType, EffectTarget, EffectTiming,
+  summonSpecimen
 } from '@infradeck/shared'
+
 import { Card as UICard } from '../components/Card'
 
 import { sampleDecks } from '../utils/sample-decks'
@@ -30,6 +32,7 @@ type Ctx = {
     playFromHand: (handIndex: number) => void
     attackHero: (attackerBoardIndex: number) => void
     attackCreature: (attackerBoardIndex: number, defenderBoardIndex: number) => void
+    summonSpecimen: () => void
   }
 }
 
@@ -57,7 +60,7 @@ type DiscoverModalState =
 export function GameEngineProvider({ children }: { children: React.ReactNode }) {
   const [gameState, setGameState] = useState<GameState>(() => {
     // Elige aquí los mazos a probar
-    const p1Class = 'VITALIDAD' as const
+    const p1Class = 'ABOMINACION' as const
     const p2Class = 'VITALIDAD' as const
     const state = createGame(
       { id: 'player1', name: 'Player 1', classType: p1Class, deck: [...sampleDecks[p1Class]], programmedSpecimenEffects: [] },
@@ -85,6 +88,7 @@ const nextDiscoverChoiceRef = useRef<{ choice: 'BASE' | 'BUFF' | null; usesLeft:
 const lastDiscoverChoiceRef = useRef<'BASE'|'BUFF'|null>(null)
 const [discoverModal, setDiscoverModal] = useState<DiscoverModalState>(null)
 const [targetModal, setTargetModal] = useState<TargetModalState>(null)
+const [discoverMinimized, setDiscoverMinimized] = useState(false)
 
 useLayoutEffect(() => {
   setCardResolver(getCardById)
@@ -92,7 +96,6 @@ useLayoutEffect(() => {
 
   setDiscoverRequest((state, { playerIndex }) => {
     const entry = nextDiscoverChoiceRef.current
-    console.log('[UI] discover entry before resolve', entry) // debug
     if (!entry.choice) {
       const p = state.players[playerIndex]
       if ((p.lifeCredit ?? 0) > 0) return 'BUFF'
@@ -101,10 +104,13 @@ useLayoutEffect(() => {
     if (entry.usesLeft > 0) entry.usesLeft -= 1
     const chosen = entry.choice
     if (entry.usesLeft <= 0) nextDiscoverChoiceRef.current = { choice: null, usesLeft: 0 }
-    console.log('[UI] discover chosen', chosen) // debug
     return chosen
   })
 }, [])
+
+useLayoutEffect(() => {
+  if (discoverModal) setDiscoverMinimized(false)
+}, [discoverModal])
 
 // Oculta overlay automáticamente cuando se active Final Stand
 useLayoutEffect(() => {
@@ -299,7 +305,6 @@ lastPlaySigRef.current = sig
       })
     },
 
-    
       
     playFromHand: (handIndex: number) => {
       if (!isMyTurn || isPlayingRef.current) return
@@ -307,13 +312,13 @@ lastPlaySigRef.current = sig
       const pIdx = gameState.turn.currentPlayerIndex
       const cardId = gameState.players[pIdx].hand[handIndex]
 // guard anti-duplicados
-const sig = { turn: turnKey, key: `${cardId}:${handIndex}`, at: Date.now() }
-const last = lastPlaySigRef.current
-if (last && last.turn === sig.turn && last.key === sig.key && (sig.at - last.at) < 300) {
-  isPlayingRef.current = false
-  return
-}
-lastPlaySigRef.current = sig
+      const sig = { turn: turnKey, key: `${cardId}:${handIndex}`, at: Date.now() }
+      const last = lastPlaySigRef.current
+      if (last && last.turn === sig.turn && last.key === sig.key && (sig.at - last.at) < 300) {
+        isPlayingRef.current = false
+        return
+      }
+      lastPlaySigRef.current = sig
     
       const card = getCardById(cardId)
       if (!card) { isPlayingRef.current = false; return }
@@ -339,27 +344,63 @@ lastPlaySigRef.current = sig
  const res = playCard(next, next.turn.currentPlayerIndex, handIndex, getCardById)
  if (!res.ok) console.warn('playCard failed:', res)
  setGameState(next)
-      setTimeout(() => { isPlayingRef.current = false }, 0)
-    },
-    attackHero: (attackerBoardIndex: number) => {
-      if (!isMyTurn) return
-      setGameState(prev => {
-        const next: GameState = JSON.parse(JSON.stringify(prev))
-        const res = declareAttackHero(next, next.turn.currentPlayerIndex, attackerBoardIndex)
-        if (!res.ok) console.warn('attackHero failed:', res.error)
-        return next
-      })
-    },
-    attackCreature: (attackerBoardIndex: number, defenderBoardIndex: number) => {
-      if (!isMyTurn) return
-      setGameState(prev => {
-        const next: GameState = JSON.parse(JSON.stringify(prev))
-        const res = declareAttackCreature(next, next.turn.currentPlayerIndex, attackerBoardIndex, defenderBoardIndex)
-        if (!res.ok) console.warn('attackCreature failed:', res.error)
-        return next
-      })
-    },
-  }), [isMyTurn, gameState.turn.currentPlayerIndex, gameState.players, setGameState])
+ setTimeout(() => { isPlayingRef.current = false }, 0)
+},
+// apps/web/src/context/GameEngineProvider.tsx
+attackHero: (attackerBoardIndex: number) => {
+  if (!isMyTurn) return
+  setGameState(prev => {
+    console.log('[ACTIONS] attackHero start', {
+      phase: prev.turn.phase,
+      attackerBoardIndex,
+    })
+    const next: GameState = JSON.parse(JSON.stringify(prev))
+    if (next.turn.phase !== 'COMBAT') beginCombat(next)
+    const res = declareAttackHero(next, next.turn.currentPlayerIndex, attackerBoardIndex)
+    console.log('[ACTIONS] attackHero result', { ok: res.ok, phaseAfter: next.turn.phase })
+    if (!res.ok) console.warn('attackHero failed:', res.error)
+    
+    return next
+  })
+},
+attackCreature: (attackerBoardIndex: number, defenderBoardIndex: number) => {
+  if (!isMyTurn) return
+  setGameState(prev => {
+    console.log('[ACTIONS] attackCreature start', {
+      phase: prev.turn.phase,
+      attackerBoardIndex,
+      defenderBoardIndex
+    })
+    const next: GameState = JSON.parse(JSON.stringify(prev))
+    if (next.turn.phase !== 'COMBAT') beginCombat(next)
+    const res = declareAttackCreature(next, next.turn.currentPlayerIndex, attackerBoardIndex, defenderBoardIndex)
+    console.log('[ACTIONS] attackCreature result', { ok: res.ok, phaseAfter: next.turn.phase })
+    if (!res.ok) console.warn('attackCreature failed:', res.error)
+    return next
+  })
+},
+summonSpecimen: () => {
+  if (!isMyTurn || isPlayingRef.current) return
+  isPlayingRef.current = true
+  const pIdx = gameState.turn.currentPlayerIndex
+  const p = gameState.players[pIdx]
+  const needsTarget = (p.programmedSpecimenEffects ?? []).includes('DAMAGE_3_ON_ENTER')
+
+  if (needsTarget) {
+    setTargetModal({ playerIndex: pIdx, handIndex: -1, targetKind: 'CREATURE_ENEMY' } as any)
+    setTimeout(() => { isPlayingRef.current = false }, 0)
+    return
+  }
+
+  setGameState(prev => {
+    const next: GameState = JSON.parse(JSON.stringify(prev))
+    const ok = summonSpecimen(next, next.turn.currentPlayerIndex)
+    if (!ok) console.warn('summonSpecimen failed')
+    return next
+  })
+  setTimeout(() => { isPlayingRef.current = false }, 0)
+},
+}), [isMyTurn, gameState.turn.currentPlayerIndex, gameState.players, setGameState])
 
   // Bot
   useLayoutEffect(() => {
@@ -443,6 +484,16 @@ return act?.target === EffectTarget.TARGET_CREATURE
     <>
       <GameEngineContext.Provider value={value}>{children}</GameEngineContext.Provider>
 
+      {/* Botón flotante para restaurar overlay si está minimizado */}
+{discoverModal && discoverMinimized && (
+  <button
+    className="fixed right-4 bottom-4 z-[9999] px-4 py-2 rounded-lg bg-gray-800/90 text-white border border-white/20 shadow"
+    onClick={() => setDiscoverMinimized(false)}
+  >
+    Mostrar opciones
+  </button>
+)}
+
       {/* Overlay Final Stand */}
       {typeof gameState.finalStandJustActivated === 'number' && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 text-white">
@@ -455,36 +506,59 @@ return act?.target === EffectTarget.TARGET_CREATURE
         </div>
       )}
 
-            {/* Overlay Discover (BASE/BUFF) */}
-            {discoverModal && (() => {
-        const { playerIndex, handIndex } = discoverModal
-        const previews = buildDiscoverPreviews(playerIndex, handIndex)
-        return (
-          <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/70 text-white">
-            <div className="rounded-xl px-6 py-5 shadow-2xl w-full h-auto text-center">
-              <div className="text-6xl font-bold mb-24">Elige una opción</div>
-              <div className="flex items-center justify-center gap-40">
-              <button className="rounded-2xl p-4 border border-white/30 hover:bg-white/5 scale-[1.5] transition" onClick={() => confirmDiscover('BASE')}>
-                <div className="transform origin-top">
-                  {previews?.baseCard && <UICard card={previews.baseCard as any} />}
-                </div>
-            </button>
+          {/* Overlay Discover (BASE/BUFF) */}
+{discoverModal && !discoverMinimized && (() => {
+  const { playerIndex, handIndex } = discoverModal
+  const previews = buildDiscoverPreviews(playerIndex, handIndex)
+  const onHide = () => setDiscoverMinimized(true)
+  const onCancel = () => setDiscoverModal(null)
 
-              <button
-                className="relative rounded-2xl p-4 border border-amber-400 scale-[1.5] shadow-[0_0_24px_rgba(251,191,36,0.65)] hover:shadow-[0_0_32px_rgba(251,191,36,0.9)] hover:bg-amber-500/10 transition"
-                onClick={() => confirmDiscover('BUFF')}
-              >
-                <div className="rounded-xl overflow-hidden ring-2 ring-amber-400">
-                  <div className="transform origin-top">
-                    {previews?.buffCard && <UICard card={previews.buffCard as any} />}
-                  </div>
-                </div>
-              </button>
+  return (
+    <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/70 text-white">
+      <div className="rounded-xl px-6 py-5 shadow-2xl w-full h-auto text-center">
+        <div className="flex flex-col items-center justify-center mb-24">
+          <div className="text-6xl font-bold">Elige una opción</div>
+          <div className="flex gap-3">
+            <button
+              className="px-3 py-1 rounded border border-white/30 hover:bg-white/10 text-2xl"
+              onClick={onHide}
+            >
+              Ocultar
+            </button>
+            <button
+              className="px-3 py-1 rounded bg-red-500 text-white hover:bg-red-500/30 text-2xl"
+              onClick={onCancel}
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-center gap-40">
+          <button
+            className="rounded-2xl p-4 border border-white/30 hover:bg-white/5 scale-[1.5] transition"
+            onClick={() => confirmDiscover('BASE')}
+          >
+            <div className="transform origin-top">
+              {previews?.baseCard && <UICard card={previews.baseCard as any} />}
+            </div>
+          </button>
+
+          <button
+            className="relative rounded-2xl p-4 border border-amber-400 scale-[1.5] shadow-[0_0_24px_rgba(251,191,36,0.65)] hover:shadow-[0_0_32px_rgba(251,191,36,0.9)] hover:bg-amber-500/10 transition"
+            onClick={() => confirmDiscover('BUFF')}
+          >
+            <div className="rounded-xl overflow-hidden ring-2 ring-amber-400">
+              <div className="transform origin-top">
+                {previews?.buffCard && <UICard card={previews.buffCard as any} />}
               </div>
             </div>
-          </div>
-        )
-      })()}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+})()}
 
             {/* Overlay selección de objetivo */}
             {targetModal && (() => {
@@ -497,14 +571,10 @@ return act?.target === EffectTarget.TARGET_CREATURE
           setGameState(prev => {
             const next: GameState = JSON.parse(JSON.stringify(prev))
             next.pendingTargets = targets
-
-            if (choice) {
-              const cardId = gameState.players[playerIndex].hand[handIndex]
-              const uses = Math.max(1, countDiscoversInCard(cardId))
-              lastDiscoverChoiceRef.current = choice
-              nextDiscoverChoiceRef.current = { choice, usesLeft: uses }
+            if (handIndex === -1) {
+              summonSpecimen(next, playerIndex)
+              return next
             }
-
             if (next.turn.currentPlayerIndex !== playerIndex) return next
             const res = playCard(next, playerIndex, handIndex, getCardById, { targets })
             if (!res.ok) console.warn('playCard failed:', res)
