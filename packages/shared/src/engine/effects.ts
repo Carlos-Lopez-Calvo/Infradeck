@@ -9,7 +9,6 @@ import {
   onDiscoverRequest
 } from './game-state'
 import { Card, EffectTiming, EffectActionType, EffectTarget, getCurrentForm, CycleState } from '../types/cards'
-
 import { CardType, Ability } from '../types/cards'
 import { getOpponentPlayerIndex } from './turns'
 import { notifyEffectTriggered, notifyLeaveBattlefield, notifyEnterBattlefield } from './priority'
@@ -87,8 +86,6 @@ export function effectConditionPasses(state: GameState, playerIndex: number, eff
       case 'SOLO_ATTACKER':             return (p.attackersDeclaredThisTurn ?? 0) === 1
       case 'ATTACKING_HERO':            return !!p.lastAttackTargetHero
       case 'DID_NOT_ATTACK':            return (p.attackersDeclaredThisTurn ?? 0) === 0
-      case 'SPECIMEN_DAMAGE3_ENABLED':
-  return (p.programmedSpecimenEffects ?? []).includes('ENABLE_DAMAGE3')
       case 'HAS_OTHER_CREATURES':       return p.board.length > 1
       default:                          return false
     }
@@ -764,47 +761,78 @@ case EffectActionType.DISCOVER_PAY_ENTROPY: {
       }
       break
     }
-
     case EffectActionType.SUMMON_SPECIMEN: {
       const p = state.players[playerIndex]
       if (p.classType !== 'ABOMINACION') break
     
-      // Programar “al entrar: 3 de daño” desde ON_DEATH del Recolector
-      if (String(action.value) === 'ENABLE_DAMAGE3') {
-        const arr = p.programmedSpecimenEffects ?? (p.programmedSpecimenEffects = [])
-        if (!arr.includes('ENABLE_DAMAGE3')) arr.push('ENABLE_DAMAGE3')
+   
+    
+      // Evolución definitiva
+      if (String(action.value) === 'ULTIMATE_EVOLUTION_10_10') {
+        const idx = p.board.findIndex(e => e.cardId === 'Especimen_Perfecto')
+        if (idx === -1) break
+        const [dead] = p.board.splice(idx, 1)
+        p.graveyard.unshift(dead.cardId)
+        notifyLeaveBattlefield(state, playerIndex, dead.id)
+        notifyEffectTriggered(state, playerIndex, dead.cardId, 'ON_DEATH')
+    
+        const evolved = getCardByIdGlobal('Especimen_Perfecto_Evolucionado')
+        if (evolved) {
+          const ent = {
+            id: `specimen-evolved-${Date.now()}`,
+            cardId: evolved.id,
+            ownerId: p.id,
+            attack: evolved.attack ?? 10,
+            health: evolved.health ?? 10,
+            exhausted: true,
+            abilities: evolved.abilities ? evolved.abilities.map(a => String(a)) : [],
+            effects: [],
+          }
+          p.board.push(ent)
+          notifyEnterBattlefield(state, playerIndex, ent.id)
+          applyOnEnterEffects(state, ent as any, playerIndex, evolved)
+        }
         break
       }
-  
-        // Invocación normal (botón de clase) ...
-
-        if (String(action.value) === 'ULTIMATE_EVOLUTION_10_10') {
-          const idx = p.board.findIndex(e => e.cardId === 'Especimen_Perfecto')
-          if (idx === -1) break
-          const [dead] = p.board.splice(idx, 1)
-          p.graveyard.unshift(dead.cardId)
-          notifyLeaveBattlefield(state, playerIndex, dead.id)
-          notifyEffectTriggered(state, playerIndex, dead.cardId, 'ON_DEATH')
-        
-          const evolved = getCardByIdGlobal('Especimen_Perfecto_Evolucionado')
-          if (evolved) {
-            const ent = {
-              id: `specimen-evolved-${Date.now()}`,
-              cardId: evolved.id,
-              ownerId: p.id,
-              attack: evolved.attack ?? 10,
-              health: evolved.health ?? 10,
-              exhausted: true,
-              abilities: evolved.abilities ? evolved.abilities.map(a => String(a)) : [],
-              effects: [],
-            }
-            p.board.push(ent)
-            notifyEnterBattlefield(state, playerIndex, ent.id)
-            applyOnEnterEffects(state, ent as any, playerIndex, evolved)
-          }
-          break
+    
+      // Caso especial de tu carta: invoca gratis y luego buffea
+      if (String(action.value) === 'IMMEDIATE_SUMMON_WITH_SCALING') {
+        if (hasSpecimenOnBoard(p)) break
+        const prevFree = !!p.specimenFreeThisTurn
+        p.specimenFreeThisTurn = true
+        const ok = summonSpecimen(state, playerIndex)
+        p.specimenFreeThisTurn = prevFree
+        if (!ok) break
+    
+        // Busca el espécimen recién invocado
+        let bi = -1
+        for (let i = p.board.length - 1; i >= 0; i--) {
+          if (p.board[i].cardId === 'Especimen_Perfecto') { bi = i; break }
         }
-
+        if (bi >= 0) {
+          // Cuenta habilidades únicas en ambos cementerios y aplica +X/+X
+          const gather = (pi: number) => {
+            const set = new Set<string>()
+            for (const cid of state.players[pi].graveyard) {
+              const card = getCardByIdGlobal(cid)
+              if (card && card.type === CardType.CREATURE && card.abilities) {
+                for (const ab of card.abilities) set.add(String(ab))
+              }
+            }
+            return set
+          }
+          const set = new Set<string>([
+            ...gather(playerIndex),
+            ...gather(getOpponentPlayerIndex(state))
+          ])
+          const x = set.size
+          const ent = p.board[bi]
+          ent.attack += x
+          ent.health += x
+        }
+        break
+      }
+    
       // Invocación normal (botón de clase)
       if (hasSpecimenOnBoard(p)) break
       const cost = getSpecimenCost(p)
@@ -823,7 +851,6 @@ case EffectActionType.DISCOVER_PAY_ENTROPY: {
       p.specimenFreeThisTurn = false
       break
     }
-
     case EffectActionType.DISCOVER_SUMMON_FROM_GRAVEYARD: {
       const count = 3
 
@@ -909,7 +936,14 @@ case EffectActionType.DISCOVER_PAY_ENTROPY: {
           notifyLeaveBattlefield(state, ownerIdx, dead.id)
           notifyEffectTriggered(state, ownerIdx, dead.cardId, 'ON_DEATH')
     
-          const pool = [...BASIC_CARDS, ...CLASS_CARDS]
+          const myClass = state.players[playerIndex].classType
+          const oppClass = state.players[getOpponentPlayerIndex(state)].classType
+          const allowed = new Set([myClass, oppClass])
+    
+          const pool = [
+            ...BASIC_CARDS,
+            ...CLASS_CARDS.filter(c => c.classType && allowed.has(c.classType as any))
+          ]
             .filter(isCreatureCard)
             .filter(c => (c.mana ?? 0) === killedMana)
     
@@ -927,6 +961,17 @@ case EffectActionType.DISCOVER_PAY_ENTROPY: {
             }
             me.board.push(entity)
             notifyEnterBattlefield(state, playerIndex, entity.id)
+
+            const bi = me.board.length - 1
+            const refEffects = getCardByIdGlobal(ref.id)?.effects
+            if (Array.isArray(refEffects)) {
+              for (const eff of refEffects) {
+                if (eff.timing !== EffectTiming.ON_ENTER || !eff.action) continue
+                const hints = getRandomHintsForAction(state, playerIndex, eff.action)
+                const fixedHints = hints?.length ? hints : [{ type: 'CREATURE_SELF', index: bi }] as any
+                applyAction(state, playerIndex, eff.action, fixedHints)
+              }
+            }
           }
         }
       }
@@ -1266,4 +1311,22 @@ export function getRandomHintsForAction(state: GameState, playerIndex: number, a
       break
   }
   return hints
+}
+export function triggerTriggeredEffects(state: GameState, playerIndex: number): void {
+  const p = state.players[playerIndex]
+  for (let i = 0; i < p.board.length; i++) {
+    const ent = p.board[i]
+    const card = getCardByIdGlobal(ent.cardId)
+    if (!card || !card.effects) continue
+    for (const eff of card.effects) {
+      if (eff.timing !== EffectTiming.TRIGGERED) continue
+      if (!effectConditionPasses(state, playerIndex, eff)) continue
+      const hints: TargetRef[] | undefined =
+        eff.action?.target === EffectTarget.SELF
+          ? ([{ type: 'CREATURE_SELF', index: i }] as TargetRef[])
+          : undefined
+      applyAction(state, playerIndex, eff.action, hints)
+      notifyEffectTriggered(state, playerIndex, card.id, 'ON_PLAY')
+    }
+  }
 }

@@ -3,7 +3,7 @@ import React from 'react'
 export function ContenidoIzquierda({ life = 20, onAttackHero }: { life?: number, onAttackHero?: () => void }) {
   return (
     <div className="relative w-full h-full">
-      <div className="absolute bottom-0 left-0 w-full h-full flex items-end justify-center bg-purple-700 rounded-t-lg py-4"
+        <div className="absolute bottom-0 left-0 w-full h-full flex items-end justify-center bg-black rounded-t-lg py-4"
        style={{
             backgroundImage: `url('/imgCards/vitalidad.png')`,
             backgroundSize: 'cover',
@@ -30,7 +30,7 @@ export function ContenidoIzquierda({ life = 20, onAttackHero }: { life?: number,
 export function ContenidoIzquierdaOponente({ life = 20, onAttackHero }: { life?: number, onAttackHero?: () => void }) {
   return (
     <div className="relative flex w-full h-full">
-      <div className="absolute bottom-0 left-0 w-full h-full flex items-end justify-center bg-purple-700 rounded-t-lg py-4"
+      <div className="absolute bottom-0 left-0 w-full h-full flex items-end justify-center bg-black rounded-t-lg py-4"
        style={{
             backgroundImage: `url('/imgCards/vitalidad.png')`,
             backgroundSize: 'cover',

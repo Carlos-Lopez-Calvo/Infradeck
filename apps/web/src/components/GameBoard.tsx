@@ -34,7 +34,7 @@ export function GameBoard() {
         <div className="w-3/5 h-full flex flex-col">
   {/* Mitad superior */}
   <div
-    className="hand h-1/3 w-full flex items-center justify-center bg-blue-500"
+    className="hand h-1/3 w-full flex items-center justify-center bg-black"
     onClick={() => {
       if (selectedAttacker != null && canAct) {
         actions.attackHero(selectedAttacker)
@@ -45,7 +45,7 @@ export function GameBoard() {
   >
             <OpponentHand />
           </div>
-          <div className="battlefield h-2/3 w-full flex items-center justify-center bg-blue-400">
+          <div className="battlefield h-2/3 w-full flex items-center justify-center bg-black">
             <div className="flex gap-3">
             {opponentPlayer.board.map((c, idx) => {
                 const card = getCardByIdGlobal(c.cardId)
@@ -99,7 +99,7 @@ export function GameBoard() {
       <div className="h-[60%] w-full flex items-center justify-center">
         {/* Contenido de la parte inferior */}
           {/* 20% - 60% - 20% */}
-        <div className="class-left w-1/5 h-full flex items-center justify-center bg-gray-500">
+        <div className="class-left w-1/5 h-full flex items-center justify-center bg-black">
           {/* Contenido izquierdo */}
           <ContenidoIzquierda
               life={currentPlayer.life}
@@ -110,7 +110,7 @@ export function GameBoard() {
         </div>
         <div className="w-3/5 h-full flex flex-col">
   {/* Mitad superior */}
-  <div className="battlefield h-3/5 w-full flex items-center justify-center bg-blue-400">
+  <div className="battlefield h-3/5 w-full flex items-center justify-center bg-black">
             <div className="flex gap-3">
             {currentPlayer.board.map((c, idx) => {
                 const card = getCardByIdGlobal(c.cardId)
@@ -144,11 +144,11 @@ export function GameBoard() {
             </div>
           </div>
   {/* Mitad inferior */}
-  <div className="hand h-2/5 w-full flex items-center justify-center bg-blue-500">
+  <div className="hand h-2/5 w-full flex items-center justify-center bg-black">
     <Hand />
   </div>
 </div>
-        <div className="class-right w-1/5 h-full flex items-center justify-center bg-gray-500">
+        <div className="class-right w-1/5 h-full flex items-center justify-center bg-black">
           <ContenidoDerecha />
         </div>
       </div>

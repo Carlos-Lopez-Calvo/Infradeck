@@ -41,8 +41,8 @@ type TargetModalState =
   | {
       playerIndex: number
       handIndex: number
-      choice?: 'BASE' | 'BUFF'   // <- ahora opcional
-      targetKind: 'CREATURE_ENEMY'
+      choice?: 'BASE' | 'BUFF'
+      targetKind: 'CREATURE_ENEMY' | 'CREATURE_SELF'
     }
 
 const GameEngineContext = createContext<Ctx | null>(null)
@@ -247,9 +247,9 @@ lastPlaySigRef.current = sig
     const opts = asDiscoverOptions(discover?.action?.options)
     const act = choice === 'BUFF' ? opts?.buff : opts?.base
   
-    if (act?.target === EffectTarget.TARGET_CREATURE) {
+    if (act?.target === EffectTarget.TARGET_CREATURE || act?.target === EffectTarget.TARGET_FRIENDLY_CREATURE) {
       setDiscoverModal(null)
-      setTargetModal({ playerIndex, handIndex, choice, targetKind: 'CREATURE_ENEMY' })
+      setTargetModal({ playerIndex, handIndex, choice, targetKind: act?.target === EffectTarget.TARGET_FRIENDLY_CREATURE ? 'CREATURE_SELF' : 'CREATURE_ENEMY' })
       isPlayingRef.current = false
       return
     }
@@ -332,13 +332,19 @@ lastPlaySigRef.current = sig
       }
     
       const needsTarget = card.effects?.some(
-           e => e.timing === EffectTiming.ON_PLAY && e.action?.target === EffectTarget.TARGET_CREATURE
-         )
-      if (needsTarget) {
-        setTargetModal({ playerIndex: pIdx, handIndex, targetKind: 'CREATURE_ENEMY' })
-        isPlayingRef.current = false
-        return
-      }
+        e => e.timing === EffectTiming.ON_PLAY && (
+          e.action?.target === EffectTarget.TARGET_CREATURE ||
+          e.action?.target === EffectTarget.TARGET_FRIENDLY_CREATURE
+        )
+      )
+   if (needsTarget) {
+     const wantsFriendly = card.effects?.some(
+       e => e.timing === EffectTiming.ON_PLAY && e.action?.target === EffectTarget.TARGET_FRIENDLY_CREATURE
+     )
+     setTargetModal({ playerIndex: pIdx, handIndex, targetKind: wantsFriendly ? 'CREATURE_SELF' : 'CREATURE_ENEMY' })
+     isPlayingRef.current = false
+     return
+   }
     
       const next: GameState = JSON.parse(JSON.stringify(gameState))
  const res = playCard(next, next.turn.currentPlayerIndex, handIndex, getCardById)
@@ -469,14 +475,14 @@ summonSpecimen: () => {
     const p = gameState.players[playerIndex]
     const cardId = p.hand[handIndex]
     const card = getCardById(cardId)
-if (!card) return false
-const discover = card.effects?.find(e =>
-  e?.action?.type === EffectActionType.DISCOVER_PAY_LIFE ||
-  e?.action?.type === EffectActionType.DISCOVER_PAY_ENTROPY
-)
-const opts = asDiscoverOptions(discover?.action?.options)
-const act = choice === 'BUFF' ? opts?.buff : opts?.base
-return act?.target === EffectTarget.TARGET_CREATURE
+    if (!card) return false
+    const discover = card.effects?.find(e =>
+      e?.action?.type === EffectActionType.DISCOVER_PAY_LIFE ||
+      e?.action?.type === EffectActionType.DISCOVER_PAY_ENTROPY
+    )
+    const opts = asDiscoverOptions(discover?.action?.options)
+    const act = choice === 'BUFF' ? opts?.buff : opts?.base
+    return act?.target === EffectTarget.TARGET_CREATURE || act?.target === EffectTarget.TARGET_FRIENDLY_CREATURE
   }
 
   const value: Ctx = { gameState, setGameState, currentPlayer, opponentPlayer, isMyTurn, actions }
@@ -560,9 +566,10 @@ return act?.target === EffectTarget.TARGET_CREATURE
   )
 })()}
 
-            {/* Overlay selección de objetivo */}
-            {targetModal && (() => {
-        const { playerIndex, handIndex, choice } = targetModal
+                        {/* Overlay selección de objetivo */}
+        {targetModal && (() => {
+        const { playerIndex, handIndex, choice, targetKind } = targetModal
+        const self = gameState.players[playerIndex]
         const enemyIndex = 1 - playerIndex
         const enemy = gameState.players[enemyIndex]
 
@@ -582,31 +589,40 @@ return act?.target === EffectTarget.TARGET_CREATURE
           })
         }
 
-        const onPickHero = () => commitWithTargets([{ type: 'HERO_ENEMY' } as any])
-        const onPick = (defenderIndex: number) => commitWithTargets([{ type: 'CREATURE_ENEMY', index: defenderIndex } as any])
+        const onPickHeroEnemy = () => commitWithTargets([{ type: 'HERO_ENEMY' } as any])
+        const onPickEnemy = (defenderIndex: number) =>
+          commitWithTargets([{ type: 'CREATURE_ENEMY', index: defenderIndex } as any])
+
+        const onPickSelf = (allyIndex: number) =>
+          commitWithTargets([{ type: 'CREATURE_SELF', index: allyIndex } as any])
 
         return (
           <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/70 text-white">
             <div className="bg-gray-900 rounded-xl border border-white/20 px-6 py-5 shadow-2xl w-[95%] max-w-4xl text-center">
               <div className="text-2xl font-bold mb-4">Selecciona objetivo</div>
 
-              {/* Primero: héroe enemigo */}
-              <div className="mb-4 flex justify-center">
-                <button
-                  className="rounded-lg border border-red-400 hover:bg-red-500/10 px-4 py-2 text-red-300 font-semibold"
-                  onClick={onPickHero}
-                >
-                  Héroe enemigo
-                </button>
-              </div>
+              {/* Si el objetivo es enemigo, permite héroe enemigo */}
+              {targetKind === 'CREATURE_ENEMY' && (
+                <div className="mb-4 flex justify-center">
+                  <button
+                    className="rounded-lg border border-red-400 hover:bg-red-500/10 px-4 py-2 text-red-300 font-semibold"
+                    onClick={onPickHeroEnemy}
+                  >
+                    Héroe enemigo
+                  </button>
+                </div>
+              )}
 
-              {/* Luego: criaturas enemigas */}
+              {/* Lista de criaturas según el targetKind */}
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 justify-center">
-                {enemy.board.map((crea, idx) => {
+                {(targetKind === 'CREATURE_ENEMY' ? enemy.board : self.board).map((crea, idx) => {
                   const base = getCardById(crea.cardId)
                   const preview = base ? { ...base, attack: crea.attack, health: crea.health, abilities: crea.abilities } : null
+                  const onClick = targetKind === 'CREATURE_ENEMY'
+                    ? () => onPickEnemy(idx)
+                    : () => onPickSelf(idx)
                   return (
-                    <button key={crea.id} className="rounded-lg border border-white/20 hover:bg-white/5 p-2" onClick={() => onPick(idx)}>
+                    <button key={crea.id} className="rounded-lg border border-white/20 hover:bg-white/5 p-2" onClick={onClick}>
                       {preview && <UICard card={preview as any} />}
                     </button>
                   )

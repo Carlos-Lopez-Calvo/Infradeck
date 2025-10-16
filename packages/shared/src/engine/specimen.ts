@@ -2,6 +2,7 @@ import { GameState, PlayerState, CreatureOnBoard, getCardByIdGlobal} from './gam
 import { ESPECIMEN_PERFECTO } from '../cards/class-cards'
 import { Ability, CardType } from '../types/cards'
 import { notifyEnterBattlefield } from './priority'
+import { triggerTriggeredEffects } from './effects'
 
 // =======================
 // Helpers de specimen
@@ -54,6 +55,7 @@ export function summonSpecimenToken(state: GameState, playerIndex: number, evolv
   p.specimenSummons = (p.specimenSummons ?? 0) + 1
   p.specimenSummonedThisTurn = true
   notifyEnterBattlefield(state, playerIndex, id)
+  triggerTriggeredEffects(state, playerIndex)
 }
 
 // =======================
@@ -64,13 +66,18 @@ export function summonSpecimen(state: GameState, playerIndex: number): boolean {
   const specimenCard = ESPECIMEN_PERFECTO
   const specimenSummons = player.specimenSummons ?? 0
 
-  // Calcula el coste dinámico
+  // Coste dinámico y bandera de invocación gratis
   const cost = getSpecimenCost(player)
-  if (player.mana < cost) return false
+  const free = !!player.specimenFreeThisTurn || !!player.freeSpecimenThisTurn
 
-  // Hereda habilidades únicas del cementerio
-   // Hereda habilidades únicas del cementerio
-   const inheritedAbilities = Array.from(new Set([
+  // Si no es gratis, verifica y cobra
+  if (!free) {
+    if (player.mana < cost) return false
+    player.mana -= cost
+  }
+
+  // Hereda habilidades únicas del cementerio (ambos jugadores)
+  const inheritedAbilities = Array.from(new Set([
     ...getUniqueAbilitiesFromGraveyard(player),
     ...getUniqueAbilitiesFromGraveyard(state.players[1 - playerIndex])
   ]))
@@ -78,9 +85,10 @@ export function summonSpecimen(state: GameState, playerIndex: number): boolean {
   // Hereda efectos programados
   const programmedEffects = player.programmedSpecimenEffects ?? []
 
-  player.mana -= cost
+  // Incrementa contador de invocaciones (también cuando es gratis para escalar el coste futuro)
   player.specimenSummons = specimenSummons + 1
 
+  // Invoca
   player.board.push({
     id: `specimen-${Date.now()}`,
     cardId: specimenCard.id,
@@ -93,14 +101,17 @@ export function summonSpecimen(state: GameState, playerIndex: number): boolean {
     effects: [],
   })
 
-
-  // Ejecuta efectos programados al entrar
+  // Ejecuta ON_ENTER programados
   const boardIndex = player.board.length - 1
   handleSpecimenOnEnter(state, playerIndex, boardIndex)
 
-  // Limpia los efectos programados tras invocar
+  // Limpia y marca flags
   player.programmedSpecimenEffects = []
   player.specimenSummonedThisTurn = true
+
+  // Dispara TRIGGERED
+  triggerTriggeredEffects(state, playerIndex)
+
   return true
 }
 

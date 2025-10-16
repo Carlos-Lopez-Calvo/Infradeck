@@ -217,8 +217,8 @@ export const RITUAL_MENOR: Card = {
   abilities: [],
   effects: [
     {
-      id: 'Ritual_Sacrifice_Draw',
-      description: 'Destruye una criatura aliada. Roba 2 cartas. Si tenía una habilidad, roba 1 carta adicional',
+      id: 'Ritual_Sacrifice',
+      description: 'Destruye una criatura aliada.',
       timing: EffectTiming.ON_PLAY,
       action: {
         type: EffectActionType.DAMAGE,
@@ -226,9 +226,20 @@ export const RITUAL_MENOR: Card = {
         amount: 999,
         duration: 'PERMANENT'
       }
+    },
+    {
+      id: 'Ritual_Draw2',
+      description: 'Roba 2 cartas.',
+      timing: EffectTiming.ON_PLAY,
+      action: {
+        type: EffectActionType.DRAW_CARDS,
+        target: EffectTarget.FRIENDLY_HERO,
+        amount: 2,
+        duration: 'PERMANENT'
+      }
     }
   ],
-  description: 'Destruye una criatura aliada. Roba 2 cartas. Si tenía una habilidad, roba 1 carta adicional',
+  description: 'Destruye una criatura aliada. Roba 2 cartas.',
   flavorText: 'El sacrificio trae sabiduría.'
 }
 
@@ -306,7 +317,7 @@ export const PERFECCIONISTA_OBSESIVO: Card = {
   effects: [
     {
       id: 'Perfeccionista_Specimen_Enhancement',
-      description: 'Cuando tu Espécimen Perfecto sea invocado, gana Taunt y +2/+2',
+      description: 'Cuando tu Espécimen Perfecto sea invocado, gana +1/+1 por cada habilidad diferente en el cementerio',
       timing: EffectTiming.TRIGGERED,
       condition: {
         type: 'BOARD_STATE',
@@ -314,14 +325,14 @@ export const PERFECCIONISTA_OBSESIVO: Card = {
         comparison: 'EQUAL'
       },
       action: {
-        type: EffectActionType.GAIN_ABILITY,
-        target: EffectTarget.TARGET_CREATURE,
-        value: Ability.TAUNT,
+        type: EffectActionType.BUFF_STATS,
+        target: EffectTarget.SELF,
+        value: 'UNIQUE_ABILITIES_IN_GRAVEYARD',
         duration: 'PERMANENT'
       }
     }
   ],
-  description: '3/3 con Escudo. Cuando tu Espécimen Perfecto sea invocado, gana Taunt y +2/+2',
+  description: '3/3 con Escudo. Cuando tu Espécimen Perfecto sea invocado gana +1/+1 por cada habilidad diferente en el cementerio',
   flavorText: 'Cada detalle debe ser perfecto.'
 }
 
