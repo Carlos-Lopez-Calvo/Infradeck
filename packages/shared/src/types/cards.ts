@@ -4,6 +4,22 @@
  */
 
 // ===== ENUMS BÁSICOS =====
+export function Card({ card, showMana = true }: { card: any; showMana?: boolean }) {
+  // Normalizaciones seguras
+  const abilities = Array.isArray(card.abilities) ? card.abilities : []
+  const effects = Array.isArray(card.effects) ? card.effects : []
+  const attack = typeof card.attack === 'number' ? card.attack : 0
+  const health = typeof card.health === 'number' ? card.health : 0
+
+  // ...resto del componente
+
+  // Donde antes hacías:
+  // {card.abilities.map(...)}  -> usa:
+  // {abilities.map(...)}
+
+  // Si iteras efectos:
+  // {effects.map(...)}
+}
 
 export enum CardType {
   CREATURE = 'CREATURE',
@@ -40,7 +56,7 @@ export enum Ability {
 
   // Especiales
   VUELO = 'VUELO',
-  DOBLE_GOLPE = 'DOBLE_GOLPE'        // ← añadir esto
+  DOBLE_GOLPE = 'DOBLE_GOLPE'
 }
 
 // ===== RECURSOS DE CLASE =====
@@ -98,7 +114,6 @@ export enum EffectActionType {
 
   // NUEVO: Avatar destruye y absorbe
   BOARD_NUKE_AND_ABSORB = 'BOARD_NUKE_AND_ABSORB',
-    // NUEVO
   DISCOVER_SUMMON_FROM_GRAVEYARD = 'DISCOVER_SUMMON_FROM_GRAVEYARD',
   DAMAGE_AND_SUMMON_SAME_COST_IF_KILL = 'DAMAGE_AND_SUMMON_SAME_COST_IF_KILL'
   
@@ -154,13 +169,13 @@ export enum EffectTiming {
    TARGET_FRIENDLY_CREATURE = 'TARGET_FRIENDLY_CREATURE',
     ALL_FRIENDLY_CREATURES = 'ALL_FRIENDLY_CREATURES',
     ALL_ENEMY_CREATURES = 'ALL_ENEMY_CREATURES',
-    ALL_ENEMIES = 'ALL_ENEMIES',          // Para REALIDAD_FRACTURADA
+    ALL_ENEMIES = 'ALL_ENEMIES',
     ALL_CREATURES = 'ALL_CREATURES',
     RANDOM_ENEMY = 'RANDOM_ENEMY',
-    RANDOM_CREATURE = 'RANDOM_CREATURE',  // ← nuevo: criatura aleatoria aliada o enemiga
+    RANDOM_CREATURE = 'RANDOM_CREATURE',
     RANDOM_CHARACTER = 'RANDOM_CHARACTER',
-    TARGET_SPELL = 'TARGET_SPELL',        // Hechizo/instantánea objetivo
-    CYCLE_CARDS = 'CYCLE_CARDS'           // Para transformaciones de CICLO
+    TARGET_SPELL = 'TARGET_SPELL',
+    CYCLE_CARDS = 'CYCLE_CARDS'
   }
 
 // ===== DEFINICIÓN PRINCIPAL DE CARTA =====
@@ -225,8 +240,8 @@ export interface CycleCard extends Omit<Card, 'attack' | 'health' | 'abilities' 
   }
   
   // Transformación automática según estado del ciclo
-  transformsWithCycle?: boolean     // Si se transforma automáticamente
-  manualTransform?: boolean         // Si puede transformarse manualmente
+  transformsWithCycle?: boolean
+  manualTransform?: boolean
 }
 
 // Efectos específicos para transformaciones de CICLO
@@ -242,9 +257,9 @@ export interface CycleTransformEffect extends CardEffect {
 export interface SpecimenCard extends Card {
   classType: ClassType.ABOMINACION
   isSpecimen: true
-  inheritedAbilities: Ability[]  // Habilidades heredadas del cementerio
-  inheritedEffects: CardEffect[] // Efectos añadidos por cartas de clase
-  summonCost: number            // Costo actual (5, 7, 9, 10)
+  inheritedAbilities: Ability[]
+  inheritedEffects: CardEffect[]
+  summonCost: number
 }
 
 // ===== UTILIDADES DE TIPO =====
@@ -316,10 +331,10 @@ export const GAME_CONSTANTS = {
   FINAL_STAND_MAX_LIFE: 10,
   
   // Class resources
-  MAX_ENTROPY: 10,              // CAOS
-  SPECIMEN_BASE_COST: 5,        // ABOMINACIÓN
-  SPECIMEN_COST_INCREMENT: 2,   // ABOMINACIÓN
-  SPECIMEN_MAX_COST: 10         // ABOMINACIÓN
+  MAX_ENTROPY: 10,
+  SPECIMEN_BASE_COST: 5,
+  SPECIMEN_COST_INCREMENT: 2,
+  SPECIMEN_MAX_COST: 10
 } as const
 
 // ===== TIPOS DE VALIDACIÓN =====
@@ -347,7 +362,6 @@ export interface DiscoverPayEntropyOptions {
   buff?: EffectAction
 }
 
-// Nuevo: configuración escalable de reducción de coste
 export interface CostReductionScalingOptions {
   thresholds: Array<{ min: number, uses: number | 'ALL' }>
 }

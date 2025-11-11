@@ -200,6 +200,18 @@ export function applyAction(
 
   switch (action.type as EffectActionType) {
     case EffectActionType.DAMAGE: {
+        // Suma el ATQ de tus criaturas y lo aplica al héroe indicado
+        if (String(action.value) === 'SUM_FRIENDLY_ATTACK') {
+          const sum = (state.players[playerIndex].board ?? []).reduce((s, c) => s + Math.max(0, c.attack ?? 0), 0)
+          const targetPi = action.target === EffectTarget.ENEMY_HERO ? oppIndex : playerIndex
+          if (!hasFinalStandImmunity(state, targetPi)) {
+            const tgt = state.players[targetPi]
+            const old = tgt.life
+            tgt.life = Math.max(0, tgt.life - sum)
+            if (tgt.life <= 0 && old > 0) checkAndActivateFinalStand(state, targetPi, playerIndex)
+          }
+          break
+        }
       // RANDOM_BY_ENTROPY: N disparos completamente aleatorios (héroes y criaturas de ambos lados)
       if (String(action.value) === 'RANDOM_BY_ENTROPY' && action.target === EffectTarget.RANDOM_CHARACTER && me.classResource?.type === 'ENTROPIA') {
         let shots = Math.min(10, me.classResource.amount ?? 0)
@@ -726,23 +738,35 @@ case EffectActionType.DISCOVER_PAY_ENTROPY: {
   break
 }
 
-    case EffectActionType.CHANGE_CYCLE_STATE: {
-      if (!me.classResource || me.classResource.type !== 'ESTADO') break
-      const val = action.value
-      if (val === 'PERMANENT_ECLIPSE') {
-        me.permanentEclipse = true
-        me.classResource.state = 'ECLIPSE'
-      } else if (val === 'NEXT_CYCLE_STATE') {
-        const cur = me.classResource.state
-        me.classResource.state = cur === 'DIA' ? 'NOCHE' : (cur === 'NOCHE' ? 'ECLIPSE' : 'DIA')
-      } else if (val === 'CHOOSE_DAY_OR_NIGHT') {
-        me.classResource.state = 'DIA'
-      } else if (typeof val === 'string') {
-        me.classResource.state = val as any
-      }
-      for (let i = 0; i < me.board.length; i++) applyCycleFormToCreature(state, playerIndex, i)
-      break
+case EffectActionType.CHANGE_CYCLE_STATE: {
+  if (!me.classResource || me.classResource.type !== 'ESTADO') break
+  const val = action.value
+  if (val === 'PERMANENT_ECLIPSE') {
+    me.permanentEclipse = true
+    me.classResource.state = 'ECLIPSE'
+    me.manualCycleChangedThisTurn = true
+  } else if (val === 'NEXT_CYCLE_STATE') {
+    const cur = me.classResource.state
+    me.classResource.state = cur === 'DIA' ? 'NOCHE' : (cur === 'NOCHE' ? 'ECLIPSE' : 'DIA')
+    me.manualCycleChangedThisTurn = true
+  } else if (val === 'CHOOSE_DAY_OR_NIGHT') {
+    me.classResource.state = 'DIA'
+    me.manualCycleChangedThisTurn = true
+  } else if (typeof val === 'string') {
+    me.classResource.state = val as any
+    me.manualCycleChangedThisTurn = true
+  }
+  // Reaplicar formas solo si la carta lo pide
+  for (let i = 0; i < me.board.length; i++) {
+    const ent = me.board[i]
+    const base: any = getCardByIdGlobal(ent.cardId)
+    if (base && base.dayForm && base.transformsWithCycle === true) {
+      applyCycleFormToCreature(state, playerIndex, i)
     }
+  }
+  applyGuardianAura(state, playerIndex)
+  break
+}
 
     case EffectActionType.GAIN_ENTROPY: {
       if (me.classResource?.type === 'ENTROPIA') {
@@ -758,6 +782,16 @@ case EffectActionType.DISCOVER_PAY_ENTROPY: {
     case EffectActionType.ACTIVATE_ECLIPSE: {
       if (me.classResource?.type === 'ESTADO') {
         me.classResource.state = 'ECLIPSE'
+        me.manualCycleChangedThisTurn = true
+        // Reaplicar formas solo si la carta lo pide
+        for (let i = 0; i < me.board.length; i++) {
+          const ent = me.board[i]
+          const base: any = getCardByIdGlobal(ent.cardId)
+          if (base && base.dayForm && base.transformsWithCycle === true) {
+            applyCycleFormToCreature(state, playerIndex, i)
+          }
+        }
+        applyGuardianAura(state, playerIndex)
       }
       break
     }
@@ -1311,6 +1345,40 @@ export function getRandomHintsForAction(state: GameState, playerIndex: number, a
       break
   }
   return hints
+}
+export function applyGuardianAura(state: GameState, playerIndex: number) {
+  const me = state.players[playerIndex]
+  // Cuenta cuántos Guardian_del_Equilibrio controlas
+  const stacks = me.board.filter(ent => getCardByIdGlobal(ent.cardId)?.id === 'Guardian_del_Equilibrio').length
+  // Quita aura previa si existía
+  const prev = me.cycleAuraApplied ?? null
+  const prevStacks = me.cycleAuraStacks ?? 0
+  // Si no cambia nada, no toques stats
+  if (prev === (me.classResource?.state === 'DIA' ? 'DIA' : me.classResource?.state === 'NOCHE' ? 'NOCHE' : null)
+      && prevStacks === stacks) return
+  if (prev && prevStacks > 0) {
+    const [atkOff, hpOff] = prev === 'DIA' ? [2 * prevStacks, 0] : [0, 2 * prevStacks]
+    for (const c of me.board) {
+      c.attack -= atkOff
+      c.health -= hpOff
+    }
+  }
+  // Define nueva aura según estado actual (solo Día/Noche)
+  const stateNow = me.classResource?.state
+  const nextAura: 'DIA' | 'NOCHE' | null = stateNow === 'DIA' ? 'DIA' : (stateNow === 'NOCHE' ? 'NOCHE' : null)
+
+  if (nextAura && stacks > 0) {
+    const [atkOn, hpOn] = nextAura === 'DIA' ? [2 * stacks, 0] : [0, 2 * stacks]
+    for (const c of me.board) {
+      c.attack += atkOn
+      c.health += hpOn
+    }
+    me.cycleAuraApplied = nextAura
+    me.cycleAuraStacks = stacks
+  } else {
+    me.cycleAuraApplied = null
+    me.cycleAuraStacks = 0
+  }
 }
 export function triggerTriggeredEffects(state: GameState, playerIndex: number): void {
   const p = state.players[playerIndex]

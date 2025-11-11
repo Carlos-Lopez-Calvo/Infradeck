@@ -11,7 +11,7 @@ import {
 import { mulberry32, shuffle } from './utils'
 
 import { draw } from './turns'
-
+import { notifyEnterBattlefield } from './priority'
 
 
 // Enums y Tipos principales
@@ -78,7 +78,8 @@ export interface PlayerState {
   cardCostReductionSkipOnce?: boolean        // ← nuevo
   playedChaosEffects?: EffectAction[]        // ← nuevo historial
   forceDiscoverBuff?: boolean                // ← NUEVO
-  
+  cycleAuraApplied?: 'DIA' | 'NOCHE' | null
+cycleAuraStacks?: number
 }
 
 export interface TurnState {
@@ -148,6 +149,8 @@ export function createGame(
     lastAttackTargetHero: false,
     programmedSpecimenEffects: [],
     playedChaosEffects: [],                           // ← inicializa historial
+    cycleAuraApplied: null,
+    cycleAuraStacks: 0
   })
   return {
     players: [base(p1), base(p2)],
@@ -303,6 +306,7 @@ export function playCard(
     player.board.push(entity)
     // Aplica efectos ON_ENTER
     applyOnEnterEffects(state, entity, playerIndex, card)
+    notifyEnterBattlefield(state, playerIndex, entity.id)
   } else {
     // Si es hechizo, resuelve efectos y manda al cementerio
     console.log('[SPELL] playing spell', { cardId: card.id, effects: card.effects })
@@ -378,7 +382,7 @@ export function setDiscoverRequest(handler: DiscoverHandler) { onDiscoverRequest
 // =======================
 // Import helpers de otros módulos
 // =======================
-import { triggerPriority, addToStack, getStack, passPriority, resolveStack, notifyCardPlayed, notifyEffectTriggered, notifyEnterBattlefield, notifyLeaveBattlefield, applyStackItem } from './priority'
+import { triggerPriority, addToStack, getStack, passPriority, resolveStack, notifyCardPlayed, notifyEffectTriggered, notifyLeaveBattlefield, applyStackItem } from './priority'
 
 import { effectConditionPasses, triggerBoardEffects, applyOnEnterEffects, applyAction, resolveSingleTarget, consumeEntropy, gainEntropyOnPlay, getRandomHintsForAction } from './effects'
 import { summonSpecimen, handleSpecimenOnEnter, getUniqueAbilitiesFromGraveyard, hasSpecimenOnBoard, getSpecimenCost } from './specimen'

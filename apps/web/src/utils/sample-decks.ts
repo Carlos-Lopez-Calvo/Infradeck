@@ -46,24 +46,7 @@ export const sampleDecks = {
 
   CICLO: [
     // Cartas de clase
-    'Eclipse_Eterno',
-    'Convergencia_Celestial',
-    'Explorador_Crepuscular', 'Explorador_Crepuscular',
-    'Ritual_del_Amanecer', 'Ritual_del_Amanecer',
-    'Vidente_Lunar', 'Vidente_Lunar',
-    'Cambiaformas_Lunar', 'Cambiaformas_Lunar',
-    'Invocador_de_Eclipse', 'Invocador_de_Eclipse',
-    'Guardian_del_Equilibrio', 'Guardian_del_Equilibrio',
-    'Momento_Perfecto', 'Momento_Perfecto',
-    'Maestro_del_Tiempo', 'Maestro_del_Tiempo',
-
-    // Cartas básicas
-    'Ultima_Oportunidad', 'Ultima_Oportunidad',
-    'Mercenario', 'Mercenario',
-    'Explorador_Audaz', 'Explorador_Audaz',
-    'Asesino_Delarossa', 'Asesino_Delarossa',
-    'Guardian_Novato', 'Guardian_Novato',
-    'Primera_Oportunidad', 'Primera_Oportunidad'
+    'Eclipse_Eterno','Eclipse_Eterno','Eclipse_Eterno','Eclipse_Eterno','Eclipse_Eterno','Eclipse_Eterno','Eclipse_Eterno','Eclipse_Eterno',
   ],
 
   VITALIDAD: [

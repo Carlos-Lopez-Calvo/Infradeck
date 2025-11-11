@@ -1,10 +1,10 @@
 import React from 'react'
 import { StackMazo } from './Mazo'
 import { useGameEngine } from '../context/GameEngineProvider'
-import { getSpecimenCost } from '@infradeck/shared'
+import { getSpecimenCost, getCardByIdGlobal, getCurrentForm } from '@infradeck/shared'
 
 export function ContenidoDerecha() {
-    const { gameState, currentPlayer, actions, isMyTurn } = useGameEngine()
+    const { gameState, currentPlayer, actions, isMyTurn, setGameState } = useGameEngine()
    const phase = gameState.turn.phase
 
     const deckCount = currentPlayer.deck.length
@@ -30,11 +30,35 @@ export function ContenidoDerecha() {
             <div className="w-1/2 h-full bg-black rounded-lg flex flex-col items-center justify-center">
           {classResource ? (
             <>
-              <span className="font-bold text-sm mb-1">{classResource.name}</span>
-              {'value' in classResource && classResource.value != null ? (
-                <span className="text-white font-bold text-lg">{classResource.value}</span>
+              {cr?.type === 'ESTADO' ? (
+                <div className="flex flex-col items-center">
+                  {(() => {
+                    const state = cr?.state ?? 'DIA'
+                    const cfg =
+                      state === 'DIA'
+                        ? { label: 'Día', icon: '☀️', ring: 'ring-yellow-400', text: 'text-yellow-300', glow: 'shadow-[0_0_12px_rgba(250,204,21,0.4)]' }
+                        : state === 'NOCHE'
+                        ? { label: 'Noche', icon: '🌙', ring: 'ring-blue-400', text: 'text-blue-300', glow: 'shadow-[0_0_12px_rgba(96,165,250,0.4)]' }
+                        : { label: 'Eclipse', icon: '🌓', ring: 'ring-purple-400', text: 'text-purple-300', glow: 'shadow-[0_0_12px_rgba(192,132,252,0.4)]' }
+                    return (
+                      <>
+                        <div className={`w-16 h-16 rounded-full ring-4 ${cfg.ring} ${cfg.glow} grid place-items-center`} title="Estado de Ciclo">
+                          <span className="text-2xl">{cfg.icon}</span>
+                        </div>
+                        <span className={`mt-2 font-bold ${cfg.text}`}>{cfg.label}</span>
+                      </>
+                    )
+                  })()}
+                </div>
               ) : (
-                <span className="text-white text-xs">Estado</span>
+                <>
+                  <span className="font-bold text-sm mb-1">{classResource.name}</span>
+                  {'value' in classResource && classResource.value != null ? (
+                    <span className="text-white font-bold text-lg">{classResource.value}</span>
+                  ) : (
+                    <span className="text-white text-xs">Estado</span>
+                  )}
+                </>
               )}
               {isAmalgama && (
                 <button
@@ -44,6 +68,41 @@ export function ContenidoDerecha() {
                   title={`Invocar G4BR13L (${specimenCost ?? 0} maná)`}
                 >
                   Invocar G4BR13L ({specimenCost ?? 0})
+                </button>
+              )}
+              {cr?.type === 'ESTADO' && (
+                <button
+                  className="mt-2 px-3 py-2 rounded-lg border border-white/30 bg-purple-700 text-white text-sm disabled:opacity-50"
+                  disabled={!isMyTurn}
+                  title="Forzar Eclipse (solo pruebas)"
+                  onClick={() => {
+                    setGameState(prev => {
+                      const next = JSON.parse(JSON.stringify(prev)) as typeof prev
+                      const meIdx = next.players[0].id === currentPlayer.id ? 0 : 1
+                      const me = next.players[meIdx]
+                      if (me.classResource?.type === 'ESTADO') {
+                        me.classResource.state = 'ECLIPSE'
+                        // Reaplicar forma de ciclo a mis criaturas en mesa
+                        for (let i = 0; i < me.board.length; i++) {
+                          const ent = me.board[i]
+                          const base = getCardByIdGlobal(ent.cardId) as any
+                          if (base && base.dayForm && base.transformsWithCycle === true) {
+                            const form = getCurrentForm(base, 'ECLIPSE' as any) || {}
+                            ent.attack = form.attack ?? ent.attack
+                            // Mantener daño actual si baja el máximo
+                            const newMax = form.health ?? ent.health
+                            ent.health = Math.min(ent.health, newMax)
+                            ent.abilities = Array.isArray(form.abilities)
+                              ? form.abilities.map(a => String(a))
+                              : (ent.abilities ?? [])
+                          }
+                        }
+                      }
+                      return next
+                    })
+                  }}
+                >
+                  Forzar Eclipse (test)
                 </button>
               )}
             </>

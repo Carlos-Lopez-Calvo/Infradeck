@@ -806,6 +806,7 @@ export const EXPLORADOR_CREPUSCULAR: CycleCard = {
   type: CardType.CREATURE,
   rarity: CardRarity.BASIC,
   classType: ClassType.CICLO,
+  transformsWithCycle: false,
   mana: 1,
   dayForm: {
     attack: 2,
@@ -859,7 +860,7 @@ export const RITUAL_DEL_AMANECER: Card = {
     },
     {
       id: 'Ritual_Night_Effect',
-      description: 'Noche: Cura 3 de vida a tu héroe',
+      description: 'Noche: Cura 4 de vida a tu héroe',
       timing: EffectTiming.ON_PLAY,
       condition: {
         type: 'CLASS_RESOURCE',
@@ -869,13 +870,13 @@ export const RITUAL_DEL_AMANECER: Card = {
       action: {
         type: EffectActionType.HEAL,
         target: EffectTarget.FRIENDLY_HERO,
-        amount: 3,
+        amount: 4,
         duration: 'PERMANENT'
       }
     },
     {
-      id: 'Ritual_Eclipse_Effect',
-      description: 'Eclipse: Haz 3 de daño Y cura 3 de vida',
+      id: 'Ritual_Eclipse_Damage',
+      description: 'Eclipse: Haz 3 de daño a un objetivo',
       timing: EffectTiming.ON_PLAY,
       condition: {
         type: 'CLASS_RESOURCE',
@@ -888,13 +889,29 @@ export const RITUAL_DEL_AMANECER: Card = {
         amount: 3,
         duration: 'PERMANENT'
       }
+    },
+    {
+      id: 'Ritual_Eclipse_Heal',
+      description: 'Eclipse: Cura 4 de vida a tu héroe',
+      timing: EffectTiming.ON_PLAY,
+      condition: {
+        type: 'CLASS_RESOURCE',
+        value: CycleState.ECLIPSE,
+        comparison: 'EQUAL'
+      },
+      action: {
+        type: EffectActionType.HEAL,
+        target: EffectTarget.FRIENDLY_HERO,
+        amount: 4,
+        duration: 'PERMANENT'
+      }
     }
   ],
   classResource: {
     type: 'ESTADO',
-    state: CycleState.DIA // Placeholder - real implementation handles all states
+    state: CycleState.DIA
   },
-  description: 'Día: Haz 3 de daño a un objetivo. Noche: Cura 3 de vida a tu héroe. Eclipse: Haz 3 de daño Y cura 3 de vida',
+  description: 'Día: 3 daño a un objetivo. Noche: Cura 4 a tu héroe. Eclipse: 3 daño y cura 4.',
   flavorText: 'El ciclo eterno de destrucción y renovación.'
 }
 
@@ -910,39 +927,36 @@ export const VIDENTE_LUNAR: Card = {
   abilities: [],
   effects: [
     {
-      id: 'Vidente_Day_Patience',
-      description: 'Día: Al final del turno: Si no cambiaste de estado, roba 1 carta',
-      timing: EffectTiming.END_OF_TURN,
-      condition: {
-        type: 'BOARD_STATE',
-        value: 'NO_STATE_CHANGE_THIS_TURN',
-        comparison: 'EQUAL'
-      },
-      action: {
-        type: EffectActionType.DRAW_CARDS,
-        target: EffectTarget.FRIENDLY_HERO,
-        amount: 1,
-        duration: 'PERMANENT'
-      }
+      id: 'Vidente_OnEnter_Day_Draw',
+      description: 'Día: Al entrar: Roba 1 carta',
+      timing: EffectTiming.ON_ENTER,
+      condition: { type: 'CLASS_RESOURCE', value: CycleState.DIA, comparison: 'EQUAL' },
+      action: { type: EffectActionType.DRAW_CARDS, target: EffectTarget.FRIENDLY_HERO, amount: 1, duration: 'PERMANENT' }
     },
     {
-      id: 'Vidente_Night_Patience',
-      description: 'Noche: Al final del turno: Si no cambiaste de estado, gana Taunt hasta tu próximo turno',
-      timing: EffectTiming.END_OF_TURN,
-      condition: {
-        type: 'BOARD_STATE',
-        value: 'NO_STATE_CHANGE_THIS_TURN',
-        comparison: 'EQUAL'
-      },
-      action: {
-        type: EffectActionType.GAIN_ABILITY,
-        target: EffectTarget.SELF,
-        value: Ability.TAUNT,
-        duration: 'END_OF_TURN'
-      }
+      id: 'Vidente_OnEnter_Night_Taunt',
+      description: 'Noche: Al entrar: Gana Taunt',
+      timing: EffectTiming.ON_ENTER,
+      condition: { type: 'CLASS_RESOURCE', value: CycleState.NOCHE, comparison: 'EQUAL' },
+      action: { type: EffectActionType.GAIN_ABILITY, target: EffectTarget.SELF, value: Ability.TAUNT, duration: 'UNTIL_DEATH' }
+    },
+    // Eclipse: hace ambas
+    {
+      id: 'Vidente_OnEnter_Eclipse_Draw',
+      description: 'Eclipse: Al entrar: Roba 1 carta',
+      timing: EffectTiming.ON_ENTER,
+      condition: { type: 'CLASS_RESOURCE', value: CycleState.ECLIPSE, comparison: 'EQUAL' },
+      action: { type: EffectActionType.DRAW_CARDS, target: EffectTarget.FRIENDLY_HERO, amount: 1, duration: 'PERMANENT' }
+    },
+    {
+      id: 'Vidente_OnEnter_Eclipse_Taunt',
+      description: 'Eclipse: Al entrar: Gana Taunt',
+      timing: EffectTiming.ON_ENTER,
+      condition: { type: 'CLASS_RESOURCE', value: CycleState.ECLIPSE, comparison: 'EQUAL' },
+      action: { type: EffectActionType.GAIN_ABILITY, target: EffectTarget.SELF, value: Ability.TAUNT, duration: 'UNTIL_DEATH' }
     }
   ],
-  description: '1/3. Día: Al final del turno: Si no cambiaste de estado, roba 1 carta. Noche: Al final del turno: Si no cambiaste de estado, gana Taunt hasta tu próximo turno',
+  description: '1/3. Al entrar: Día: roba 1 carta. Noche: gana Taunt. Eclipse: ambas.',
   flavorText: 'La paciencia revela secretos.'
 }
 
@@ -991,9 +1005,9 @@ export const INVOCADOR_DE_ECLIPSE: Card = {
   abilities: [],
   effects: [
     {
-      id: 'Invocador_Day_Activation',
-      description: 'Día: Al entrar: Activa Eclipse si tienes 5+ mana',
-      timing: EffectTiming.ON_ENTER,
+      id: 'Invocador_Start_Activate',
+      description: 'Al inicio de tu turno: Si tienes 5+ maná, activa Eclipse',
+      timing: EffectTiming.START_OF_TURN,
       condition: {
         type: 'BOARD_STATE',
         value: 'MANA_5_PLUS',
@@ -1004,24 +1018,9 @@ export const INVOCADOR_DE_ECLIPSE: Card = {
         target: EffectTarget.FRIENDLY_HERO,
         duration: 'PERMANENT'
       }
-    },
-    {
-      id: 'Invocador_Night_Activation',
-      description: 'Noche: Al entrar: Activa Eclipse si tienes 6+ mana',
-      timing: EffectTiming.ON_ENTER,
-      condition: {
-        type: 'BOARD_STATE',
-        value: 'MANA_6_PLUS',
-        comparison: 'EQUAL'
-      },
-      action: {
-        type: EffectActionType.ACTIVATE_ECLIPSE,
-        target: EffectTarget.FRIENDLY_HERO,
-        duration: 'PERMANENT'
-      }
     }
   ],
-  description: '3/3. Día: Al entrar: Activa Eclipse si tienes 5+ mana. Noche: Al entrar: Activa Eclipse si tienes 6+ mana',
+  description: '3/3. Al inicio de tu turno: Si tienes 5+ maná, activa Eclipse.',
   flavorText: 'Fuerza la convergencia de los astros.'
 }
 
@@ -1034,46 +1033,28 @@ export const GUARDIAN_DEL_EQUILIBRIO: Card = {
   mana: 3,
   attack: 2,
   health: 4,
+  
   abilities: [Ability.TAUNT],
   effects: [
+    // Eclipse: Regeneración de equipo al entrar
     {
       id: 'Guardian_Eclipse_Regeneration',
-      description: 'Al entrar: Si es Eclipse, todas tus criaturas ganan Regeneración hasta final del turno',
+      description: 'Eclipse: Al entrar: Todas tus criaturas ganan Regeneración hasta final del turno',
       timing: EffectTiming.ON_ENTER,
-      condition: {
-        type: 'CLASS_RESOURCE',
-        value: CycleState.ECLIPSE,
-        comparison: 'EQUAL'
-      },
-      action: {
-        type: EffectActionType.GAIN_ABILITY,
-        target: EffectTarget.ALL_FRIENDLY_CREATURES,
-        value: Ability.REGENERACION,
-        duration: 'END_OF_TURN'
-      }
+      condition: { type: 'CLASS_RESOURCE', value: CycleState.ECLIPSE, comparison: 'EQUAL' },
+      action: { type: EffectActionType.GAIN_ABILITY, target: EffectTarget.ALL_FRIENDLY_CREATURES, value: Ability.REGENERACION, duration: 'END_OF_TURN' }
     },
+    // Eclipse: Buff pasivo propio (conservado)
     {
       id: 'Guardian_Eclipse_Self_Buff',
-      description: 'Eclipse: Gana +2/+2 y Escudo',
+      description: 'Eclipse: Gana +2/+2',
       timing: EffectTiming.PASSIVE,
-      condition: {
-        type: 'CLASS_RESOURCE',
-        value: CycleState.ECLIPSE,
-        comparison: 'EQUAL'
-      },
-      action: {
-        type: EffectActionType.BUFF_STATS,
-        target: EffectTarget.SELF,
-        value: '+2/+2',
-        duration: 'PERMANENT'
-      }
+      condition: { type: 'CLASS_RESOURCE', value: CycleState.ECLIPSE, comparison: 'EQUAL' },
+      action: { type: EffectActionType.BUFF_STATS, target: EffectTarget.SELF, value: '+2/+2', duration: 'PERMANENT' }
     }
   ],
-  classResource: {
-    type: 'ESTADO',
-    state: CycleState.ECLIPSE
-  },
-  description: '2/4 con Taunt. Al entrar: Si es Eclipse, todas tus criaturas ganan Regeneración hasta final del turno. Eclipse: Gana +2/+2 y Escudo',
+  classResource: { type: 'ESTADO', state: CycleState.ECLIPSE },
+  description: '2/4 con Taunt. Aura: Durante el Día tus criaturas obtienen +2 ATQ; durante la Noche obtienen +2 VIDA (se acumula por cada Guardián). Eclipse: Al entrar, todas tus criaturas ganan Regeneración hasta fin de turno y este obtiene +2/+2.',
   flavorText: 'En el equilibrio perfecto, todo es posible.'
 }
 
@@ -1086,56 +1067,83 @@ export const MOMENTO_PERFECTO: Card = {
   mana: 4,
   abilities: [],
   effects: [
+    // Día: daño al héroe enemigo igual a la suma del ATQ de tus criaturas
     {
-      id: 'Momento_Day_Attack',
-      description: 'Día: Todas tus criaturas atacan inmediatamente con +1/+0',
+      id: 'Momento_Day_SumAttack_Face',
+      description: 'Día: Inflige al héroe enemigo daño igual a la suma del ATQ de tus criaturas',
       timing: EffectTiming.ON_PLAY,
-      condition: {
-        type: 'CLASS_RESOURCE',
-        value: CycleState.DIA,
-        comparison: 'EQUAL'
-      },
+      condition: { type: 'CLASS_RESOURCE', value: CycleState.DIA, comparison: 'EQUAL' },
       action: {
-        type: EffectActionType.BUFF_ATTACK,
-        target: EffectTarget.ALL_FRIENDLY_CREATURES,
-        amount: 1,
-        duration: 'END_OF_TURN'
+        type: EffectActionType.DAMAGE,
+        target: EffectTarget.ENEMY_HERO,
+        value: 'SUM_FRIENDLY_ATTACK',
+        duration: 'PERMANENT'
       }
     },
+    // Noche: todas tus criaturas ganan Taunt y Escudo (permanente)
     {
-      id: 'Momento_Night_Defense',
-      description: 'Noche: Todas tus criaturas ganan Taunt y +0/+1 hasta final del turno',
+      id: 'Momento_Night_Give_Taunt',
+      description: 'Noche: Todas tus criaturas ganan Taunt (permanente)',
       timing: EffectTiming.ON_PLAY,
-      condition: {
-        type: 'CLASS_RESOURCE',
-        value: CycleState.NOCHE,
-        comparison: 'EQUAL'
-      },
-      action: {
-        type: EffectActionType.GAIN_ABILITY,
-        target: EffectTarget.ALL_FRIENDLY_CREATURES,
-        value: Ability.TAUNT,
-        duration: 'END_OF_TURN'
-      }
-    },
-    {
-      id: 'Momento_Eclipse_Combined',
-      description: 'Eclipse: Combina ambos efectos (Taunt y +0/+1 permanentes)',
-      timing: EffectTiming.ON_PLAY,
-      condition: {
-        type: 'CLASS_RESOURCE',
-        value: CycleState.ECLIPSE,
-        comparison: 'EQUAL'
-      },
+      condition: { type: 'CLASS_RESOURCE', value: CycleState.NOCHE, comparison: 'EQUAL' },
       action: {
         type: EffectActionType.GAIN_ABILITY,
         target: EffectTarget.ALL_FRIENDLY_CREATURES,
         value: Ability.TAUNT,
         duration: 'PERMANENT'
       }
+    },
+    {
+      id: 'Momento_Night_Give_Shield',
+      description: 'Noche: Todas tus criaturas ganan Escudo (permanente)',
+      timing: EffectTiming.ON_PLAY,
+      condition: { type: 'CLASS_RESOURCE', value: CycleState.NOCHE, comparison: 'EQUAL' },
+      action: {
+        type: EffectActionType.GAIN_ABILITY,
+        target: EffectTarget.ALL_FRIENDLY_CREATURES,
+        value: Ability.ESCUDO,
+        duration: 'PERMANENT'
+      }
+    },
+    // Eclipse: combina ambos efectos (permanente)
+    {
+      id: 'Momento_Eclipse_Combo_Damage',
+      description: 'Eclipse: Inflige al héroe enemigo daño igual a la suma del ATQ de tus criaturas',
+      timing: EffectTiming.ON_PLAY,
+      condition: { type: 'CLASS_RESOURCE', value: CycleState.ECLIPSE, comparison: 'EQUAL' },
+      action: {
+        type: EffectActionType.DAMAGE,
+        target: EffectTarget.ENEMY_HERO,
+        value: 'SUM_FRIENDLY_ATTACK',
+        duration: 'PERMANENT'
+      }
+    },
+    {
+      id: 'Momento_Eclipse_Combo_Taunt',
+      description: 'Eclipse: Todas tus criaturas ganan Taunt (permanente)',
+      timing: EffectTiming.ON_PLAY,
+      condition: { type: 'CLASS_RESOURCE', value: CycleState.ECLIPSE, comparison: 'EQUAL' },
+      action: {
+        type: EffectActionType.GAIN_ABILITY,
+        target: EffectTarget.ALL_FRIENDLY_CREATURES,
+        value: Ability.TAUNT,
+        duration: 'PERMANENT'
+      }
+    },
+    {
+      id: 'Momento_Eclipse_Combo_Shield',
+      description: 'Eclipse: Todas tus criaturas ganan Escudo (permanente)',
+      timing: EffectTiming.ON_PLAY,
+      condition: { type: 'CLASS_RESOURCE', value: CycleState.ECLIPSE, comparison: 'EQUAL' },
+      action: {
+        type: EffectActionType.GAIN_ABILITY,
+        target: EffectTarget.ALL_FRIENDLY_CREATURES,
+        value: Ability.ESCUDO,
+        duration: 'PERMANENT'
+      }
     }
   ],
-  description: 'Día: Todas tus criaturas atacan inmediatamente con +1/+0. Noche: Todas tus criaturas ganan Taunt y +0/+1 hasta final del turno. Eclipse: Combina ambos efectos (Taunt y +0/+1 permanentes)',
+  description: 'Día: Daño al héroe igual a la suma del ATQ de tus criaturas. Noche: Todas tus criaturas ganan Taunt y Escudo (permanente). Eclipse: ambos efectos.',
   flavorText: 'El timing lo es todo.'
 }
 
@@ -1150,36 +1158,42 @@ export const MAESTRO_DEL_TIEMPO: Card = {
   health: 5,
   abilities: [],
   effects: [
+    // ===== DÍA: 3 daño a criatura enemiga aleatoria =====
     {
-      id: 'Maestro_Force_Eclipse',
-      description: 'Al final de tu turno: Puedes cambiar a Eclipse hasta tu próximo turno',
+      id: 'Maestro_Dia_End_DamageCreature',
+      description: 'Día: Al final de tu turno, inflige 3 de daño a una criatura enemiga aleatoria',
       timing: EffectTiming.END_OF_TURN,
-      action: {
-        type: EffectActionType.CHANGE_CYCLE_STATE,
-        target: EffectTarget.FRIENDLY_HERO,
-        value: CycleState.ECLIPSE,
-        duration: 'END_OF_TURN'
-      }
+      condition: { type: 'CLASS_RESOURCE', value: CycleState.DIA, comparison: 'EQUAL' },
+      action: { type: EffectActionType.DAMAGE, target: EffectTarget.RANDOM_ENEMY, amount: 3, duration: 'PERMANENT' }
+    },
+
+    // ===== NOCHE: 3 daño al héroe enemigo =====
+    {
+      id: 'Maestro_Noche_End_DamageHero',
+      description: 'Noche: Al final de tu turno, inflige 3 de daño al héroe enemigo',
+      timing: EffectTiming.END_OF_TURN,
+      condition: { type: 'CLASS_RESOURCE', value: CycleState.NOCHE, comparison: 'EQUAL' },
+      action: { type: EffectActionType.DAMAGE, target: EffectTarget.ENEMY_HERO, amount: 3, duration: 'PERMANENT' }
+    },
+
+    // ===== ECLIPSE: 3 daño a criatura aleatoria + 3 daño al héroe =====
+    {
+      id: 'Maestro_Eclipse_End_DamageCreature',
+      description: 'Eclipse: Al final de tu turno, inflige 3 de daño a una criatura enemiga aleatoria',
+      timing: EffectTiming.END_OF_TURN,
+      condition: { type: 'CLASS_RESOURCE', value: CycleState.ECLIPSE, comparison: 'EQUAL' },
+      action: { type: EffectActionType.DAMAGE, target: EffectTarget.RANDOM_ENEMY, amount: 3, duration: 'PERMANENT' }
     },
     {
-      id: 'Maestro_Eclipse_Control',
-      description: 'Eclipse: Al final del turno: Puedes elegir si cambiar a Día o Noche',
+      id: 'Maestro_Eclipse_End_DamageHero',
+      description: 'Eclipse: Al final de tu turno, inflige 3 de daño al héroe enemigo',
       timing: EffectTiming.END_OF_TURN,
-      condition: {
-        type: 'CLASS_RESOURCE',
-        value: CycleState.ECLIPSE,
-        comparison: 'EQUAL'
-      },
-      action: {
-        type: EffectActionType.CHANGE_CYCLE_STATE,
-        target: EffectTarget.FRIENDLY_HERO,
-        value: 'CHOOSE_DAY_OR_NIGHT',
-        duration: 'PERMANENT'
-      }
+      condition: { type: 'CLASS_RESOURCE', value: CycleState.ECLIPSE, comparison: 'EQUAL' },
+      action: { type: EffectActionType.DAMAGE, target: EffectTarget.ENEMY_HERO, amount: 3, duration: 'PERMANENT' }
     }
   ],
-  description: '4/5. Al final de tu turno: Puedes cambiar a Eclipse hasta tu próximo turno. Eclipse: Al final del turno: Puedes elegir si cambiar a Día o Noche',
-  flavorText: 'Controla el flujo del tiempo mismo.'
+  description: 'Día: Al final de tu turno, inflige 3 de daño a una criatura enemiga aleatoria. Noche: Al final de tu turno, inflige 3 de daño al héroe enemigo. Eclipse: Hace ambas cosas.',
+  flavorText: 'Dirige cada compás del ciclo con precisión.'
 }
 
 export const ECLIPSE_ETERNO: Card = {

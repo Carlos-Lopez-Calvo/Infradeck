@@ -48,9 +48,11 @@ export function GameBoard() {
           <div className="battlefield h-2/3 w-full flex items-center justify-center bg-black">
             <div className="flex gap-3">
             {opponentPlayer.board.map((c, idx) => {
-                const card = getCardByIdGlobal(c.cardId)
-                if (!card) return null
-                const preview = { ...card, attack: c.attack, health: c.health, abilities: c.abilities }
+                // Oponente (battlefield superior)
+const base = getCardByIdGlobal(c.cardId)
+const preview = base
+  ? { ...base, attack: c.attack, health: c.health, abilities: c.abilities }
+  : { id: c.cardId, name: 'Token', type: 'CREATURE', rarity: 'BASIC', mana: 0, attack: c.attack, health: c.health, abilities: c.abilities, effects: [], description: '', flavorText: '' }
                 return (
                   <button
                     key={c.id ?? `${c.cardId}-${idx}`}
@@ -64,10 +66,11 @@ export function GameBoard() {
                     }}
                     title="Click para atacar a esta criatura (si tienes un atacante seleccionado)"
                     onMouseEnter={() => {
-                      const base = getCardByIdGlobal(c.cardId)
-                      const preview = base
-                        ? { ...base, attack: c.attack, health: c.health, abilities: c.abilities }
-                        : { id: c.cardId, name: 'Token', type: 'CREATURE', rarity: 'BASIC', mana: 0, attack: c.attack, health: c.health, abilities: c.abilities, effects: [], description: '', flavorText: '' }
+                      // Tú (battlefield inferior)
+const base = getCardByIdGlobal(c.cardId)
+const preview = base
+  ? { ...base, attack: c.attack, health: c.health, abilities: c.abilities }
+  : { id: c.cardId, name: 'Token', type: 'CREATURE', rarity: 'BASIC', mana: 0, attack: c.attack, health: c.health, abilities: c.abilities, effects: [], description: '', flavorText: '' }
                       setHoverPreview(preview as any)
                     }}
                     onMouseLeave={() => setHoverPreview(null)}
@@ -113,11 +116,13 @@ export function GameBoard() {
   <div className="battlefield h-3/5 w-full flex items-center justify-center bg-black">
             <div className="flex gap-3">
             {currentPlayer.board.map((c, idx) => {
-                const card = getCardByIdGlobal(c.cardId)
-                if (!card) return null
+                const base = getCardByIdGlobal(c.cardId)
+                if (!base) return null
                 const isSelected = selectedAttacker === idx
                 const canSelect = canAct && !c.exhausted && (c.attack ?? 0) > 0 && c.health > 0
-                const preview = { ...card, attack: c.attack, health: c.health, abilities: c.abilities }
+                const preview = base
+  ? { ...base, attack: c.attack, health: c.health, abilities: c.abilities }
+  : { id: c.cardId, name: 'Token', type: 'CREATURE', rarity: 'BASIC', mana: 0, attack: c.attack, health: c.health, abilities: c.abilities, effects: [], description: '', flavorText: '' }
                 return (
                   <button
                     key={c.id ?? `${c.cardId}-${idx}`}

@@ -1,16 +1,40 @@
 import React, { useState } from 'react'
 import { Card, ReversoCard } from './Card'
 import { useGameEngine } from '../context/GameEngineProvider'
-import { getCardByIdGlobal } from '@infradeck/shared'
+import { getCardByIdGlobal, getCurrentForm } from '@infradeck/shared'
 
 export function Hand() {
   const [hovered, setHovered] = useState<number | null>(null)
   const [isHandHovered, setIsHandHovered] = useState(false)
-  const { currentPlayer, actions, isMyTurn } = useGameEngine()
+  const { currentPlayer, actions, isMyTurn, gameState } = useGameEngine()
+
+  const meIndex = gameState.players[0].id === currentPlayer.id ? 0 : 1
+  const resolveViewCard = (cardId: string, ownerIndex: number) => {
+    const base: any = getCardByIdGlobal(cardId)
+    if (!base) return null
+    const owner = gameState.players[ownerIndex]
+    const isCycle = !!(base as any).dayForm
+    if (isCycle && owner.classResource?.type === 'ESTADO') {
+      const state = owner.classResource.state || 'DIA'
+      const form = getCurrentForm(base, state as any) || {}
+      return {
+        ...base,
+        attack: form.attack ?? base.attack ?? 0,
+        health: form.health ?? base.health ?? 0,
+        abilities: form.abilities ?? [],
+        effects: form.effects ?? [],
+      }
+    }
+    return {
+      ...base,
+      abilities: Array.isArray(base.abilities) ? base.abilities : [],
+      effects: Array.isArray(base.effects) ? base.effects : [],
+    }
+  }
 
   // Mantén el índice real de la mano para playCard
   const handItems = currentPlayer.hand
-    .map((id, idx) => ({ card: getCardByIdGlobal(id), handIndex: idx }))
+    .map((id, idx) => ({ card: resolveViewCard(id, meIndex), handIndex: idx }))
 
   return (
     <div
@@ -18,7 +42,7 @@ export function Hand() {
       onMouseEnter={() => setIsHandHovered(true)}
       onMouseLeave={() => setIsHandHovered(false)}
     >
-            {handItems.map(({ card, handIndex }, i) => {
+      {handItems.map(({ card, handIndex }, i) => {
         const total = handItems.length
         const denom = Math.max(total - 1, 1)
         const invRatio = Math.max(10 / Math.max(total, 1), 1)
@@ -54,13 +78,11 @@ export function Hand() {
               opacity: isMyTurn ? 1 : 0.6,
               cursor: isMyTurn ? 'pointer' : 'not-allowed',
             }}
-    
             onMouseEnter={() => setHovered(i)}
             onMouseLeave={() => setHovered(null)}
             onClick={() => isMyTurn && actions.playFromHand(handIndex)}
-  disabled={!isMyTurn /* || isBusy */}
->
-          
+            disabled={!isMyTurn /* || isBusy */}
+          >
             {card ? <Card card={card} /> : <ReversoCard />}
           </button>
         )

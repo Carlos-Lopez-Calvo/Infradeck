@@ -1,6 +1,6 @@
 import { GameState, GamePhase, getCardByIdGlobal } from './game-state'
 import { triggerPriority } from './priority'
-import { triggerBoardEffects } from './effects'
+import { triggerBoardEffects, applyGuardianAura } from './effects'
 import { applyFinalStandBonus } from './final-stand'
 import { getCurrentForm, CycleState } from '../types/cards'
 
@@ -48,15 +48,17 @@ export function startTurn(state: GameState): void {
       if (p.classResource.state) {
         for (let bi = 0; bi < p.board.length; bi++) {
           const ent = p.board[bi]
-          const base = getCardByIdGlobal(ent.cardId)
-          if (!base || !(base as any).dayForm) continue
-          const form = getCurrentForm(base as any, p.classResource.state as CycleState)
+          const base: any = getCardByIdGlobal(ent.cardId)
+          if (!base || !base.dayForm || base.transformsWithCycle !== true) continue
+          const form = getCurrentForm(base, p.classResource.state as CycleState)
           ent.attack = form.attack ?? ent.attack
-          const newMax = form.health ?? ent.health
-          if (ent.health > newMax) ent.health = newMax
-          ent.abilities = form.abilities ? form.abilities.map(a => String(a)) : []
+        const newMax = form.health ?? ent.health
+        if (ent.health > newMax) ent.health = newMax
+          ent.abilities = form.abilities ? form.abilities.map((a: any) => String(a)) : []
         }
       }
+      // Recalcula auras dinámicas (Guardian_del_Equilibrio)
+      applyGuardianAura(state, i)
     }
 
     
@@ -104,32 +106,34 @@ export function endTurn(state: GameState): void {
     tasks.forEach(fn => { try { fn() } catch {} })
   }
 
-    // Cambio de estado de Eclipse/Ciclo
-    if (p.classResource?.type === 'ESTADO') {
-      if (!p.permanentEclipse) {
-        if (p.classResource.state === 'DIA') p.classResource.state = 'NOCHE'
-        else if (p.classResource.state === 'NOCHE') p.classResource.state = 'DIA'
-        else if (p.classResource.state === 'ECLIPSE') p.classResource.state = 'DIA'
-      }
-      // Sincroniza formas de cartas CICLO del jugador activo tras el cambio
-      if (p.classResource.state) {
-        for (let bi = 0; bi < p.board.length; bi++) {
-          const ent = p.board[bi]
-          const base = getCardByIdGlobal(ent.cardId)
-          if (!base || !(base as any).dayForm) continue
-          const form = getCurrentForm(base as any, p.classResource.state as CycleState)
-          ent.attack = form.attack ?? ent.attack
-          const newMax = form.health ?? ent.health
-          if (ent.health > newMax) ent.health = newMax
-          ent.abilities = form.abilities ? form.abilities.map(a => String(a)) : []
-        }
+  // Cambio de estado de Eclipse/Ciclo
+  if (p.classResource?.type === 'ESTADO') {
+    if (!p.permanentEclipse) {
+      if (p.classResource.state === 'DIA') p.classResource.state = 'NOCHE'
+      else if (p.classResource.state === 'NOCHE') p.classResource.state = 'DIA'
+      else if (p.classResource.state === 'ECLIPSE') p.classResource.state = 'DIA'
+    }
+    // Sincroniza formas de cartas CICLO del jugador activo tras el cambio
+    if (p.classResource.state) {
+      for (let bi = 0; bi < p.board.length; bi++) {
+        const ent = p.board[bi]
+        const base = getCardByIdGlobal(ent.cardId)
+        if (!base || !(base as any).dayForm || (base as any).transformsWithCycle !== true) continue
+        const form = getCurrentForm(base as any, p.classResource.state as CycleState)
+        ent.attack = form.attack ?? ent.attack
+        const newMax = form.health ?? ent.health
+        if (ent.health > newMax) ent.health = newMax
+        ent.abilities = form.abilities ? form.abilities.map(a => String(a)) : []
       }
     }
+    // Recalcula auras dinámicas (Guardian_del_Equilibrio) tras el cambio
+    applyGuardianAura(state, i)
+  }
   
-    // Cambia jugador activo
-    state.turn.currentPlayerIndex = getOpponentPlayerIndex(state)
-    state.turn.phase = GamePhase.START
-    triggerPriority(state, GamePhase.START)
+  // Cambia jugador activo
+  state.turn.currentPlayerIndex = getOpponentPlayerIndex(state)
+  state.turn.phase = GamePhase.START
+  triggerPriority(state, GamePhase.START)
 
   
 }

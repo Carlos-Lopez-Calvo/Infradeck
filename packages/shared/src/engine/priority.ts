@@ -2,7 +2,7 @@ import { GameState, GamePhase, StackItem, getCardByIdGlobal, } from './game-stat
 import { onPriorityWindow } from './game-state'
 import { getCurrentPlayerIndex } from './turns'
 import { EffectAction } from '../types/cards'
-import { effectConditionPasses, applyAction, triggerTriggeredEffects } from './effects'
+import { effectConditionPasses, applyAction, triggerTriggeredEffects, applyGuardianAura } from './effects'
 
 
 // Helper para disparar prioridad en el jugador activo
@@ -94,6 +94,7 @@ export function notifyEffectTriggered(
 // Notificar que una entidad entra al campo de batalla
 export function notifyEnterBattlefield(state: GameState, playerIndex: number, entityId: string): void {
   triggerPriority(state, state.turn.phase)
+  applyGuardianAura(state, playerIndex)
 }
 
 // Notificar que una entidad sale del campo de batalla
@@ -102,6 +103,7 @@ export function notifyLeaveBattlefield(state: GameState, playerIndex: number, en
   state.players[playerIndex].allyDiedThisTurn = true
   // Disparar efectos TRIGGERED que dependan del estado de tablero (p.ej., ALLY_DIED_THIS_TURN)
   triggerTriggeredEffects(state, playerIndex)
+  applyGuardianAura(state, playerIndex)
 }
 
 // Aplica el efecto de un item de la pila (debes implementar esta función en el engine)
