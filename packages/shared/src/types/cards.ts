@@ -4,12 +4,26 @@
  */
 
 // ===== ENUMS BÁSICOS =====
+export function Card({ card, showMana = true }: { card: any; showMana?: boolean }) {
+  // Normalizaciones seguras
+  const abilities = Array.isArray(card.abilities) ? card.abilities : []
+  const effects = Array.isArray(card.effects) ? card.effects : []
+  const attack = typeof card.attack === 'number' ? card.attack : 0
+  const health = typeof card.health === 'number' ? card.health : 0
+
+  // ...resto del componente
+
+  // Donde antes hacías:
+  // {card.abilities.map(...)}  -> usa:
+  // {abilities.map(...)}
+
+  // Si iteras efectos:
+  // {effects.map(...)}
+}
 
 export enum CardType {
   CREATURE = 'CREATURE',
   SPELL = 'SPELL', 
-  INSTANT = 'INSTANT',
-  COUNTER_SPELL = 'COUNTER_SPELL',
 }
 
 export enum CardRarity {
@@ -19,7 +33,6 @@ export enum CardRarity {
 }
 
 export enum ClassType {
-  NEUTRAL = 'NEUTRAL',
   ABOMINACION = 'ABOMINACION',
   CAOS = 'CAOS', 
   CICLO = 'CICLO',
@@ -43,7 +56,7 @@ export enum Ability {
 
   // Especiales
   VUELO = 'VUELO',
-  DOBLE_GOLPE = 'DOBLE_GOLPE'        // ← añadir esto
+  DOBLE_GOLPE = 'DOBLE_GOLPE'
 }
 
 // ===== RECURSOS DE CLASE =====
@@ -66,10 +79,12 @@ export enum EffectActionType {
   // Damage & Healing
   DAMAGE = 'DAMAGE',
   HEAL = 'HEAL',
+  DAMAGE_ADJACENT = 'DAMAGE_ADJACENT',
   
   // Card manipulation  
   DRAW_CARDS = 'DRAW_CARDS',
   DISCARD_CARDS = 'DISCARD_CARDS',
+  SCRY = 'SCRY',
   
   // Creature creation
   SUMMON_CREATURE = 'SUMMON_CREATURE',
@@ -77,7 +92,7 @@ export enum EffectActionType {
   // Stats modification
   BUFF_ATTACK = 'BUFF_ATTACK',
   BUFF_HEALTH = 'BUFF_HEALTH', 
-  BUFF_STATS = 'BUFF_STATS',        // +X/+Y combined
+  BUFF_STATS = 'BUFF_STATS',
   
   // Abilities
   GAIN_ABILITY = 'GAIN_ABILITY',
@@ -86,13 +101,32 @@ export enum EffectActionType {
   // State changes
   CHANGE_CYCLE_STATE = 'CHANGE_CYCLE_STATE',
   GAIN_ENTROPY = 'GAIN_ENTROPY',
+  DISCOVER_PAY_ENTROPY = 'DISCOVER_PAY_ENTROPY',
   
   // Special effects
   ACTIVATE_ECLIPSE = 'ACTIVATE_ECLIPSE',
   SUMMON_SPECIMEN = 'SUMMON_SPECIMEN',
+  TRANSFORM = 'TRANSFORM',        
+  DISCOVER_PAY_LIFE = 'DISCOVER_PAY_LIFE',
+
+  ATTACK_SPELL = 'ATTACK_SPELL',
+  REDUCE_CARD_COST = 'REDUCE_CARD_COST',
+
+  REUSE_RANDOM_PAST_CHAOS_EFFECT = 'REUSE_RANDOM_PAST_CHAOS_EFFECT',
+
+  // NUEVO: Avatar destruye y absorbe
+  BOARD_NUKE_AND_ABSORB = 'BOARD_NUKE_AND_ABSORB',
+  DISCOVER_SUMMON_FROM_GRAVEYARD = 'DISCOVER_SUMMON_FROM_GRAVEYARD',
+  DAMAGE_AND_SUMMON_SAME_COST_IF_KILL = 'DAMAGE_AND_SUMMON_SAME_COST_IF_KILL',
+  DESTROY_TOP_HEALTH_CREATURES = 'DESTROY_TOP_HEALTH_CREATURES',
+  GRANT_TEMP_DRAW_ON_KILL = 'GRANT_TEMP_DRAW_ON_KILL',
   
-  // Counterspells
-  COUNTER_SPELL = 'COUNTER_SPELL',        // Anular hechizo/instantánea
+  // Selección avanzada: ver X cartas, elegir 1, resto al fondo
+  ADVANCED_SELECTION = 'ADVANCED_SELECTION',
+  
+  // Daño que roba carta si mata
+  DAMAGE_AND_DRAW_IF_KILL = 'DAMAGE_AND_DRAW_IF_KILL'
+  
 }
 
 export interface CardEffect {
@@ -101,6 +135,7 @@ export interface CardEffect {
   timing: EffectTiming
   condition?: EffectCondition
   action: EffectAction
+  
 }
 
 export enum EffectTiming {
@@ -126,26 +161,32 @@ export enum EffectTiming {
      comparison?: 'EQUAL' | 'GREATER' | 'LESS' | 'GREATER_EQUAL' | 'LESS_EQUAL'
   }
 
-export interface EffectAction {
-  type: EffectActionType
-  target: EffectTarget
-  value?: number | string | Ability
-  amount?: number              // Para stats separados
-  duration?: 'PERMANENT' | 'END_OF_TURN' | 'UNTIL_DEATH'
-  consumeEntropy?: number      // Opcional: consumo por disparo/uso (CAOS)
-}
+  export interface EffectAction {
+    type: EffectActionType
+    target: EffectTarget
+    value?: number | string | Ability
+    amount?: number              // Para stats separados
+    duration?: 'PERMANENT' | 'END_OF_TURN' | 'UNTIL_DEATH'
+    consumeEntropy?: number      // Opcional: consumo por disparo/uso (CAOS)
+    options?: DiscoverPayLifeOptions | DiscoverPayEntropyOptions | CostReductionScalingOptions
+  }
 
-export enum EffectTarget {
-  SELF = 'SELF',
-  ENEMY_HERO = 'ENEMY_HERO',
-  FRIENDLY_HERO = 'FRIENDLY_HERO', 
-  TARGET_CREATURE = 'TARGET_CREATURE',
-  ALL_FRIENDLY_CREATURES = 'ALL_FRIENDLY_CREATURES',
-  ALL_ENEMY_CREATURES = 'ALL_ENEMY_CREATURES',
-  ALL_CREATURES = 'ALL_CREATURES',
-  RANDOM_ENEMY = 'RANDOM_ENEMY',
-  TARGET_SPELL = 'TARGET_SPELL'          // Hechizo/instantánea objetivo
-}
+  export enum EffectTarget {
+    SELF = 'SELF',
+    ENEMY_HERO = 'ENEMY_HERO',
+    FRIENDLY_HERO = 'FRIENDLY_HERO', 
+    TARGET_CREATURE = 'TARGET_CREATURE',
+   TARGET_FRIENDLY_CREATURE = 'TARGET_FRIENDLY_CREATURE',
+    ALL_FRIENDLY_CREATURES = 'ALL_FRIENDLY_CREATURES',
+    ALL_ENEMY_CREATURES = 'ALL_ENEMY_CREATURES',
+    ALL_ENEMIES = 'ALL_ENEMIES',
+    ALL_CREATURES = 'ALL_CREATURES',
+    RANDOM_ENEMY = 'RANDOM_ENEMY',
+    RANDOM_CREATURE = 'RANDOM_CREATURE',
+    RANDOM_CHARACTER = 'RANDOM_CHARACTER',
+    TARGET_SPELL = 'TARGET_SPELL',
+    CYCLE_CARDS = 'CYCLE_CARDS'
+  }
 
 // ===== DEFINICIÓN PRINCIPAL DE CARTA =====
 
@@ -153,11 +194,12 @@ export interface Card {
   // Identificación
   id: string
   name: string
+  image?: string
   
   // Propiedades básicas
   type: CardType
   rarity: CardRarity
-  classType: ClassType
+  classType?: ClassType 
   mana: number
   
   // Stats (solo criaturas)
@@ -206,15 +248,28 @@ export interface CycleCard extends Omit<Card, 'attack' | 'health' | 'abilities' 
     abilities: Ability[]
     effects: CardEffect[]
   }
+  
+  // Transformación automática según estado del ciclo
+  transformsWithCycle?: boolean
+  manualTransform?: boolean
+}
+
+// Efectos específicos para transformaciones de CICLO
+export interface CycleTransformEffect extends CardEffect {
+  action: {
+    type: EffectActionType.TRANSFORM | EffectActionType.CHANGE_CYCLE_STATE
+    target: EffectTarget.CYCLE_CARDS | EffectTarget.SELF
+    value: CycleState | 'NEXT_CYCLE_STATE' | 'RANDOM_CYCLE_STATE'
+  }
 }
 
 // Para ABOMINACIÓN - Espécimen Perfecto especial
 export interface SpecimenCard extends Card {
   classType: ClassType.ABOMINACION
   isSpecimen: true
-  inheritedAbilities: Ability[]  // Habilidades heredadas del cementerio
-  inheritedEffects: CardEffect[] // Efectos añadidos por cartas de clase
-  summonCost: number            // Costo actual (5, 7, 9, 10)
+  inheritedAbilities: Ability[]
+  inheritedEffects: CardEffect[]
+  summonCost: number
 }
 
 // ===== UTILIDADES DE TIPO =====
@@ -235,8 +290,35 @@ export function isCreature(card: Card): boolean {
   return card.type === CardType.CREATURE
 }
 
-export function hasAbility(card: Card, ability: Ability): boolean {
-  return card.abilities.includes(ability)
+// Utilidades para cartas de CICLO
+export function getCurrentForm(card: CycleCard, currentState: CycleState) {
+  switch (currentState) {
+    case CycleState.DIA:
+      return card.dayForm
+    case CycleState.NOCHE:
+      return card.nightForm
+    case CycleState.ECLIPSE:
+      return card.eclipseForm
+    default:
+      return card.dayForm
+  }
+}
+
+export function getNextCycleState(currentState: CycleState): CycleState {
+  switch (currentState) {
+    case CycleState.DIA:
+      return CycleState.NOCHE
+    case CycleState.NOCHE:
+      return CycleState.ECLIPSE
+    case CycleState.ECLIPSE:
+      return CycleState.DIA
+    default:
+      return CycleState.DIA
+  }
+}
+
+export function canTransform(card: CycleCard): boolean {
+  return card.transformsWithCycle === true || card.manualTransform === true
 }
 
 // ===== CONSTANTES DEL JUEGO =====
@@ -259,10 +341,10 @@ export const GAME_CONSTANTS = {
   FINAL_STAND_MAX_LIFE: 10,
   
   // Class resources
-  MAX_ENTROPY: 10,              // CAOS
-  SPECIMEN_BASE_COST: 5,        // ABOMINACIÓN
-  SPECIMEN_COST_INCREMENT: 2,   // ABOMINACIÓN
-  SPECIMEN_MAX_COST: 10         // ABOMINACIÓN
+  MAX_ENTROPY: 10,
+  SPECIMEN_BASE_COST: 5,
+  SPECIMEN_COST_INCREMENT: 2,
+  SPECIMEN_MAX_COST: 10
 } as const
 
 // ===== TIPOS DE VALIDACIÓN =====
@@ -276,4 +358,20 @@ export interface DeckValidationError {
   type: 'DECK_SIZE' | 'TOO_MANY_COPIES' | 'INVALID_CLASS_CARDS' | 'MISSING_REQUIRED_CARDS'
   cardId?: string
   message: string
+}
+
+export interface DiscoverPayLifeOptions {
+  lifeCost: number
+  base?: EffectAction
+  buff?: EffectAction
+}
+
+export interface DiscoverPayEntropyOptions {
+  entropyCost: number
+  base?: EffectAction
+  buff?: EffectAction
+}
+
+export interface CostReductionScalingOptions {
+  thresholds: Array<{ min: number, uses: number | 'ALL' }>
 }

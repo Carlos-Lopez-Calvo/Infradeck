@@ -19,16 +19,15 @@ import {
 export const ULTIMA_OPORTUNIDAD: Card = {
   id: 'Ultima_Oportunidad',
   name: 'Última Oportunidad',
-  type: CardType.INSTANT,
+  type: CardType.SPELL,
   rarity: CardRarity.BASIC,
-  classType: ClassType.NEUTRAL,
   mana: 0,
   abilities: [],
   effects: [
     {
-      id: 'Ultima_Emergency_Buff',
-      description: 'Solo se puede jugar si tienes 5 o menos de vida. Una criatura objetivo gana +2/+2 y Prisa hasta final del turno',
-      timing: EffectTiming.INSTANT,
+      id: 'Ultima_Emergency_Buff_Stats',
+      description: 'Una criatura aliada objetivo gana +2/+2 hasta final del turno',
+      timing: EffectTiming.ON_PLAY,
       condition: {
         type: 'HEALTH_THRESHOLD',
         value: 5,
@@ -36,65 +35,49 @@ export const ULTIMA_OPORTUNIDAD: Card = {
       },
       action: {
         type: EffectActionType.BUFF_STATS,
-        target: EffectTarget.TARGET_CREATURE,
+        target: EffectTarget.TARGET_FRIENDLY_CREATURE,
         value: '+2/+2',
+        duration: 'END_OF_TURN'
+      }
+    },
+    {
+      id: 'Ultima_Emergency_Buff_Prisa',
+      description: 'Una criatura aliada objetivo gana Prisa hasta final del turno',
+      timing: EffectTiming.ON_PLAY,
+      condition: {
+        type: 'HEALTH_THRESHOLD',
+        value: 5,
+        comparison: 'LESS_EQUAL'
+      },
+      action: {
+        type: EffectActionType.GAIN_ABILITY,
+        target: EffectTarget.TARGET_FRIENDLY_CREATURE,
+        value: Ability.PRISA,
         duration: 'END_OF_TURN'
       }
     }
   ],
-  description: 'Solo se puede jugar si tienes 5 o menos de vida. Una criatura objetivo gana +2/+2 y Prisa hasta final del turno',
+  description: 'Solo se puede jugar si tienes 5 o menos de vida. Una criatura aliada objetivo gana +2/+2 y Prisa hasta final del turno',
   flavorText: 'Una última carta por jugar.'
 }
 
 // === 1 MANA (6) ===
 
-export const MERCENARIO_AGIL: Card = {
-  id: 'Mercenario_Agil',
-  name: 'Mercenario Ágil',
+export const MERCENARIO: Card = {
+  id: 'Mercenario',
+  name: 'Mercenario',
+  image: '/imgCards/mercenario_agil.png',
   type: CardType.CREATURE,
   rarity: CardRarity.BASIC,
-  classType: ClassType.NEUTRAL,
   mana: 1,
   attack: 2,
   health: 1,
   abilities: [Ability.SIGILO],
   effects: [
     {
-      id: 'Mercenario_Low_Life_Buff',
-      description: 'Al ser jugado: Si tienes 15 o menos vida, gana +1/+1',
-      timing: EffectTiming.ON_PLAY,
-      condition: {
-        type: 'HEALTH_THRESHOLD',
-        value: 15,
-        comparison: 'LESS_EQUAL'
-      },
-      action: {
-        type: EffectActionType.BUFF_STATS,
-        target: EffectTarget.SELF,
-        value: '+1/+1',
-        duration: 'PERMANENT'
-      }
-    }
-  ],
-  description: '2/1 con Sigilo. Al ser jugado: Si tienes 15 o menos vida, gana +1/+1',
-  flavorText: 'Lucha mejor cuando las cosas se ponen feas.'
-}
-
-export const EXPLORADOR_ASTUTO: Card = {
-  id: 'Explorador_Astuto',
-  name: 'Explorador Astuto',
-  type: CardType.CREATURE,
-  rarity: CardRarity.BASIC,
-  classType: ClassType.NEUTRAL,
-  mana: 1,
-  attack: 1,
-  health: 1,
-  abilities: [Ability.VUELO],
-  effects: [
-    {
-      id: 'Explorador_Card_Selection',
-      description: 'Al ser jugado: Mira las 2 primeras cartas de tu mazo, pon 1 en tu mano y 1 abajo',
-      timing: EffectTiming.ON_PLAY,
+      id: 'Mercenario_Draw_On_Kill',
+      description: 'Cuando esta criatura mata a una criatura enemiga, roba una carta',
+      timing: EffectTiming.TRIGGERED,
       action: {
         type: EffectActionType.DRAW_CARDS,
         target: EffectTarget.FRIENDLY_HERO,
@@ -103,109 +86,144 @@ export const EXPLORADOR_ASTUTO: Card = {
       }
     }
   ],
-  description: '1/1 con Vuelo. Al ser jugado: Mira las 2 primeras cartas de tu mazo, pon 1 en tu mano y 1 abajo',
+  description: '2/1 con Sigilo. Cuando mata a una criatura enemiga, roba una carta',
+  flavorText: 'Cada muerte es una lección aprendida.'
+}
+
+export const CUERVO_ASTUTO: Card = {
+  id: 'Cuervo_Astuto',
+  name: 'Cuervo Astuto',
+  type: CardType.CREATURE,
+  rarity: CardRarity.BASIC,
+  mana: 1,
+  attack: 1,
+  health: 1,
+  abilities: [Ability.VUELO],
+  effects: [
+    {
+      id: 'Cuervo_Scry_1',
+      description: 'Scry 1: Mira la primera carta de tu mazo. Puedes ponerla al fondo',
+      timing: EffectTiming.ON_ENTER,
+      action: {
+        type: EffectActionType.SCRY,
+        target: EffectTarget.FRIENDLY_HERO,
+        amount: 1,
+        duration: 'PERMANENT'
+      }
+    }
+  ],
+  description: '1/1 con Vuelo. Al ser jugado: Scry 1 (Mira la primera carta de tu mazo. Puedes ponerla al fondo)',
   flavorText: 'Ve más allá del horizonte.'
 }
 
-export const ASESINO_SILENCIOSO: Card = {
-  id: 'Asesino_Silencioso',
-  name: 'Asesino Silencioso',
+export const ASESINO_DELAROSSA: Card = {
+  id: 'Asesino_Delarossa',
+  name: 'Asesino Delarossa',
+  image: '/imgCards/assesino.png',
   type: CardType.CREATURE,
   rarity: CardRarity.BASIC,
-  classType: ClassType.NEUTRAL,
   mana: 1,
   attack: 1,
   health: 2,
   abilities: [Ability.VENENO],
   effects: [],
   description: '1/2 con Veneno',
-  flavorText: 'Un golpe, una muerte.'
+  flavorText: 'Soy la espina del rosa.'
 }
 
 export const GUARDIAN_NOVATO: Card = {
   id: 'Guardian_Novato',
   name: 'Guardián Novato',
+  image: '/imgCards/guardia_novato.png',
   type: CardType.CREATURE,
   rarity: CardRarity.BASIC,
-  classType: ClassType.NEUTRAL,
   mana: 1,
   attack: 0,
   health: 3,
-  abilities: [Ability.ESCUDO],
+  abilities: [Ability.TAUNT],
   effects: [
     {
-      id: 'Guardian_Gain_Taunt',
-      description: 'Al final de tu turno: Si no ha recibido daño, gana Taunt',
-      timing: EffectTiming.END_OF_TURN,
-      condition: { type: 'SELF_NOT_DAMAGED_THIS_TURN' },
+      id: 'Guardian_Draw_On_Death',
+      description: 'Grito de muerte: Roba 1 carta',
+      timing: EffectTiming.ON_DEATH,
       action: {
-        type: EffectActionType.GAIN_ABILITY,
-        target: EffectTarget.SELF,
-        value: Ability.TAUNT,
-        duration: 'UNTIL_DEATH'
-      }
-    }
-  ],
-  description: '0/3 con Escudo. Al final de tu turno: Si no ha recibido daño, gana Taunt',
-  flavorText: 'La experiencia viene con la supervivencia.'
-}
-
-export const REFLEJO_RAPIDO: Card = {
-  id: 'Reflejo_Rapido',
-  name: 'Reflejo Rápido',
-  type: CardType.INSTANT,
-  rarity: CardRarity.BASIC,
-  classType: ClassType.NEUTRAL,
-  mana: 1,
-  abilities: [],
-  effects: [
-    {
-      id: 'Reflejo_Counter_Spell',
-      description: 'Anula un hechizo',
-      timing: EffectTiming.INSTANT,
-      action: {
-        type: EffectActionType.COUNTER_SPELL,
-        target: EffectTarget.TARGET_SPELL,
+        type: EffectActionType.DRAW_CARDS,
+        target: EffectTarget.FRIENDLY_HERO,
+        amount: 1,
         duration: 'PERMANENT'
       }
     }
   ],
-  description: 'Anula un hechizo',
-  flavorText: 'Instinto de supervivencia.'
+  description: '0/3 con Provocar. Grito de muerte: Roba 1 carta',
+  flavorText: 'Cada sacrificio enseña una lección.'
+}
+
+export const PRIMERA_OPORTUNIDAD: Card = {
+  id: 'Primera_Oportunidad',
+  name: 'Primera Oportunidad',
+  type: CardType.SPELL,
+  rarity: CardRarity.BASIC,
+  mana: 1,
+  abilities: [],
+  effects: [
+    {
+      id: 'Primera_Oportunidad_attack',
+      description: 'Una criatura aliada objetivo ataca a la criatura enemiga objetivo',
+      timing: EffectTiming.ON_PLAY,
+      action: {
+        type: EffectActionType.ATTACK_SPELL,
+        target: EffectTarget.TARGET_CREATURE,
+        duration: 'PERMANENT'
+      }
+    }
+  ],
+  description: 'Una criatura aliada objetivo ataca a la criatura enemiga objetivo',
+  flavorText: 'No lo verás venir.'
 }
 
 export const CUCHILLA_ENVENENADA: Card = {
   id: 'Cuchilla_Envenenada',
   name: 'Cuchilla Envenenada',
+  image: '/imgCards/cuchilla.png',
   type: CardType.SPELL,
   rarity: CardRarity.BASIC,
-  classType: ClassType.NEUTRAL,
   mana: 1,
   abilities: [],
   effects: [
     {
       id: 'Cuchilla_Grant_Poison',
-      description: 'Una criatura objetivo gana Veneno hasta final del turno. Si esa criatura mata a otra criatura este turno, roba 1 carta',
+      description: 'Gana Veneno hasta el final del turno',
       timing: EffectTiming.ON_PLAY,
       action: {
         type: EffectActionType.GAIN_ABILITY,
-        target: EffectTarget.TARGET_CREATURE,
+        target: EffectTarget.TARGET_FRIENDLY_CREATURE,
         value: Ability.VENENO,
+        duration: 'END_OF_TURN'
+      }
+    },
+    {
+      id: 'Cuchilla_Grant_Draw_On_Kill',
+      description: 'Si mata a una criatura este turno, roba 1 carta',
+      timing: EffectTiming.ON_PLAY,
+      action: {
+        type: EffectActionType.GRANT_TEMP_DRAW_ON_KILL,
+        target: EffectTarget.TARGET_FRIENDLY_CREATURE,
+        amount: 1,
         duration: 'END_OF_TURN'
       }
     }
   ],
-  description: 'Una criatura objetivo gana Veneno hasta final del turno. Si esa criatura mata a otra criatura este turno, roba 1 carta',
+  description: 'Una criatura aliada objetivo gana Veneno hasta el final del turno. Si mata a una criatura enemiga este turno, roba 1 carta',
   flavorText: 'El toque letal.'
 }
 
 export const EXPLORADOR_AUDAZ: Card = {
   id: 'Explorador_Audaz',
   name: 'Explorador Audaz',
+  image: '/imgCards/explorador.png',
   type: CardType.CREATURE,
   rarity: CardRarity.BASIC,
-  classType: ClassType.NEUTRAL,
-  mana: 1,
+  mana: 2,
   attack: 1,
   health: 1,
   abilities: [],
@@ -215,9 +233,9 @@ export const EXPLORADOR_AUDAZ: Card = {
       description: 'Al entrar: Mira las 3 primeras cartas de tu mazo, pon 1 en tu mano, el resto abajo en cualquier orden',
       timing: EffectTiming.ON_ENTER,
       action: {
-        type: EffectActionType.DRAW_CARDS,
+        type: EffectActionType.ADVANCED_SELECTION,
         target: EffectTarget.FRIENDLY_HERO,
-        amount: 1,
+        amount: 3, // Número de cartas a mostrar
         duration: 'PERMANENT'
       }
     }
@@ -228,50 +246,60 @@ export const EXPLORADOR_AUDAZ: Card = {
 
 // === 2 MANA (5) ===
 
-export const ESCRIBA_ESTUDIOSO: Card = {
-  id: 'Escriba_Estudioso',
-  name: 'Escriba Estudioso',
+export const ESCRIBA_DEL_LYRIO: Card = {
+  id: 'Escriba_Del_Lyrio',
+  name: 'Escriba Del Lyrio',
   type: CardType.CREATURE,
   rarity: CardRarity.BASIC,
-  classType: ClassType.NEUTRAL,
   mana: 2,
   attack: 1,
   health: 3,
   abilities: [],
   effects: [
     {
-      id: 'Escriba_Card_Filter',
-      description: 'Al ser jugado: Roba 1 carta, luego descarta 1 carta',
-      timing: EffectTiming.ON_PLAY,
+      id: 'Escriba_Draw_Card',
+      description: 'Al entrar: Roba 1 carta',
+      timing: EffectTiming.ON_ENTER,
       action: {
         type: EffectActionType.DRAW_CARDS,
         target: EffectTarget.FRIENDLY_HERO,
         amount: 1,
         duration: 'PERMANENT'
       }
+    },
+    {
+      id: 'Escriba_Lose_Life',
+      description: 'Al entrar: Pierde 3 de vida',
+      timing: EffectTiming.ON_ENTER,
+      action: {
+        type: EffectActionType.DAMAGE,
+        target: EffectTarget.FRIENDLY_HERO,
+        amount: 3,
+        duration: 'PERMANENT'
+      }
     }
   ],
-  description: '1/3. Al ser jugado: Roba 1 carta, luego descarta 1 carta',
+  description: '1/3. Al entrar: Roba 1 carta y pierde 3 de vida',
   flavorText: 'El conocimiento tiene su precio.'
 }
 
-export const FLECHA_CERTEZA: Card = {
-  id: 'Flecha_Certeza',
+export const FLECHA_CERTERA: Card = {
+  id: 'Flecha_Certera',
   name: 'Flecha Certeza',
   type: CardType.SPELL,
   rarity: CardRarity.BASIC,
-  classType: ClassType.NEUTRAL,
   mana: 2,
   abilities: [],
   effects: [
     {
-      id: 'Flecha_Damage_And_Draw',
+      id: 'Flecha_Certera_Damage_And_Draw',
       description: 'Haz 3 de daño. Si el objetivo muere, roba 1 carta',
       timing: EffectTiming.ON_PLAY,
       action: {
-        type: EffectActionType.DAMAGE,
+        type: EffectActionType.DAMAGE_AND_DRAW_IF_KILL,
         target: EffectTarget.TARGET_CREATURE,
-        amount: 3,
+        amount: 3, // Daño
+        value: 1, // Cartas a robar si mata
         duration: 'PERMANENT'
       }
     }
@@ -280,24 +308,23 @@ export const FLECHA_CERTEZA: Card = {
   flavorText: 'La precisión tiene recompensas.'
 }
 
-export const DUELISTA_EXPERTO: Card = {
-  id: 'Duelista_Experto',
-  name: 'Duelista Experto',
+export const DUELISTA_FRENETICO: Card = {
+  id: 'Duelista_Frenetico',
+  name: 'Duelista Frenetico',
   type: CardType.CREATURE,
   rarity: CardRarity.BASIC,
-  classType: ClassType.NEUTRAL,
   mana: 2,
   attack: 1,
   health: 2,
   abilities: [Ability.IMPACIENTE],
   effects: [
     {
-      id: 'Duelista_Solo_Attack_Buff',
-      description: 'Si es la única criatura atacante, gana +2/+1 hasta final del turno',
+      id: 'Duelista_Frenetico_Solo_Attack_Buff',
+      description: 'Si es la única criatura aliada al atacar, gana +2/+1 hasta final del turno',
       timing: EffectTiming.ON_ATTACK,
       condition: {
         type: 'BOARD_STATE',
-        value: 'SOLO_ATTACKER',
+        value: 'ONLY_CREATURE_ON_BOARD',
         comparison: 'EQUAL'
       },
       action: {
@@ -308,7 +335,7 @@ export const DUELISTA_EXPERTO: Card = {
       }
     }
   ],
-  description: '1/2 con Impaciente. Si es la única criatura atacante, gana +2/+1 hasta final del turno',
+  description: '1/2 con Impaciente. Mientras sea tu única criatura, tiene +2/+1. Al atacar solo, gana +2/+1 adicional hasta fin de turno',
   flavorText: 'El honor exige un combate justo.'
 }
 
@@ -317,7 +344,6 @@ export const COMERCIANTE_SAGAZ: Card = {
   name: 'Comerciante Sagaz',
   type: CardType.CREATURE,
   rarity: CardRarity.BASIC,
-  classType: ClassType.NEUTRAL,
   mana: 2,
   attack: 1,
   health: 3,
@@ -344,17 +370,16 @@ export const COMERCIANTE_SAGAZ: Card = {
   flavorText: 'Los recursos son poder, el poder es protección.'
 }
 
-export const DISPARO_CERTERO: Card = {
-  id: 'Disparo_Certero',
-  name: 'Disparo Certero',
+export const PETALOS_CERTEROS: Card = {
+  id: 'Petalos_Certeros',
+  name: 'Petalos Certeros',
   type: CardType.SPELL,
   rarity: CardRarity.BASIC,
-  classType: ClassType.NEUTRAL,
   mana: 2,
   abilities: [],
   effects: [
     {
-      id: 'Disparo_Anti_Flying',
+      id: 'Petalos_Certeros_Anti_Flying',
       description: 'Haz 2 de daño a un objetivo. Si el objetivo es una criatura con Vuelo, en su lugar haz 4 de daño',
       timing: EffectTiming.ON_PLAY,
       action: {
@@ -376,7 +401,6 @@ export const BERSERKER_HERIDO: Card = {
   name: 'Berserker Herido',
   type: CardType.CREATURE,
   rarity: CardRarity.BASIC,
-  classType: ClassType.NEUTRAL,
   mana: 3,
   attack: 4,
   health: 2,
@@ -398,17 +422,16 @@ export const BERSERKER_HERIDO: Card = {
   flavorText: 'Su furia crece con cada herida.'
 }
 
-export const RECARGA_RAPIDA: Card = {
-  id: 'Recarga_Rapida',
-  name: 'Recarga Rapida',
+export const ESTUDIO_FRENETICO: Card = {
+  id: 'Estudio_Frenetico',
+  name: 'Estudio Frenetico',
   type: CardType.SPELL,
   rarity: CardRarity.BASIC,
-  classType: ClassType.NEUTRAL,
   mana: 3,
   abilities: [],
   effects: [
     {
-      id: 'Recarga_Draw_Cards',
+      id: 'Estudio_Frenetico_Draw_Cards',
       description: 'Roba 2 cartas',
       timing: EffectTiming.ON_PLAY,
       action: {
@@ -420,32 +443,42 @@ export const RECARGA_RAPIDA: Card = {
     }
   ],
   description: 'Roba 2 cartas',
-  flavorText: 'El conocimiento debe fluir libremente.'
+  flavorText: 'Necesito mas conocimiento.'
 }
 
-export const MOMENTO_CRUCIAL: Card = {
-  id: 'Momento_Crucial',
-  name: 'Momento Crucial',
-  type: CardType.INSTANT,
+export const ASCENDER: Card = {
+  id: 'Ascender',
+  name: 'Ascender',
+  type: CardType.SPELL,
   rarity: CardRarity.BASIC,
-  classType: ClassType.NEUTRAL,
   mana: 3,
   abilities: [],
   effects: [
     {
-      id: 'Momento_Combat_Trick',
-      description: 'Una criatura atacante o defensora gana +2/+2. Si mata a su objetivo, no recibe daño de combate',
-      timing: EffectTiming.INSTANT,
+      id: 'Ascender_Buff_Stats',
+      description: 'Una criatura objetivo gana +2/+2',
+      timing: EffectTiming.ON_PLAY,
       action: {
         type: EffectActionType.BUFF_STATS,
         target: EffectTarget.TARGET_CREATURE,
         value: '+2/+2',
-        duration: 'END_OF_TURN'
+        duration: 'PERMANENT'
+      }
+    },
+    {
+      id: 'Ascender_Gain_Taunt',
+      description: 'Luego gana Taunt',
+      timing: EffectTiming.ON_PLAY,
+      action: {
+        type: EffectActionType.GAIN_ABILITY,
+        target: EffectTarget.TARGET_CREATURE,
+        value: Ability.TAUNT,
+        duration: 'PERMANENT'
       }
     }
   ],
-  description: 'Una criatura atacante o defensora gana +2/+2. Si mata a su objetivo, no recibe daño de combate',
-  flavorText: 'El timing lo es todo.'
+  description: 'Una criatura objetivo gana +2/+2 y Taunt',
+  flavorText: 'El tiempo es lo que hace al maestro.'
 }
 
 export const SOLDADO_VETERANO: Card = {
@@ -453,7 +486,6 @@ export const SOLDADO_VETERANO: Card = {
   name: 'Soldado Veterano',
   type: CardType.CREATURE,
   rarity: CardRarity.BASIC,
-  classType: ClassType.NEUTRAL,
   mana: 3,
   attack: 2,
   health: 3,
@@ -480,28 +512,39 @@ export const SOLDADO_VETERANO: Card = {
   flavorText: 'La experiencia enseña el valor de los aliados.'
 }
 
-export const INTERCEPCION_RAPIDA: Card = {
-  id: 'Intercepcion_Rapida',
-  name: 'Intercepción Rápida',
-  type: CardType.INSTANT,
+export const CAPA_DELAROSSA: Card = {
+  id: 'Capa_Delarossa',
+  name: 'Capa Delarossa',
+  image: '/imgCards/nose.png',
+  type: CardType.SPELL,
   rarity: CardRarity.BASIC,
-  classType: ClassType.NEUTRAL,
   mana: 3,
   abilities: [],
   effects: [
     {
-      id: 'Intercepcion_Taunt_And_Draw',
-      description: 'Una criatura aliada gana Taunt hasta final del turno. Roba 1 carta si esa criatura recibe daño este turno',
-      timing: EffectTiming.INSTANT,
+      id: 'Capa_Delarossa_Sigilo_And_Buff',
+      description: 'Una criatura gana Sigilo',
+      timing: EffectTiming.ON_PLAY,
       action: {
         type: EffectActionType.GAIN_ABILITY,
         target: EffectTarget.TARGET_CREATURE,
-        value: Ability.TAUNT,
-        duration: 'END_OF_TURN'
+        value: Ability.SIGILO,
+        duration: 'PERMANENT'
+      }
+    },
+    {
+      id: 'Capa_Delarossa_Buff',
+      description: 'Una criatura gana +2/+0',
+      timing: EffectTiming.ON_PLAY,
+      action: {
+        type: EffectActionType.BUFF_STATS,
+        target: EffectTarget.TARGET_CREATURE,
+        value: '+2/+0',
+        duration: 'PERMANENT'
       }
     }
   ],
-  description: 'Una criatura aliada gana Taunt hasta final del turno. Roba 1 carta si esa criatura recibe daño este turno',
+  description: 'Una criatura gana Sigilo y +2/+0',
   flavorText: 'Proteger tiene recompensas.'
 }
 
@@ -510,7 +553,6 @@ export const CURANDERO_SABIO: Card = {
   name: 'Curandero Sabio',
   type: CardType.CREATURE,
   rarity: CardRarity.BASIC,
-  classType: ClassType.NEUTRAL,
   mana: 3,
   attack: 1,
   health: 5,
@@ -539,7 +581,6 @@ export const CENTINELA_VIGILANTE: Card = {
   name: 'Centinela Vigilante',
   type: CardType.CREATURE,
   rarity: CardRarity.BASIC,
-  classType: ClassType.NEUTRAL,
   mana: 4,
   attack: 2,
   health: 5,
@@ -571,7 +612,6 @@ export const LLAMA_IMPURA: Card = {
   name: 'Llama Impura',
   type: CardType.SPELL,
   rarity: CardRarity.RARE,
-  classType: ClassType.NEUTRAL,
   mana: 4,
   abilities: [],
   effects: [
@@ -596,7 +636,6 @@ export const MAESTRO_DE_ARMAS: Card = {
   name: 'Maestro de Armas',
   type: CardType.CREATURE,
   rarity: CardRarity.RARE,
-  classType: ClassType.NEUTRAL,
   mana: 4,
   attack: 3,
   health: 4,
@@ -623,7 +662,6 @@ export const ACECHADOR_NOCTURNO: Card = {
   name: 'Acechador Nocturno',
   type: CardType.CREATURE,
   rarity: CardRarity.BASIC,
-  classType: ClassType.NEUTRAL,
   mana: 4,
   attack: 4,
   health: 3,
@@ -653,16 +691,15 @@ export const ACECHADOR_NOCTURNO: Card = {
 export const PALABRA_DE_PODER: Card = {
   id: 'Palabra_de_Poder',
   name: 'Palabra de Poder',
-  type: CardType.INSTANT,
+  type: CardType.SPELL,
   rarity: CardRarity.BASIC,
-  classType: ClassType.NEUTRAL,
   mana: 4,
   abilities: [],
   effects: [
     {
       id: 'Palabra_Conditional_Removal',
       description: 'Destruye una criatura con 3 o menos de vida. Si destruyes una criatura sin daño, tu próxima carta cuesta 2 menos',
-      timing: EffectTiming.INSTANT,
+      timing: EffectTiming.ON_PLAY,
       condition: {
         type: 'HEALTH_THRESHOLD',
         value: 3,
@@ -687,7 +724,6 @@ export const VAMPIRO_ANCESTRAL: Card = {
   name: 'Vampiro Ancestral',
   type: CardType.CREATURE,
   rarity: CardRarity.RARE,
-  classType: ClassType.NEUTRAL,
   mana: 5,
   attack: 4,
   health: 4,
@@ -719,7 +755,6 @@ export const COLOSO_DE_HIERRO: Card = {
   name: 'Coloso de Hierro',
   type: CardType.CREATURE,
   rarity: CardRarity.BASIC,
-  classType: ClassType.NEUTRAL,
   mana: 5,
   attack: 6,
   health: 4,
@@ -751,7 +786,6 @@ export const INGENIERA_ASTUTA: Card = {
   name: 'Ingeniera Astuta',
   type: CardType.CREATURE,
   rarity: CardRarity.RARE,
-  classType: ClassType.NEUTRAL,
   mana: 5,
   attack: 3,
   health: 5,
@@ -778,7 +812,6 @@ export const TORMENTA_DE_ACERO: Card = {
   name: 'Tormenta de Acero',
   type: CardType.SPELL,
   rarity: CardRarity.RARE,
-  classType: ClassType.NEUTRAL,
   mana: 5,
   abilities: [],
   effects: [
@@ -803,7 +836,6 @@ export const GOLPE_DEVASTADOR: Card = {
   name: 'Golpe Devastador',
   type: CardType.SPELL,
   rarity: CardRarity.BASIC,
-  classType: ClassType.NEUTRAL,
   mana: 5,
   abilities: [],
   effects: [
@@ -830,7 +862,6 @@ export const CAMPEON_CAIDO: Card = {
   name: 'Campeón Caído',
   type: CardType.CREATURE,
   rarity: CardRarity.RARE,
-  classType: ClassType.NEUTRAL,
   mana: 6,
   attack: 5,
   health: 5,
@@ -857,7 +888,6 @@ export const SENOR_DE_LA_GUERRA: Card = {
   name: 'Señor de la Guerra',
   type: CardType.CREATURE,
   rarity: CardRarity.RARE,
-  classType: ClassType.NEUTRAL,
   mana: 6,
   attack: 5,
   health: 7,
@@ -884,7 +914,6 @@ export const RITUAL_DE_RENOVACION: Card = {
   name: 'Ritual de Renovación',
   type: CardType.SPELL,
   rarity: CardRarity.RARE,
-  classType: ClassType.NEUTRAL,
   mana: 6,
   abilities: [],
   effects: [
@@ -911,7 +940,6 @@ export const TITAN_PRIMORDIAL: Card = {
   name: 'Titán Primordial',
   type: CardType.CREATURE,
   rarity: CardRarity.RARE,
-  classType: ClassType.NEUTRAL,
   mana: 7,
   attack: 6,
   health: 8,
@@ -938,7 +966,6 @@ export const APOCALIPSIS: Card = {
   name: 'Apocalipsis',
   type: CardType.SPELL,
   rarity: CardRarity.RARE,
-  classType: ClassType.NEUTRAL,
   mana: 8,
   abilities: [],
   effects: [
@@ -957,3 +984,46 @@ export const APOCALIPSIS: Card = {
   description: 'Haz 6 de daño a todas las criaturas. Si matas 5 o más criaturas de esta forma, haz daño igual a las criaturas eliminadas al rival',
   flavorText: 'La destrucción masiva tiene consecuencias.'
 }
+
+// Al final del archivo
+export const BASIC_CARDS = [
+  ULTIMA_OPORTUNIDAD,
+  MERCENARIO,
+  CUERVO_ASTUTO,
+  ASESINO_DELAROSSA,
+  GUARDIAN_NOVATO,
+  PRIMERA_OPORTUNIDAD,
+  CUCHILLA_ENVENENADA,
+  EXPLORADOR_AUDAZ,
+  ESCRIBA_DEL_LYRIO,
+  FLECHA_CERTERA,
+  DUELISTA_FRENETICO,
+  COMERCIANTE_SAGAZ,
+  PETALOS_CERTEROS,
+  BERSERKER_HERIDO,
+  ESTUDIO_FRENETICO,
+  ASCENDER  ,
+  SOLDADO_VETERANO,
+  CAPA_DELAROSSA,
+  CURANDERO_SABIO,
+  CENTINELA_VIGILANTE,
+  LLAMA_IMPURA,
+  MAESTRO_DE_ARMAS,
+  ACECHADOR_NOCTURNO,
+  PALABRA_DE_PODER,
+  VAMPIRO_ANCESTRAL,
+  COLOSO_DE_HIERRO,
+  INGENIERA_ASTUTA,
+  TORMENTA_DE_ACERO,
+  GOLPE_DEVASTADOR,
+  CAMPEON_CAIDO,
+  SENOR_DE_LA_GUERRA,
+  RITUAL_DE_RENOVACION,
+  TITAN_PRIMORDIAL,
+  APOCALIPSIS,
+]
+
+// Opcional: acceso por id
+export const BASIC_CARDS_BY_ID = Object.fromEntries(
+  BASIC_CARDS.map(c => [c.id, c] as const)
+)

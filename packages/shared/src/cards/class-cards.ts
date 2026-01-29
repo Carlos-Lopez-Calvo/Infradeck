@@ -11,6 +11,7 @@ import {
   EffectActionType  
 } from '../types/cards'
 
+
 /**
  * CARTAS DE CLASE - Implementación Completa  
  * 43 cartas total: 40 de clase + 3 versiones Espécimen Perfecto
@@ -20,7 +21,8 @@ import {
 
 export const ESPECIMEN_PERFECTO: Card = {
   id: 'Especimen_Perfecto',
-  name: 'Espécimen Perfecto',
+  name: 'G4BR13L',
+  image: '/imgCards/terminus.jpeg',
   type: CardType.CREATURE,
   rarity: CardRarity.RARE,
   classType: ClassType.ABOMINACION,
@@ -39,17 +41,6 @@ export const ESPECIMEN_PERFECTO: Card = {
         value: 'INHERIT_FROM_GRAVEYARD',
         duration: 'PERMANENT'
       }
-    },
-    {
-      id: 'Especimen_Inherit_Programmed_Effects',
-      description: 'Al entrar: Ejecuta todos los efectos programados por cartas de ABOMINACIÓN',
-      timing: EffectTiming.ON_ENTER,
-      action: {
-        type: EffectActionType.SUMMON_SPECIMEN,
-        target: EffectTarget.SELF,
-        value: 'EXECUTE_PROGRAMMED_EFFECTS',
-        duration: 'PERMANENT'
-      }
     }
   ],
   classResource: {
@@ -62,18 +53,19 @@ export const ESPECIMEN_PERFECTO: Card = {
 
 export const ESPECIMEN_PERFECTO_FINAL_STAND: Card = {
   id: 'Especimen_Perfecto_Final_Stand',  
-  name: 'Espécimen Imperfecto',
+  name: 'Amalgama',
+  image: '/imgCards/amalgama.jpeg',
   type: CardType.CREATURE,
   rarity: CardRarity.LEGENDARY,
   classType: ClassType.ABOMINACION,
   mana: 0, // Se invoca gratis durante Final Stand
   attack: 2,
   health: 2,
-  abilities: [],
+  abilities: [], // Se heredan dinámicamente
   effects: [
     {
-      id: 'Especimen_FS_Inherit_Abilities_Only',
-      description: 'Hereda solo las habilidades únicas de criaturas en tu cementerio',
+      id: 'Especimen_Inherit_Abilities',
+      description: 'Hereda todas las habilidades únicas de criaturas en tu cementerio',
       timing: EffectTiming.PASSIVE,
       action: {
         type: EffectActionType.GAIN_ABILITY,
@@ -81,26 +73,20 @@ export const ESPECIMEN_PERFECTO_FINAL_STAND: Card = {
         value: 'INHERIT_FROM_GRAVEYARD',
         duration: 'PERMANENT'
       }
-    },
-    {
-      id: 'Especimen_FS_Scaling',
-      description: 'Al entrar: +1/+1 por cada habilidad diferente que tenga',
-      timing: EffectTiming.ON_ENTER,
-      action: {
-        type: EffectActionType.BUFF_STATS,
-        target: EffectTarget.SELF,
-        value: '+1/+1_PER_ABILITY',
-        duration: 'PERMANENT'
-      }
     }
   ],
-  description: '2/2. Solo durante Final Stand. Hereda solo habilidades del cementerio (no efectos programados). Al entrar: +1/+1 por cada habilidad diferente',
-  flavorText: 'En la desesperación, surge la esencia pura.'
+  classResource: {
+    type: 'CEMENTERIO',
+    amount: 1
+  },
+  description: '3/3. Hereda habilidades del cementerio y efectos programados por cartas de clase.',
+  flavorText: 'La suma perfecta de todas las partes.'
 }
 
 export const ESPECIMEN_PERFECTO_EVOLUCIONADO: Card = {
   id: 'Especimen_Perfecto_Evolucionado',
-  name: 'Apex de la evolución',
+  name: 'T3RM1NU5',
+  image: '/imgCards/terminusevo.jpg',
   type: CardType.CREATURE,
   rarity: CardRarity.LEGENDARY,
   classType: ClassType.ABOMINACION,
@@ -110,18 +96,24 @@ export const ESPECIMEN_PERFECTO_EVOLUCIONADO: Card = {
   abilities: [],
   effects: [
     {
-      id: 'Especimen_Evo_Inherit_All',
-      description: 'Hereda habilidades + efectos programados + dispara todos los efectos "Al entrar" de todos los cementerios',
-      timing: EffectTiming.ON_ENTER,
+      id: 'Evo_Inherit_Abilities',
+      description: 'Al entrar: hereda todas las habilidades únicas de criaturas en todos los cementerios',
+      timing: EffectTiming.ON_ENTER,             // ← antes era PASSIVE
       action: {
-        type: EffectActionType.SUMMON_SPECIMEN,
+        type: EffectActionType.GAIN_ABILITY,
         target: EffectTarget.SELF,
-        value: 'ULTIMATE_EVOLUTION_10_10',
+        value: 'INHERIT_FROM_GRAVEYARD',
         duration: 'PERMANENT'
       }
+    },
+    {
+      id: 'Evo_Discover_Summon_3',
+      description: 'Al entrar: Descubre 3 veces entre criaturas de los cementerios y luego invócalas; sus ON_ENTER se resuelven con objetivos aleatorios',
+      timing: EffectTiming.ON_ENTER,
+      action: { type: EffectActionType.DISCOVER_SUMMON_FROM_GRAVEYARD, target: EffectTarget.FRIENDLY_HERO, amount: 3 }
     }
   ],
-  description: '10/10. Solo mediante "Evolución Perfecta". Hereda todo + dispara efectos "Al entrar" de todos los cementerios',
+  description: '10/10. Solo mediante "Evolución Perfecta". Hereda todas las habilidades de criaturas en ambos cementerios.',
   flavorText: 'La perfección absoluta trasciende la muerte.'
 }
 
@@ -143,13 +135,8 @@ export const EXPLORADOR_INFECTADO: Card = {
   effects: [
     {
       id: 'Explorador_Death_Draw',
-      description: 'Al morir: Roba 1 carta si tu cementerio tiene 3+ criaturas',
+      description: 'Roba 1 carta',
       timing: EffectTiming.ON_DEATH,
-      condition: {
-        type: 'GRAVEYARD_COUNT',
-        value: 3,
-        comparison: 'GREATER_EQUAL'
-      },
       action: {
         type: EffectActionType.DRAW_CARDS,
         target: EffectTarget.FRIENDLY_HERO,
@@ -158,7 +145,7 @@ export const EXPLORADOR_INFECTADO: Card = {
       }
     }
   ],
-  description: '1/1 con Veneno. Al morir: Roba 1 carta si tu cementerio tiene 3+ criaturas',
+  description: '1/1 con Veneno. Al morir: Roba 1 carta',
   flavorText: 'Su muerte alimenta el conocimiento.'
 }
 
@@ -174,18 +161,18 @@ export const RECOLECTOR_DE_TEJIDOS: Card = {
   abilities: [Ability.ROBO_DE_VIDA],
   effects: [
     {
-      id: 'Recolector_Specimen_Enhancement',
-      description: 'Al morir: Tu próximo Espécimen Perfecto gana "Al entrar: Haz 3 de daño a un objetivo"',
+      id: 'Recolector_Death_Damage2',
+      description: 'Al morir: haz 2 de daño a una criatura enemiga aleatoria',
       timing: EffectTiming.ON_DEATH,
       action: {
-        type: EffectActionType.SUMMON_SPECIMEN,
-        target: EffectTarget.FRIENDLY_HERO,
-        value: 'DAMAGE_3_ON_ENTER',
+        type: EffectActionType.DAMAGE,
+        target: EffectTarget.RANDOM_ENEMY,
+        amount: 2,
         duration: 'PERMANENT'
       }
     }
   ],
-  description: '1/3 con Robo de vida. Al morir: Tu próximo Espécimen Perfecto gana "Al entrar: Haz 3 de daño a un objetivo"',
+  description: '1/3 con Robo de vida. Al morir: haz 2 de daño a una criatura enemiga aleatoria',
   flavorText: 'Las partes útiles nunca se desperdician.'
 }
 
@@ -204,15 +191,10 @@ export const NECROFAGO_HAMBRIENTO: Card = {
       id: 'Necrofago_Graveyard_Scaling',
       description: 'Al entrar: Gana +1/+1 por cada tipo de habilidad diferente en tu cementerio',
       timing: EffectTiming.ON_ENTER,
-      condition: {
-        type: 'GRAVEYARD_COUNT',
-        value: 2,
-        comparison: 'GREATER_EQUAL'
-      },
       action: {
         type: EffectActionType.BUFF_STATS,
         target: EffectTarget.SELF,
-        value: '+1/+1',
+        value: 'UNIQUE_ABILITIES_IN_GRAVEYARD',
         duration: 'PERMANENT'
       }
     }
@@ -235,18 +217,29 @@ export const RITUAL_MENOR: Card = {
   abilities: [],
   effects: [
     {
-      id: 'Ritual_Sacrifice_Draw',
-      description: 'Destruye una criatura aliada. Roba 2 cartas. Si tenía una habilidad, roba 1 carta adicional',
+      id: 'Ritual_Sacrifice',
+      description: 'Destruye una criatura aliada.',
       timing: EffectTiming.ON_PLAY,
       action: {
         type: EffectActionType.DAMAGE,
-        target: EffectTarget.TARGET_CREATURE,
+        target: EffectTarget.TARGET_FRIENDLY_CREATURE,
         amount: 999,
+        duration: 'PERMANENT'
+      }
+    },
+    {
+      id: 'Ritual_Draw2',
+      description: 'Roba 2 cartas.',
+      timing: EffectTiming.ON_PLAY,
+      action: {
+        type: EffectActionType.DRAW_CARDS,
+        target: EffectTarget.FRIENDLY_HERO,
+        amount: 2,
         duration: 'PERMANENT'
       }
     }
   ],
-  description: 'Destruye una criatura aliada. Roba 2 cartas. Si tenía una habilidad, roba 1 carta adicional',
+  description: 'Destruye una criatura aliada. Roba 2 cartas.',
   flavorText: 'El sacrificio trae sabiduría.'
 }
 
@@ -262,8 +255,8 @@ export const ANATOMISTA_EXPERTO: Card = {
   abilities: [],
   effects: [
     {
-      id: 'Anatomista_Conditional_Regeneration',
-      description: 'Si una criatura aliada murió este turno, esta carta gana Regeneración hasta tu próximo turno',
+      id: 'Anatomista_AllyDeath_Damage2',
+      description: 'Cuando una criatura aliada muera, haz 2 de daño al héroe enemigo',
       timing: EffectTiming.TRIGGERED,
       condition: {
         type: 'BOARD_STATE',
@@ -271,14 +264,14 @@ export const ANATOMISTA_EXPERTO: Card = {
         comparison: 'EQUAL'
       },
       action: {
-        type: EffectActionType.GAIN_ABILITY,
-        target: EffectTarget.SELF,
-        value: Ability.REGENERACION,
-        duration: 'UNTIL_DEATH'
+        type: EffectActionType.DAMAGE,
+        target: EffectTarget.ENEMY_HERO,
+        amount: 2,
+        duration: 'PERMANENT'
       }
     }
   ],
-  description: '2/4. Si una criatura aliada murió este turno, esta carta gana Regeneración hasta tu próximo turno',
+  description: '2/4. Cuando una criatura aliada muera, haz 2 de daño al héroe enemigo',
   flavorText: 'Cada muerte enseña resistencia.'
 }
 
@@ -292,19 +285,14 @@ export const INVOCACION_SINIESTRA: Card = {
   abilities: [],
   effects: [
     {
-      id: 'Invocacion_Graveyard_Recursion',
-      description: 'Descubre X criaturas de cualquier cementerio, puedes invocar una. Hasta el final del turno obtiene Prisa',
+      id: 'Invocacion_Damage3_SummonSameCostIfKill',
+      description: 'Haz 3 de daño a una criatura enemiga. Si muere, invoca una criatura aleatoria del mismo coste en tu campo.',
       timing: EffectTiming.ON_PLAY,
-      condition: {
-        type: 'GRAVEYARD_COUNT',
-        value: 1,
-        comparison: 'GREATER_EQUAL'
-      },
       action: {
-        type: EffectActionType.SUMMON_CREATURE,
-        target: EffectTarget.FRIENDLY_HERO,
-        value: 'DISCOVER_FROM_GRAVEYARD',
-        duration: 'END_OF_TURN'
+        type: EffectActionType.DAMAGE_AND_SUMMON_SAME_COST_IF_KILL,
+        target: EffectTarget.TARGET_CREATURE,
+        amount: 3,
+        duration: 'PERMANENT'
       }
     }
   ],
@@ -312,7 +300,7 @@ export const INVOCACION_SINIESTRA: Card = {
     type: 'CEMENTERIO',
     amount: 1
   },
-  description: 'Cementerio X: Descubre X criaturas de cualquier cementerio, puedes invocar una. Hasta el final del turno obtiene Prisa',
+  description: 'Haz 3 de daño a una criatura enemiga. Si muere, invoca una criatura aleatoria del mismo coste en tu campo.',
   flavorText: 'Los muertos sirven una vez más.'
 }
 
@@ -329,7 +317,7 @@ export const PERFECCIONISTA_OBSESIVO: Card = {
   effects: [
     {
       id: 'Perfeccionista_Specimen_Enhancement',
-      description: 'Cuando tu Espécimen Perfecto sea invocado, gana Taunt y +2/+2',
+      description: 'Cuando tu Espécimen Perfecto sea invocado, gana +1/+1 por cada habilidad diferente en el cementerio',
       timing: EffectTiming.TRIGGERED,
       condition: {
         type: 'BOARD_STATE',
@@ -337,14 +325,14 @@ export const PERFECCIONISTA_OBSESIVO: Card = {
         comparison: 'EQUAL'
       },
       action: {
-        type: EffectActionType.GAIN_ABILITY,
-        target: EffectTarget.TARGET_CREATURE,
-        value: Ability.TAUNT,
+        type: EffectActionType.BUFF_STATS,
+        target: EffectTarget.SELF,
+        value: 'UNIQUE_ABILITIES_IN_GRAVEYARD',
         duration: 'PERMANENT'
       }
     }
   ],
-  description: '3/3 con Escudo. Cuando tu Espécimen Perfecto sea invocado, gana Taunt y +2/+2',
+  description: '3/3 con Escudo. Cuando tu Espécimen Perfecto sea invocado gana +1/+1 por cada habilidad diferente en el cementerio',
   flavorText: 'Cada detalle debe ser perfecto.'
 }
 
@@ -385,30 +373,13 @@ export const MAESTRO_NECROMANTICO: Card = {
   abilities: [Ability.TAUNT],
   effects: [
     {
-      id: 'Maestro_Grant_Stealth',
-      description: 'Al entrar: Todas las criaturas en tu cementerio ganan Sigilo hasta el final de la partida',
-      timing: EffectTiming.ON_ENTER,
+      id: 'Maestro_Summon_Random_1',
+      description: 'Al final del turno: Invoca una criatura aleatoria de coste 1',
+      timing: EffectTiming.END_OF_TURN,
       action: {
-        type: EffectActionType.GAIN_ABILITY,
+        type: EffectActionType.SUMMON_CREATURE,
         target: EffectTarget.FRIENDLY_HERO,
-        value: Ability.SIGILO,
-        duration: 'PERMANENT'
-      }
-    },
-    {
-      id: 'Maestro_Emergency_Specimen',
-      description: 'Tu Espécimen Perfecto puede ser invocado este turno sin importar el mana',
-      timing: EffectTiming.ON_ENTER,
-      condition: {
-        type: 'GRAVEYARD_COUNT',
-        value: 6,
-        comparison: 'GREATER_EQUAL'
-      },
-      action: {
-        type: EffectActionType.SUMMON_SPECIMEN,
-        target: EffectTarget.FRIENDLY_HERO,
-        value: 'FREE_SUMMON_THIS_TURN',
-        duration: 'END_OF_TURN'
+        value: 'RANDOM_COST:1'
       }
     }
   ],
@@ -416,13 +387,14 @@ export const MAESTRO_NECROMANTICO: Card = {
     type: 'CEMENTERIO',
     amount: 6
   },
-  description: '4/6 con Taunt. Al entrar: Todas las criaturas en tu cementerio ganan Sigilo hasta el final de la partida. Cementerio 6+: Tu Espécimen Perfecto puede ser invocado este turno sin importar el mana',
+  description: '4/6 con Taunt. Al final del turno: Invoca una criatura aleatoria de coste 1.',
   flavorText: 'Domina tanto la vida como la muerte.'
 }
 
 export const EVOLUCION_PERFECTA: Card = {
   id: 'Evolucion_Perfecta',
-  name: 'Evolución Perfecta',
+  name: 'Proyecto T3RMINU5',
+  image: '/imgCards/terminusevo.jpg',
   type: CardType.SPELL,
   rarity: CardRarity.LEGENDARY,
   classType: ClassType.ABOMINACION,
@@ -469,7 +441,7 @@ export const APRENDIZ_ERRATICO: Card = {
     {
       id: 'Aprendiz_Extra_Entropy',
       description: 'Al ser jugado: Gana 1 Entropía adicional (total: 2 Entropía de esta carta)',
-      timing: EffectTiming.ON_PLAY,
+      timing: EffectTiming.ON_ENTER,
       action: {
         type: EffectActionType.GAIN_ENTROPY,
         target: EffectTarget.FRIENDLY_HERO,
@@ -479,7 +451,7 @@ export const APRENDIZ_ERRATICO: Card = {
     },
     {
       id: 'Aprendiz_Random_Buff',
-      description: 'Gana +1/+1 aleatorio al final del turno',
+      description: 'Entropía 3+: Una criatura aleatoria gana +1/+1',
       timing: EffectTiming.END_OF_TURN,
       condition: {
         type: 'CLASS_RESOURCE',
@@ -488,7 +460,7 @@ export const APRENDIZ_ERRATICO: Card = {
       },
       action: {
         type: EffectActionType.BUFF_STATS,
-        target: EffectTarget.SELF,
+        target: EffectTarget.RANDOM_CREATURE,
         value: '+1/+1',
         duration: 'PERMANENT'
       }
@@ -516,7 +488,7 @@ export const MAGO_DEL_CAOS: Card = {
     {
       id: 'Mago_Gain_Entropy',
       description: 'Al ser jugado: Gana 1 Entropía',
-      timing: EffectTiming.ON_PLAY,
+      timing: EffectTiming.ON_ENTER,
       action: {
         type: EffectActionType.GAIN_ENTROPY,
         target: EffectTarget.FRIENDLY_HERO,
@@ -571,7 +543,7 @@ export const RITUAL_CAOTICO: Card = {
     },
     {
       id: 'Ritual_Steal_Card',
-      description: 'Además, roba 1 carta aleatoria del mazo del oponente',
+      description: 'Entropía 5+: Además, roba 2 cartas',
       timing: EffectTiming.ON_PLAY,
       condition: {
         type: 'CLASS_RESOURCE',
@@ -580,8 +552,8 @@ export const RITUAL_CAOTICO: Card = {
       },
       action: {
         type: EffectActionType.DRAW_CARDS,
-        target: EffectTarget.ENEMY_HERO,
-        amount: 1,
+        target: EffectTarget.FRIENDLY_HERO,
+        amount: 2,
         duration: 'PERMANENT'
       }
     }
@@ -607,11 +579,11 @@ export const MERCADER_LOCO: Card = {
   effects: [
     {
       id: 'Mercader_Card_Exchange',
-      description: 'Al entrar: Intercambia cartas aleatorias con el oponente (1 cada uno)',
+      description: 'Entropía 2+: Roba 1 carta',
       timing: EffectTiming.ON_ENTER,
       condition: {
         type: 'CLASS_RESOURCE',
-        value: 4,
+        value: 2,
         comparison: 'GREATER_EQUAL'
       },
       action: {
@@ -624,9 +596,9 @@ export const MERCADER_LOCO: Card = {
   ],
   classResource: {
     type: 'ENTROPIA',
-    amount: 4
+    amount: 2
   },
-  description: '2/2. Entropía 4+: Al entrar: Intercambia cartas aleatorias con el oponente (1 cada uno)',
+  description: '2/2. Entropía 2+: Al entrar: Roba 1 carta',
   flavorText: 'Comercia lo imposible por lo improbable.'
 }
 
@@ -642,26 +614,26 @@ export const MANIPULADOR_DEL_DESTINO: Card = {
   abilities: [Ability.VUELO],
   effects: [
     {
-      id: 'Manipulador_Scaling_AoE',
-      description: 'Al entrar: Dispara 1 daño aleatorio N veces (N = Entropía). Consume 1 por disparo.',
+      id: 'Manipulador_Entropy_Burst_Option',
+      description: 'Al entrar: Puedes pagar 4 Entropía para hacer 2 de daño N veces a enemigos aleatorios.',
       timing: EffectTiming.ON_ENTER,
       action: {
-        type: EffectActionType.DAMAGE,
-        target: EffectTarget.RANDOM_ENEMY,
-        amount: 1,
-        value: 'RANDOM_BY_ENTROPY',
-        consumeEntropy: 1,
-        duration: 'PERMANENT'
+        type: EffectActionType.DISCOVER_PAY_ENTROPY,
+        target: EffectTarget.FRIENDLY_HERO,
+        options: {
+          entropyCost: 4,
+          buff: { type: EffectActionType.DAMAGE, target: EffectTarget.RANDOM_ENEMY, amount: 2, value: 'REPEAT_N:3', duration: 'PERMANENT' }
+        }
       }
     }
   ],
-  description: '2/3 con Vuelo. Al entrar: N proyectiles aleatorios (N = Entropía), consumiendo 1 por proyectil.',
+  description: '2/3 con Vuelo. Al entrar: puedes pagar 4 Entropía para lanzar N impactos de 2 a enemigos aleatorios (N=3).',
   flavorText: 'El destino obedece a quien comprende el caos.'
 }
-
 export const PORTAL_INESTABLE: Card = {
   id: 'Portal_Inestable',
   name: 'Portal Inestable',
+  image: '/imgCards/portal_inestable.jpg',
   type: CardType.SPELL,
   rarity: CardRarity.RARE,
   classType: ClassType.CAOS,
@@ -670,7 +642,7 @@ export const PORTAL_INESTABLE: Card = {
   effects: [
     {
       id: 'Portal_Scaling_Summon',
-      description: 'Entropía 3: Invoca una criatura aleatoria de costo 3 o menos. Entropía 6: de costo 6 o menos. Entropía 9: de cualquier costo',
+      description: 'Entropía 3: Invoca una criatura aleatoria de costo 3 o menos. Entropía 6: de costo 6 o menos. Entropía 9: de cualquier costo (solo criaturas del set base)',
       timing: EffectTiming.ON_PLAY,
       action: {
         type: EffectActionType.SUMMON_CREATURE,
@@ -687,25 +659,32 @@ export const PORTAL_INESTABLE: Card = {
 export const CAOS_CONTROLADO: Card = {
   id: 'Caos_Controlado',
   name: 'Caos Controlado',
-  type: CardType.INSTANT,
+  type: CardType.SPELL,
   rarity: CardRarity.RARE,
   classType: ClassType.CAOS,
-  mana: 4,
+  mana: 1,
   abilities: [],
   effects: [
     {
       id: 'Caos_Scaling_Cost_Reduction',
-      description: 'Entropía 2: El próximo hechizo cuesta 2 menos. Entropía 4: Los próximos 2 hechizos. Entropía 8: Todos los hechizos hasta final del turno',
-      timing: EffectTiming.INSTANT,
+      description: 'Entropía 4: La próxima carta cuesta 2 menos. Entropía 7: Las próximas 2 cartas. Entropía 10: Todas tus cartas hasta fin de turno',
+      timing: EffectTiming.ON_PLAY,
       action: {
-        type: EffectActionType.BUFF_STATS,
+        type: EffectActionType.REDUCE_CARD_COST,
         target: EffectTarget.FRIENDLY_HERO,
-        amount: -2,
-        duration: 'END_OF_TURN'
+        amount: 2,
+        duration: 'END_OF_TURN',
+        options: {
+          thresholds: [
+            { min: 4, uses: 1 },
+            { min: 7, uses: 2 },
+            { min: 10, uses: 'ALL' }
+          ]
+        }
       }
     }
   ],
-  description: 'Entropía 2: El próximo hechizo cuesta 2 menos. Entropía 4: Los próximos 2 hechizos cuestan 2 menos cada uno. Entropía 8: Todos tus hechizos cuestan 2 menos hasta final del turno',
+  description: 'Entropía 4: Próxima carta -2. Entropía 7: Próximas 2 cartas -2. Entropía 10: Todas tus cartas -2 hasta fin de turno',
   flavorText: 'Dominar el caos es el arte supremo.'
 }
 
@@ -756,68 +735,64 @@ export const TORMENTA_IMPREDECIBLE: Card = {
   effects: [
     {
       id: 'Tormenta_Entropy_Damage',
-      description: 'Haz 2 de daño aleatoriamente por cada punto de entropía',
+      description: 'Haz 2 de daño completamente aleatorio por cada punto de entropía',
       timing: EffectTiming.ON_PLAY,
       action: {
         type: EffectActionType.DAMAGE,
-        target: EffectTarget.RANDOM_ENEMY,
-        amount: 2, // Multiplicado por Entropía
+        target: EffectTarget.RANDOM_CHARACTER,
+        amount: 2,
+        value: 'RANDOM_BY_ENTROPY', // ← usa entropía, N disparos aleatorios
         duration: 'PERMANENT'
       }
     }
   ],
-  description: 'Entropía X: Haz 2 de daño aleatoriamente por cada punto de entropía',
-  flavorText: 'El caos recompensa a los audaces.'
+  description: 'Entropía X: Haz 2 de daño completamente aleatorio por cada punto de entropía',
+  flavorText: 'El caos no distingue entre amigo y enemigo.'
 }
 
 export const REALIDAD_FRACTURADA: Card = {
-  id: 'Realidad_Fracturada',
+  id: 'realidad_fracturada',
   name: 'Realidad Fracturada',
   type: CardType.SPELL,
   rarity: CardRarity.LEGENDARY,
   classType: ClassType.CAOS,
   mana: 10,
+  description: 'Entropía 8+: Juega todas las cartas de tu mano con objetivos aleatorios. Entropía 10: Además, todas se juegan dos veces.',
+  flavorText: 'Cuando la realidad se fractura, todo sucede múltiples veces.',
   abilities: [],
+  classResource: { type: 'ENTROPIA', amount: 8 },
   effects: [
     {
-      id: 'Realidad_Hand_Dump',
-      description: 'Juega todas las cartas de tu mano de izquierda a derecha. Todos los objetivos son aleatorios',
+      id: 'realidad_fracturada_8',
+      description: 'Entropía 8+: Juega todas las cartas de tu mano con objetivos aleatorios',
       timing: EffectTiming.ON_PLAY,
       condition: {
         type: 'CLASS_RESOURCE',
         value: 8,
-        comparison: 'GREATER_EQUAL'
+        comparison: 'GREATER_EQUAL'          // ← añadir
       },
       action: {
-        type: EffectActionType.DRAW_CARDS,
-        target: EffectTarget.FRIENDLY_HERO,
-        amount: 999, // Special: play all hand
-        duration: 'PERMANENT'
+        type: EffectActionType.TRANSFORM,
+        target: EffectTarget.SELF,
+        value: 'PLAY_ALL_HAND_RANDOM_TARGETS'
       }
     },
     {
-      id: 'Realidad_Double_Effects',
-      description: 'Además, todas esas cartas se juegan dos veces',
+      id: 'realidad_fracturada_10',
+      description: 'Entropía 10: Todas las cartas se juegan dos veces',
       timing: EffectTiming.ON_PLAY,
       condition: {
         type: 'CLASS_RESOURCE',
         value: 10,
-        comparison: 'GREATER_EQUAL'
+        comparison: 'GREATER_EQUAL'          // ← añadir
       },
       action: {
-        type: EffectActionType.DRAW_CARDS,
-        target: EffectTarget.FRIENDLY_HERO,
-        amount: 999, // Special: double all effects
-        duration: 'PERMANENT'
+        type: EffectActionType.TRANSFORM,
+        target: EffectTarget.SELF,
+        value: 'PLAY_ALL_HAND_TWICE_RANDOM_TARGETS'
       }
     }
-  ],
-  classResource: {
-    type: 'ENTROPIA',
-    amount: 8
-  },
-  description: 'Entropía 8+: Juega todas las cartas de tu mano de izquierda a derecha. Todos los objetivos son aleatorios. Entropía 10: Además, todas esas cartas se juegan dos veces',
-  flavorText: 'Cuando la realidad se fractura, todo sucede múltiples veces.'
+  ]
 }
 
 // ==========================================
@@ -831,6 +806,7 @@ export const EXPLORADOR_CREPUSCULAR: CycleCard = {
   type: CardType.CREATURE,
   rarity: CardRarity.BASIC,
   classType: ClassType.CICLO,
+  transformsWithCycle: false,
   mana: 1,
   dayForm: {
     attack: 2,
@@ -884,7 +860,7 @@ export const RITUAL_DEL_AMANECER: Card = {
     },
     {
       id: 'Ritual_Night_Effect',
-      description: 'Noche: Cura 3 de vida a tu héroe',
+      description: 'Noche: Cura 4 de vida a tu héroe',
       timing: EffectTiming.ON_PLAY,
       condition: {
         type: 'CLASS_RESOURCE',
@@ -894,13 +870,13 @@ export const RITUAL_DEL_AMANECER: Card = {
       action: {
         type: EffectActionType.HEAL,
         target: EffectTarget.FRIENDLY_HERO,
-        amount: 3,
+        amount: 4,
         duration: 'PERMANENT'
       }
     },
     {
-      id: 'Ritual_Eclipse_Effect',
-      description: 'Eclipse: Haz 3 de daño Y cura 3 de vida',
+      id: 'Ritual_Eclipse_Damage',
+      description: 'Eclipse: Haz 3 de daño a un objetivo',
       timing: EffectTiming.ON_PLAY,
       condition: {
         type: 'CLASS_RESOURCE',
@@ -913,13 +889,29 @@ export const RITUAL_DEL_AMANECER: Card = {
         amount: 3,
         duration: 'PERMANENT'
       }
+    },
+    {
+      id: 'Ritual_Eclipse_Heal',
+      description: 'Eclipse: Cura 4 de vida a tu héroe',
+      timing: EffectTiming.ON_PLAY,
+      condition: {
+        type: 'CLASS_RESOURCE',
+        value: CycleState.ECLIPSE,
+        comparison: 'EQUAL'
+      },
+      action: {
+        type: EffectActionType.HEAL,
+        target: EffectTarget.FRIENDLY_HERO,
+        amount: 4,
+        duration: 'PERMANENT'
+      }
     }
   ],
   classResource: {
     type: 'ESTADO',
-    state: CycleState.DIA // Placeholder - real implementation handles all states
+    state: CycleState.DIA
   },
-  description: 'Día: Haz 3 de daño a un objetivo. Noche: Cura 3 de vida a tu héroe. Eclipse: Haz 3 de daño Y cura 3 de vida',
+  description: 'Día: 3 daño a un objetivo. Noche: Cura 4 a tu héroe. Eclipse: 3 daño y cura 4.',
   flavorText: 'El ciclo eterno de destrucción y renovación.'
 }
 
@@ -935,39 +927,36 @@ export const VIDENTE_LUNAR: Card = {
   abilities: [],
   effects: [
     {
-      id: 'Vidente_Day_Patience',
-      description: 'Día: Al final del turno: Si no cambiaste de estado, roba 1 carta',
-      timing: EffectTiming.END_OF_TURN,
-      condition: {
-        type: 'BOARD_STATE',
-        value: 'NO_STATE_CHANGE_THIS_TURN',
-        comparison: 'EQUAL'
-      },
-      action: {
-        type: EffectActionType.DRAW_CARDS,
-        target: EffectTarget.FRIENDLY_HERO,
-        amount: 1,
-        duration: 'PERMANENT'
-      }
+      id: 'Vidente_OnEnter_Day_Draw',
+      description: 'Día: Al entrar: Roba 1 carta',
+      timing: EffectTiming.ON_ENTER,
+      condition: { type: 'CLASS_RESOURCE', value: CycleState.DIA, comparison: 'EQUAL' },
+      action: { type: EffectActionType.DRAW_CARDS, target: EffectTarget.FRIENDLY_HERO, amount: 1, duration: 'PERMANENT' }
     },
     {
-      id: 'Vidente_Night_Patience',
-      description: 'Noche: Al final del turno: Si no cambiaste de estado, gana Taunt hasta tu próximo turno',
-      timing: EffectTiming.END_OF_TURN,
-      condition: {
-        type: 'BOARD_STATE',
-        value: 'NO_STATE_CHANGE_THIS_TURN',
-        comparison: 'EQUAL'
-      },
-      action: {
-        type: EffectActionType.GAIN_ABILITY,
-        target: EffectTarget.SELF,
-        value: Ability.TAUNT,
-        duration: 'END_OF_TURN'
-      }
+      id: 'Vidente_OnEnter_Night_Taunt',
+      description: 'Noche: Al entrar: Gana Taunt',
+      timing: EffectTiming.ON_ENTER,
+      condition: { type: 'CLASS_RESOURCE', value: CycleState.NOCHE, comparison: 'EQUAL' },
+      action: { type: EffectActionType.GAIN_ABILITY, target: EffectTarget.SELF, value: Ability.TAUNT, duration: 'UNTIL_DEATH' }
+    },
+    // Eclipse: hace ambas
+    {
+      id: 'Vidente_OnEnter_Eclipse_Draw',
+      description: 'Eclipse: Al entrar: Roba 1 carta',
+      timing: EffectTiming.ON_ENTER,
+      condition: { type: 'CLASS_RESOURCE', value: CycleState.ECLIPSE, comparison: 'EQUAL' },
+      action: { type: EffectActionType.DRAW_CARDS, target: EffectTarget.FRIENDLY_HERO, amount: 1, duration: 'PERMANENT' }
+    },
+    {
+      id: 'Vidente_OnEnter_Eclipse_Taunt',
+      description: 'Eclipse: Al entrar: Gana Taunt',
+      timing: EffectTiming.ON_ENTER,
+      condition: { type: 'CLASS_RESOURCE', value: CycleState.ECLIPSE, comparison: 'EQUAL' },
+      action: { type: EffectActionType.GAIN_ABILITY, target: EffectTarget.SELF, value: Ability.TAUNT, duration: 'UNTIL_DEATH' }
     }
   ],
-  description: '1/3. Día: Al final del turno: Si no cambiaste de estado, roba 1 carta. Noche: Al final del turno: Si no cambiaste de estado, gana Taunt hasta tu próximo turno',
+  description: '1/3. Al entrar: Día: roba 1 carta. Noche: gana Taunt. Eclipse: ambas.',
   flavorText: 'La paciencia revela secretos.'
 }
 
@@ -1016,9 +1005,9 @@ export const INVOCADOR_DE_ECLIPSE: Card = {
   abilities: [],
   effects: [
     {
-      id: 'Invocador_Day_Activation',
-      description: 'Día: Al entrar: Activa Eclipse si tienes 5+ mana',
-      timing: EffectTiming.ON_ENTER,
+      id: 'Invocador_Start_Activate',
+      description: 'Al inicio de tu turno: Si tienes 5+ maná, activa Eclipse',
+      timing: EffectTiming.START_OF_TURN,
       condition: {
         type: 'BOARD_STATE',
         value: 'MANA_5_PLUS',
@@ -1029,24 +1018,9 @@ export const INVOCADOR_DE_ECLIPSE: Card = {
         target: EffectTarget.FRIENDLY_HERO,
         duration: 'PERMANENT'
       }
-    },
-    {
-      id: 'Invocador_Night_Activation',
-      description: 'Noche: Al entrar: Activa Eclipse si tienes 6+ mana',
-      timing: EffectTiming.ON_ENTER,
-      condition: {
-        type: 'BOARD_STATE',
-        value: 'MANA_6_PLUS',
-        comparison: 'EQUAL'
-      },
-      action: {
-        type: EffectActionType.ACTIVATE_ECLIPSE,
-        target: EffectTarget.FRIENDLY_HERO,
-        duration: 'PERMANENT'
-      }
     }
   ],
-  description: '3/3. Día: Al entrar: Activa Eclipse si tienes 5+ mana. Noche: Al entrar: Activa Eclipse si tienes 6+ mana',
+  description: '3/3. Al inicio de tu turno: Si tienes 5+ maná, activa Eclipse.',
   flavorText: 'Fuerza la convergencia de los astros.'
 }
 
@@ -1059,108 +1033,117 @@ export const GUARDIAN_DEL_EQUILIBRIO: Card = {
   mana: 3,
   attack: 2,
   health: 4,
+  
   abilities: [Ability.TAUNT],
   effects: [
+    // Eclipse: Regeneración de equipo al entrar
     {
       id: 'Guardian_Eclipse_Regeneration',
-      description: 'Al entrar: Si es Eclipse, todas tus criaturas ganan Regeneración hasta final del turno',
+      description: 'Eclipse: Al entrar: Todas tus criaturas ganan Regeneración hasta final del turno',
       timing: EffectTiming.ON_ENTER,
-      condition: {
-        type: 'CLASS_RESOURCE',
-        value: CycleState.ECLIPSE,
-        comparison: 'EQUAL'
-      },
-      action: {
-        type: EffectActionType.GAIN_ABILITY,
-        target: EffectTarget.ALL_FRIENDLY_CREATURES,
-        value: Ability.REGENERACION,
-        duration: 'END_OF_TURN'
-      }
+      condition: { type: 'CLASS_RESOURCE', value: CycleState.ECLIPSE, comparison: 'EQUAL' },
+      action: { type: EffectActionType.GAIN_ABILITY, target: EffectTarget.ALL_FRIENDLY_CREATURES, value: Ability.REGENERACION, duration: 'END_OF_TURN' }
     },
+    // Eclipse: Buff pasivo propio (conservado)
     {
       id: 'Guardian_Eclipse_Self_Buff',
-      description: 'Eclipse: Gana +2/+2 y Escudo',
+      description: 'Eclipse: Gana +2/+2',
       timing: EffectTiming.PASSIVE,
-      condition: {
-        type: 'CLASS_RESOURCE',
-        value: CycleState.ECLIPSE,
-        comparison: 'EQUAL'
-      },
-      action: {
-        type: EffectActionType.BUFF_STATS,
-        target: EffectTarget.SELF,
-        value: '+2/+2',
-        duration: 'PERMANENT'
-      }
+      condition: { type: 'CLASS_RESOURCE', value: CycleState.ECLIPSE, comparison: 'EQUAL' },
+      action: { type: EffectActionType.BUFF_STATS, target: EffectTarget.SELF, value: '+2/+2', duration: 'PERMANENT' }
     }
   ],
-  classResource: {
-    type: 'ESTADO',
-    state: CycleState.ECLIPSE
-  },
-  description: '2/4 con Taunt. Al entrar: Si es Eclipse, todas tus criaturas ganan Regeneración hasta final del turno. Eclipse: Gana +2/+2 y Escudo',
+  classResource: { type: 'ESTADO', state: CycleState.ECLIPSE },
+  description: '2/4 con Taunt. Aura: Durante el Día tus criaturas obtienen +2 ATQ; durante la Noche obtienen +2 VIDA (se acumula por cada Guardián). Eclipse: Al entrar, todas tus criaturas ganan Regeneración hasta fin de turno y este obtiene +2/+2.',
   flavorText: 'En el equilibrio perfecto, todo es posible.'
 }
 
 export const MOMENTO_PERFECTO: Card = {
   id: 'Momento_Perfecto',
   name: 'Momento Perfecto',
-  type: CardType.INSTANT,
+  type: CardType.SPELL,
   rarity: CardRarity.RARE,
   classType: ClassType.CICLO,
   mana: 4,
   abilities: [],
   effects: [
+    // Día: daño al héroe enemigo igual a la suma del ATQ de tus criaturas
     {
-      id: 'Momento_Day_Attack',
-      description: 'Día: Todas tus criaturas atacan inmediatamente con +1/+0',
-      timing: EffectTiming.INSTANT,
-      condition: {
-        type: 'CLASS_RESOURCE',
-        value: CycleState.DIA,
-        comparison: 'EQUAL'
-      },
+      id: 'Momento_Day_SumAttack_Face',
+      description: 'Día: Inflige al héroe enemigo daño igual a la suma del ATQ de tus criaturas',
+      timing: EffectTiming.ON_PLAY,
+      condition: { type: 'CLASS_RESOURCE', value: CycleState.DIA, comparison: 'EQUAL' },
       action: {
-        type: EffectActionType.BUFF_ATTACK,
-        target: EffectTarget.ALL_FRIENDLY_CREATURES,
-        amount: 1,
-        duration: 'END_OF_TURN'
+        type: EffectActionType.DAMAGE,
+        target: EffectTarget.ENEMY_HERO,
+        value: 'SUM_FRIENDLY_ATTACK',
+        duration: 'PERMANENT'
       }
     },
+    // Noche: todas tus criaturas ganan Taunt y Escudo (permanente)
     {
-      id: 'Momento_Night_Defense',
-      description: 'Noche: Todas tus criaturas ganan Taunt y +0/+1 hasta final del turno',
-      timing: EffectTiming.INSTANT,
-      condition: {
-        type: 'CLASS_RESOURCE',
-        value: CycleState.NOCHE,
-        comparison: 'EQUAL'
-      },
-      action: {
-        type: EffectActionType.GAIN_ABILITY,
-        target: EffectTarget.ALL_FRIENDLY_CREATURES,
-        value: Ability.TAUNT,
-        duration: 'END_OF_TURN'
-      }
-    },
-    {
-      id: 'Momento_Eclipse_Combined',
-      description: 'Eclipse: Combina ambos efectos (Taunt y +0/+1 permanentes)',
-      timing: EffectTiming.INSTANT,
-      condition: {
-        type: 'CLASS_RESOURCE',
-        value: CycleState.ECLIPSE,
-        comparison: 'EQUAL'
-      },
+      id: 'Momento_Night_Give_Taunt',
+      description: 'Noche: Todas tus criaturas ganan Taunt (permanente)',
+      timing: EffectTiming.ON_PLAY,
+      condition: { type: 'CLASS_RESOURCE', value: CycleState.NOCHE, comparison: 'EQUAL' },
       action: {
         type: EffectActionType.GAIN_ABILITY,
         target: EffectTarget.ALL_FRIENDLY_CREATURES,
         value: Ability.TAUNT,
         duration: 'PERMANENT'
       }
+    },
+    {
+      id: 'Momento_Night_Give_Shield',
+      description: 'Noche: Todas tus criaturas ganan Escudo (permanente)',
+      timing: EffectTiming.ON_PLAY,
+      condition: { type: 'CLASS_RESOURCE', value: CycleState.NOCHE, comparison: 'EQUAL' },
+      action: {
+        type: EffectActionType.GAIN_ABILITY,
+        target: EffectTarget.ALL_FRIENDLY_CREATURES,
+        value: Ability.ESCUDO,
+        duration: 'PERMANENT'
+      }
+    },
+    // Eclipse: combina ambos efectos (permanente)
+    {
+      id: 'Momento_Eclipse_Combo_Damage',
+      description: 'Eclipse: Inflige al héroe enemigo daño igual a la suma del ATQ de tus criaturas',
+      timing: EffectTiming.ON_PLAY,
+      condition: { type: 'CLASS_RESOURCE', value: CycleState.ECLIPSE, comparison: 'EQUAL' },
+      action: {
+        type: EffectActionType.DAMAGE,
+        target: EffectTarget.ENEMY_HERO,
+        value: 'SUM_FRIENDLY_ATTACK',
+        duration: 'PERMANENT'
+      }
+    },
+    {
+      id: 'Momento_Eclipse_Combo_Taunt',
+      description: 'Eclipse: Todas tus criaturas ganan Taunt (permanente)',
+      timing: EffectTiming.ON_PLAY,
+      condition: { type: 'CLASS_RESOURCE', value: CycleState.ECLIPSE, comparison: 'EQUAL' },
+      action: {
+        type: EffectActionType.GAIN_ABILITY,
+        target: EffectTarget.ALL_FRIENDLY_CREATURES,
+        value: Ability.TAUNT,
+        duration: 'PERMANENT'
+      }
+    },
+    {
+      id: 'Momento_Eclipse_Combo_Shield',
+      description: 'Eclipse: Todas tus criaturas ganan Escudo (permanente)',
+      timing: EffectTiming.ON_PLAY,
+      condition: { type: 'CLASS_RESOURCE', value: CycleState.ECLIPSE, comparison: 'EQUAL' },
+      action: {
+        type: EffectActionType.GAIN_ABILITY,
+        target: EffectTarget.ALL_FRIENDLY_CREATURES,
+        value: Ability.ESCUDO,
+        duration: 'PERMANENT'
+      }
     }
   ],
-  description: 'Día: Todas tus criaturas atacan inmediatamente con +1/+0. Noche: Todas tus criaturas ganan Taunt y +0/+1 hasta final del turno. Eclipse: Combina ambos efectos (Taunt y +0/+1 permanentes)',
+  description: 'Día: Daño al héroe igual a la suma del ATQ de tus criaturas. Noche: Todas tus criaturas ganan Taunt y Escudo (permanente). Eclipse: ambos efectos.',
   flavorText: 'El timing lo es todo.'
 }
 
@@ -1175,36 +1158,42 @@ export const MAESTRO_DEL_TIEMPO: Card = {
   health: 5,
   abilities: [],
   effects: [
+    // ===== DÍA: 3 daño a criatura enemiga aleatoria =====
     {
-      id: 'Maestro_Force_Eclipse',
-      description: 'Al final de tu turno: Puedes cambiar a Eclipse hasta tu próximo turno',
+      id: 'Maestro_Dia_End_DamageCreature',
+      description: 'Día: Al final de tu turno, inflige 3 de daño a una criatura enemiga aleatoria',
       timing: EffectTiming.END_OF_TURN,
-      action: {
-        type: EffectActionType.CHANGE_CYCLE_STATE,
-        target: EffectTarget.FRIENDLY_HERO,
-        value: CycleState.ECLIPSE,
-        duration: 'END_OF_TURN'
-      }
+      condition: { type: 'CLASS_RESOURCE', value: CycleState.DIA, comparison: 'EQUAL' },
+      action: { type: EffectActionType.DAMAGE, target: EffectTarget.RANDOM_ENEMY, amount: 3, duration: 'PERMANENT' }
+    },
+
+    // ===== NOCHE: 3 daño al héroe enemigo =====
+    {
+      id: 'Maestro_Noche_End_DamageHero',
+      description: 'Noche: Al final de tu turno, inflige 3 de daño al héroe enemigo',
+      timing: EffectTiming.END_OF_TURN,
+      condition: { type: 'CLASS_RESOURCE', value: CycleState.NOCHE, comparison: 'EQUAL' },
+      action: { type: EffectActionType.DAMAGE, target: EffectTarget.ENEMY_HERO, amount: 3, duration: 'PERMANENT' }
+    },
+
+    // ===== ECLIPSE: 3 daño a criatura aleatoria + 3 daño al héroe =====
+    {
+      id: 'Maestro_Eclipse_End_DamageCreature',
+      description: 'Eclipse: Al final de tu turno, inflige 3 de daño a una criatura enemiga aleatoria',
+      timing: EffectTiming.END_OF_TURN,
+      condition: { type: 'CLASS_RESOURCE', value: CycleState.ECLIPSE, comparison: 'EQUAL' },
+      action: { type: EffectActionType.DAMAGE, target: EffectTarget.RANDOM_ENEMY, amount: 3, duration: 'PERMANENT' }
     },
     {
-      id: 'Maestro_Eclipse_Control',
-      description: 'Eclipse: Al final del turno: Puedes elegir si cambiar a Día o Noche',
+      id: 'Maestro_Eclipse_End_DamageHero',
+      description: 'Eclipse: Al final de tu turno, inflige 3 de daño al héroe enemigo',
       timing: EffectTiming.END_OF_TURN,
-      condition: {
-        type: 'CLASS_RESOURCE',
-        value: CycleState.ECLIPSE,
-        comparison: 'EQUAL'
-      },
-      action: {
-        type: EffectActionType.CHANGE_CYCLE_STATE,
-        target: EffectTarget.FRIENDLY_HERO,
-        value: 'CHOOSE_DAY_OR_NIGHT',
-        duration: 'PERMANENT'
-      }
+      condition: { type: 'CLASS_RESOURCE', value: CycleState.ECLIPSE, comparison: 'EQUAL' },
+      action: { type: EffectActionType.DAMAGE, target: EffectTarget.ENEMY_HERO, amount: 3, duration: 'PERMANENT' }
     }
   ],
-  description: '4/5. Al final de tu turno: Puedes cambiar a Eclipse hasta tu próximo turno. Eclipse: Al final del turno: Puedes elegir si cambiar a Día o Noche',
-  flavorText: 'Controla el flujo del tiempo mismo.'
+  description: 'Día: Al final de tu turno, inflige 3 de daño a una criatura enemiga aleatoria. Noche: Al final de tu turno, inflige 3 de daño al héroe enemigo. Eclipse: Hace ambas cosas.',
+  flavorText: 'Dirige cada compás del ciclo con precisión.'
 }
 
 export const ECLIPSE_ETERNO: Card = {
@@ -1228,22 +1217,18 @@ export const ECLIPSE_ETERNO: Card = {
     },
     {
       id: 'Eclipse_AoE_Damage',
-      description: 'Eclipse: Haz 4 de daño a un objetivo y 2 a cada criatura adyacente',
+      description: 'Haz 4 de daño a una criatura enemiga objetivo y 2 a cada criatura adyacente',
       timing: EffectTiming.ON_PLAY,
-      condition: {
-        type: 'CLASS_RESOURCE',
-        value: CycleState.ECLIPSE,
-        comparison: 'EQUAL'
-      },
       action: {
-        type: EffectActionType.DAMAGE,
+        type: EffectActionType.DAMAGE_ADJACENT,
         target: EffectTarget.TARGET_CREATURE,
         amount: 4,
+        value: 2,
         duration: 'PERMANENT'
       }
     }
   ],
-  description: 'Activa Eclipse. Eclipse: Haz 4 de daño a un objetivo y 2 a cada criatura adyacente',
+  description: 'Activa Eclipse. Haz 4 de daño a una criatura enemiga objetivo y 2 a cada criatura adyacente',
   flavorText: 'Cuando las lunas se alinean, todo es posible.'
 }
 
@@ -1257,34 +1242,80 @@ export const CONVERGENCIA_CELESTIAL: Card = {
   abilities: [],
   effects: [
     {
-      id: 'Convergencia_Permanent_Eclipse',
-      description: 'Solo se puede jugar durante Eclipse. El resto de la partida es Eclipse permanente. Todas tus cartas funcionan como si fuera Eclipse',
+      id: 'Convergencia_Activate_Eclipse',
+      description: 'Activa Eclipse',
       timing: EffectTiming.ON_PLAY,
-      condition: {
-        type: 'CLASS_RESOURCE',
-        value: CycleState.ECLIPSE,
-        comparison: 'EQUAL'
-      },
+      action: {
+        type: EffectActionType.ACTIVATE_ECLIPSE,
+        target: EffectTarget.FRIENDLY_HERO,
+        duration: 'PERMANENT'
+      }
+    },
+    {
+      id: 'Convergencia_Permanent_Eclipse',
+      description: 'Activa Eclipse permanente. El resto de la partida es Eclipse',
+      timing: EffectTiming.ON_PLAY,
       action: {
         type: EffectActionType.CHANGE_CYCLE_STATE,
         target: EffectTarget.FRIENDLY_HERO,
         value: 'PERMANENT_ECLIPSE',
         duration: 'PERMANENT'
       }
+    },
+    {
+      id: 'Convergencia_Destroy_Top_3',
+      description: 'Destruye las 3 criaturas enemigas con más vida',
+      timing: EffectTiming.ON_PLAY,
+      action: {
+        type: EffectActionType.DESTROY_TOP_HEALTH_CREATURES,
+        target: EffectTarget.ALL_ENEMY_CREATURES,
+        amount: 3,
+        duration: 'PERMANENT'
+      }
     }
   ],
-  classResource: {
-    type: 'ESTADO',
-    state: CycleState.ECLIPSE
-  },
-  description: 'Solo se puede jugar durante Eclipse. El resto de la partida es Eclipse permanente. Todas tus cartas funcionan como si fuera Eclipse',
-  flavorText: 'Cuando los astros se alinean para siempre.'
+  description: 'Activa Eclipse permanente. El resto de la partida es Eclipse. Destruye las 3 criaturas enemigas con más vida',
+  flavorText: 'Los astros se alinean y el cosmos se detiene en el equilibrio perfecto.'
 }
 
 // ==========================================
 // ❤️ CLASE: VITALIDAD (10/10)
 // Mecánica: Vida como recurso + All-in Aggro  
 // ==========================================
+
+// Ejemplo en class-cards.ts
+export const TOKEN_2_2_PRISA: Card = {
+  id: 'TOKEN_2_2_PRISA',
+  name: 'Siervo embelesado',
+  type: CardType.CREATURE,
+  rarity: CardRarity.BASIC,
+  classType: ClassType.VITALIDAD,
+  mana: 0,
+  attack: 2,
+  health: 2,
+  abilities: [Ability.PRISA],
+  effects: [],
+  description: 'Token',
+  flavorText: ''
+}
+
+export const TOKEN_4_4_PRISA_LIFESTEAL: Card = {
+  id: 'TOKEN_4_4_PRISA_LIFESTEAL',
+  name: 'Siervo frenético',
+  type: CardType.CREATURE,
+  rarity: CardRarity.BASIC,
+  classType: ClassType.VITALIDAD,
+  mana: 0,
+  attack: 4,
+  health: 4,
+  abilities: [Ability.PRISA, Ability.ROBO_DE_VIDA],
+  effects: [],
+  description: 'Token',
+  flavorText: ''
+}
+
+// Añádelas a CLASS_CARDS o BASIC_CARDS según dónde las definas
+
 
 export const FANATICO_DESESPERADO: Card = {
   id: 'Fanatico_Desesperado',
@@ -1298,27 +1329,31 @@ export const FANATICO_DESESPERADO: Card = {
   abilities: [Ability.PRISA],
   effects: [
     {
-      id: 'Fanatico_Desperate_Buff',
-      description: 'Vida 3: Gana +2/+0 hasta final del turno',
-      timing: EffectTiming.TRIGGERED,
-      condition: {
-        type: 'CLASS_RESOURCE',
-        value: 3,
-        comparison: 'EQUAL'
-      },
+      id: 'Fanatico_Descubrir',
+      description: 'Elige al entrar: sin cambios, o +2/+0 pagando 2 de vida',
+      timing: EffectTiming.ON_ENTER,
       action: {
-        type: EffectActionType.BUFF_ATTACK,
+        type: EffectActionType.DISCOVER_PAY_LIFE,
         target: EffectTarget.SELF,
-        amount: 2,
-        duration: 'END_OF_TURN'
+        options: {
+          lifeCost: 2,
+          base: {
+            type: EffectActionType.BUFF_STATS,
+            target: EffectTarget.SELF,
+            value: '+0/+0',
+            duration: 'PERMANENT'
+          },
+          buff: {
+            type: EffectActionType.BUFF_STATS,
+            target: EffectTarget.SELF,
+            value: '+2/+0',
+            duration: 'PERMANENT'
+          }
+        }
       }
     }
   ],
-  classResource: {
-    type: 'VIDA',
-    amount: 3
-  },
-  description: '1/1 con Prisa. Vida 3: Gana +2/+0 hasta final del turno',
+  description: '1/1 con Prisa. Al entrar: Elige sin cambios o +2/+0 pagando 2 de vida',
   flavorText: 'La desesperación es el combustible más puro.'
 }
 
@@ -1334,19 +1369,17 @@ export const BERSERKER_SANGUINARIO: Card = {
   abilities: [],
   effects: [
     {
-      id: 'Berserker_Blood_Frenzy',
-      description: 'Vida 4: Gana +3/+1 y Prisa hasta final del turno',
-      timing: EffectTiming.TRIGGERED,
-      condition: {
-        type: 'CLASS_RESOURCE',
-        value: 4,
-        comparison: 'EQUAL'
-      },
+      id: 'Berserker_Descubrir',
+      description: 'Al entrar: Elige sin cambios, o +3/+1 pagando 4 de vida',
+      timing: EffectTiming.ON_ENTER,
       action: {
-        type: EffectActionType.BUFF_STATS,
+        type: EffectActionType.DISCOVER_PAY_LIFE,
         target: EffectTarget.SELF,
-        value: '+3/+1',
-        duration: 'END_OF_TURN'
+        options: {
+          lifeCost: 4,
+          base: { type: EffectActionType.BUFF_STATS, target: EffectTarget.SELF, value: '+0/+0', duration: 'PERMANENT' },
+          buff: { type: EffectActionType.BUFF_STATS, target: EffectTarget.SELF, value: '+3/+1', duration: 'END_OF_TURN' }
+        }
       }
     }
   ],
@@ -1354,7 +1387,7 @@ export const BERSERKER_SANGUINARIO: Card = {
     type: 'VIDA',
     amount: 4
   },
-  description: '2/1. Vida 4: Gana +3/+1 y Prisa hasta final del turno',
+  description: '2/1. Al entrar: Elige sin cambios, o +3/+1 pagando 4 de vida',
   flavorText: 'La sangre es combustible, la victoria es destino.'
 }
 
@@ -1370,19 +1403,17 @@ export const CAZADOR_DE_RECOMPENSAS: Card = {
   abilities: [],
   effects: [
     {
-      id: 'Cazador_Blood_Removal',
-      description: 'Vida 2: Al entrar: Haz 2 de daño a una criatura',
+      id: 'Cazador_Descubrir',
+      description: 'Al entrar: Elige sin cambios, o haz 2 de daño a una criatura enemiga aleatoria pagando 2 de vida',
       timing: EffectTiming.ON_ENTER,
-      condition: {
-        type: 'CLASS_RESOURCE',
-        value: 2,
-        comparison: 'EQUAL'
-      },
       action: {
-        type: EffectActionType.DAMAGE,
-        target: EffectTarget.TARGET_CREATURE,
-        amount: 2,
-        duration: 'PERMANENT'
+        type: EffectActionType.DISCOVER_PAY_LIFE,
+        target: EffectTarget.SELF,
+        options: {
+          lifeCost: 2,
+          base: { type: EffectActionType.BUFF_STATS, target: EffectTarget.SELF, value: '+0/+0', duration: 'PERMANENT' },
+          buff: { type: EffectActionType.DAMAGE, target: EffectTarget.RANDOM_ENEMY, amount: 2, duration: 'PERMANENT' }
+        }
       }
     }
   ],
@@ -1390,7 +1421,7 @@ export const CAZADOR_DE_RECOMPENSAS: Card = {
     type: 'VIDA',
     amount: 2
   },
-  description: '2/2. Vida 2: Al entrar: Haz 2 de daño a una criatura',
+  description: '2/2. Al entrar: Elige sin cambios, o haz 2 de daño a una criatura enemiga aleatoria pagando 2 de vida',
   flavorText: 'El precio se paga en sangre.'
 }
 
@@ -1404,38 +1435,25 @@ export const RITUAL_SANGRIENTO: Card = {
   abilities: [],
   effects: [
     {
-      id: 'Ritual_Base_Damage',
-      description: 'Haz 3 de daño al oponente',
+      id: 'Ritual_Descubrir',
+      description: 'Al jugar: Elige 3 de daño al héroe enemigo, o pagando 3 de vida: 3 de daño a una criatura enemiga aleatoria',
       timing: EffectTiming.ON_PLAY,
       action: {
-        type: EffectActionType.DAMAGE,
-        target: EffectTarget.ENEMY_HERO,
-        amount: 3,
-        duration: 'PERMANENT'
-      }
-    },
-    {
-      id: 'Ritual_Blood_Amplification',
-      description: 'Vida 6: En su lugar, haz 6 de daño al oponente',
-      timing: EffectTiming.ON_PLAY,
-      condition: {
-        type: 'CLASS_RESOURCE',
-        value: 6,
-        comparison: 'EQUAL'
-      },
-      action: {
-        type: EffectActionType.DAMAGE,
-        target: EffectTarget.ENEMY_HERO,
-        amount: 6,
-        duration: 'PERMANENT'
+        type: EffectActionType.DISCOVER_PAY_LIFE,
+        target: EffectTarget.FRIENDLY_HERO,
+        options: {
+          lifeCost: 3,
+          base: { type: EffectActionType.DAMAGE, target: EffectTarget.ENEMY_HERO, amount: 3, duration: 'PERMANENT' },
+          buff: { type: EffectActionType.DAMAGE, target: EffectTarget.RANDOM_ENEMY, amount: 3, duration: 'PERMANENT' }
+        }
       }
     }
   ],
   classResource: {
     type: 'VIDA',
-    amount: 6
+    amount: 3
   },
-  description: 'Haz 3 de daño al oponente. Vida 6: En su lugar, haz 6 de daño al oponente',
+  description: 'Elige: 3 de daño al héroe enemigo; o pagando 3 de vida: 3 de daño a una criatura enemiga aleatoria',
   flavorText: 'El dolor compartido duele más.'
 }
 
@@ -1451,19 +1469,17 @@ export const GUERRERO_HERIDO: Card = {
   abilities: [Ability.ROBO_DE_VIDA],
   effects: [
     {
-      id: 'Guerrero_Blood_Enhancement',
-      description: 'Vida 4: Gana +1/+1 y Regeneración hasta final del turno',
-      timing: EffectTiming.TRIGGERED,
-      condition: {
-        type: 'CLASS_RESOURCE',
-        value: 4,
-        comparison: 'EQUAL'
-      },
+      id: 'Guerrero_Descubrir',
+      description: 'Al entrar: Elige sin cambios, o +1/+1 pagando 4 de vida',
+      timing: EffectTiming.ON_ENTER,
       action: {
-        type: EffectActionType.BUFF_STATS,
+        type: EffectActionType.DISCOVER_PAY_LIFE,
         target: EffectTarget.SELF,
-        value: '+1/+1',
-        duration: 'END_OF_TURN'
+        options: {
+          lifeCost: 4,
+          base: { type: EffectActionType.BUFF_STATS, target: EffectTarget.SELF, value: '+0/+0', duration: 'PERMANENT' },
+          buff: { type: EffectActionType.BUFF_STATS, target: EffectTarget.SELF, value: '+1/+1', duration: 'END_OF_TURN' }
+        }
       }
     }
   ],
@@ -1471,7 +1487,7 @@ export const GUERRERO_HERIDO: Card = {
     type: 'VIDA',
     amount: 4
   },
-  description: '2/1 con Robo de vida. Vida 4: Gana +1/+1 y Regeneración hasta final del turno',
+  description: '2/1 con Robo de vida. Al entrar: Elige sin cambios, o +1/+1 pagando 4 de vida',
   flavorText: 'La sangre derramada fortalece al guerrero.'
 }
 
@@ -1487,19 +1503,17 @@ export const SENOR_DE_LA_SANGRE: Card = {
   abilities: [],
   effects: [
     {
-      id: 'Senor_Mass_Rush',
-      description: 'Vida 4: Al entrar: Todas tus criaturas ganan Prisa hasta final del turno',
+      id: 'Senor_Descubrir_Marcha',
+      description: 'Al entrar: Elige sin cambios, o todas tus criaturas ganan Prisa este turno pagando 4 de vida',
       timing: EffectTiming.ON_ENTER,
-      condition: {
-        type: 'CLASS_RESOURCE',
-        value: 4,
-        comparison: 'EQUAL'
-      },
       action: {
-        type: EffectActionType.GAIN_ABILITY,
-        target: EffectTarget.ALL_FRIENDLY_CREATURES,
-        value: Ability.PRISA,
-        duration: 'END_OF_TURN'
+        type: EffectActionType.DISCOVER_PAY_LIFE,
+        target: EffectTarget.SELF,
+        options: {
+          lifeCost: 4,
+          base: { type: EffectActionType.BUFF_STATS, target: EffectTarget.SELF, value: '+0/+0', duration: 'PERMANENT' },
+          buff: { type: EffectActionType.GAIN_ABILITY, target: EffectTarget.ALL_FRIENDLY_CREATURES, value: Ability.PRISA, duration: 'END_OF_TURN' }
+        }
       }
     }
   ],
@@ -1507,7 +1521,7 @@ export const SENOR_DE_LA_SANGRE: Card = {
     type: 'VIDA',
     amount: 4
   },
-  description: '2/3. Vida 4: Al entrar: Todas tus criaturas ganan Prisa hasta final del turno',
+  description: '2/3. Al entrar: Elige sin cambios o da Prisa a todas tus criaturas hasta final de turno pagando 4 de vida',
   flavorText: 'Su llamado despierta la furia dormida.'
 }
 
@@ -1521,30 +1535,27 @@ export const PACTO_DE_PODER: Card = {
   abilities: [],
   effects: [
     {
-      id: 'Pacto_Base_Summon',
-      description: 'Invoca una criatura 2/2 con Prisa',
+      id: 'Pacto_Descubrir_Summon',
+      description: 'Al jugar: Elige invocar 2/2 con Prisa, o 4/4 con Prisa y Robo de vida pagando 5 de vida (muere al final del turno)',
       timing: EffectTiming.ON_PLAY,
       action: {
-        type: EffectActionType.SUMMON_CREATURE,
+        type: EffectActionType.DISCOVER_PAY_LIFE,
         target: EffectTarget.FRIENDLY_HERO,
-        value: 'TOKEN_2_2_PRISA',
-        duration: 'END_OF_TURN'
-      }
-    },
-    {
-      id: 'Pacto_Blood_Enhancement',
-      description: 'Vida 5: En su lugar, invoca una criatura 4/4 con Prisa y Robo de vida',
-      timing: EffectTiming.ON_PLAY,
-      condition: {
-        type: 'CLASS_RESOURCE',
-        value: 5,
-        comparison: 'EQUAL'
-      },
-      action: {
-        type: EffectActionType.SUMMON_CREATURE,
-        target: EffectTarget.FRIENDLY_HERO,
-        value: 'TOKEN_4_4_PRISA_LIFESTEAL',
-        duration: 'END_OF_TURN'
+        options: {
+          lifeCost: 5,
+          base: {
+            type: EffectActionType.SUMMON_CREATURE,
+            target: EffectTarget.FRIENDLY_HERO,
+            value: 'TOKEN_2_2_PRISA',
+            duration: 'END_OF_TURN'
+          },
+          buff: {
+            type: EffectActionType.SUMMON_CREATURE,
+            target: EffectTarget.FRIENDLY_HERO,
+            value: 'TOKEN_4_4_PRISA_LIFESTEAL',
+            duration: 'END_OF_TURN'
+          }
+        }
       }
     }
   ],
@@ -1552,7 +1563,7 @@ export const PACTO_DE_PODER: Card = {
     type: 'VIDA',
     amount: 5
   },
-  description: 'Invoca una criatura 2/2 con Prisa. Vida 5: En su lugar, invoca una criatura 4/4 con Prisa y Robo de vida. Esa criatura muere al final del turno',
+  description: 'Elige: Invoca 2/2 con Prisa o 4/4 con Prisa y Robo de vida pagando 5 de vida (muere al final del turno)',
   flavorText: 'Poder prestado, precio diferido.'
 }
 
@@ -1566,30 +1577,17 @@ export const PACTO_FINAL: Card = {
   abilities: [],
   effects: [
     {
-      id: 'Pacto_Base_Finisher',
-      description: 'Haz 5 de daño al oponente',
+      id: 'PactoFinal_Descubrir',
+      description: 'Al jugar: Elige 5 de daño al oponente, o 12 de daño pagando 8 de vida',
       timing: EffectTiming.ON_PLAY,
       action: {
-        type: EffectActionType.DAMAGE,
-        target: EffectTarget.ENEMY_HERO,
-        amount: 5,
-        duration: 'PERMANENT'
-      }
-    },
-    {
-      id: 'Pacto_Blood_Finisher',
-      description: 'Vida 8: En su lugar, haz 12 de daño al oponente',
-      timing: EffectTiming.ON_PLAY,
-      condition: {
-        type: 'CLASS_RESOURCE',
-        value: 8,
-        comparison: 'EQUAL'
-      },
-      action: {
-        type: EffectActionType.DAMAGE,
-        target: EffectTarget.ENEMY_HERO,
-        amount: 12,
-        duration: 'PERMANENT'
+        type: EffectActionType.DISCOVER_PAY_LIFE,
+        target: EffectTarget.FRIENDLY_HERO,
+        options: {
+          lifeCost: 8,
+          base: { type: EffectActionType.DAMAGE, target: EffectTarget.ENEMY_HERO, amount: 5, duration: 'PERMANENT' },
+          buff: { type: EffectActionType.DAMAGE, target: EffectTarget.ENEMY_HERO, amount: 12, duration: 'PERMANENT' }
+        }
       }
     }
   ],
@@ -1597,7 +1595,7 @@ export const PACTO_FINAL: Card = {
     type: 'VIDA',
     amount: 8
   },
-  description: 'Haz 5 de daño al oponente. Vida 8: En su lugar, haz 12 de daño al oponente',
+  description: 'Elige: 5 de daño o 12 de daño pagando 8 de vida',
   flavorText: 'Todo o nada. Prefiero todo.'
 }
 
@@ -1607,12 +1605,12 @@ export const FRENESI_FINAL: Card = {
   type: CardType.SPELL,
   rarity: CardRarity.LEGENDARY,
   classType: ClassType.VITALIDAD,
-  mana: 4,
+  mana: 6,
   abilities: [],
   effects: [
     {
-      id: 'Frenesi_Mass_Attack',
-      description: 'Solo se puede jugar si tienes 10 o menos vida. Vida 6: Todas tus criaturas atacan inmediatamente. Este ataque no se puede bloquear',
+      id: 'Frenesi_Play_Restriction',
+      description: 'Solo se puede jugar si tienes 10 o menos vida',
       timing: EffectTiming.ON_PLAY,
       condition: {
         type: 'HEALTH_THRESHOLD',
@@ -1620,18 +1618,13 @@ export const FRENESI_FINAL: Card = {
         comparison: 'LESS_EQUAL'
       },
       action: {
-        type: EffectActionType.BUFF_ATTACK,
-        target: EffectTarget.ALL_FRIENDLY_CREATURES,
-        amount: 999, // Unblockable attack flag
-        duration: 'END_OF_TURN'
+        type: EffectActionType.DAMAGE,
+        target: EffectTarget.ENEMY_HERO,
+        value: 'SUM_FRIENDLY_ATTACK'
       }
     }
   ],
-  classResource: {
-    type: 'VIDA',
-    amount: 6
-  },
-  description: 'Solo se puede jugar si tienes 10 o menos vida. Vida 6: Todas tus criaturas atacan inmediatamente. Este ataque no se puede bloquear',
+  description: 'Solo si tienes 10 o menos vida. Inflige al héroe enemigo daño igual a la suma del ataque de todas tus criaturas.',
   flavorText: 'Cuando todo está perdido, todo vale.'
 }
 
@@ -1647,33 +1640,75 @@ export const AVATAR_DE_LA_DESTRUCCION: Card = {
   abilities: [],
   effects: [
     {
-      id: 'Avatar_Scaling_Power',
-      description: 'Vida Y: Gana +Y/+Y donde Y es tu vida máxima menos tu vida actual',
-      timing: EffectTiming.PASSIVE,
+      id: 'Avatar_Nuke_And_Absorb',
+      description: 'Al entrar: Destruye todas las criaturas. Su ATQ y VIDA se convierten en la suma del ATQ y VIDA de todas las criaturas destruidas por este efecto.',
+      timing: EffectTiming.ON_ENTER,
       action: {
-        type: EffectActionType.BUFF_STATS,
-        target: EffectTarget.SELF,
-        value: 'LIFE_DIFFERENTIAL',
-        duration: 'PERMANENT'
-      }
-    },
-    {
-      id: 'Avatar_Double_Strike',
-      description: 'Al atacar: Si tienes 5 o menos vida, gana Doble golpe',
-      timing: EffectTiming.ON_ATTACK,
-      condition: {
-        type: 'HEALTH_THRESHOLD',
-        value: 5,
-        comparison: 'LESS_EQUAL'
-      },
-      action: {
-        type: EffectActionType.GAIN_ABILITY,
-        target: EffectTarget.SELF,
-        value: 'DOBLE_GOLPE',
-        duration: 'END_OF_TURN'
+        type: EffectActionType.BOARD_NUKE_AND_ABSORB,
+        target: EffectTarget.SELF
       }
     }
   ],
-  description: '1/1. Vida Y: Gana +Y/+Y donde Y es tu vida máxima menos tu vida actual. Al atacar: Si tienes 5 o menos vida, gana Doble golpe',
-  flavorText: 'Más cerca de la muerte, más cerca de la perfección.'
+  description: 'Al entrar: Destruye todas las criaturas. Luego su ATQ/VIDA se convierten en la suma del ATQ/VIDA de todas las destruidas.',
+  flavorText: 'Del fin de todo, nace uno.'
 }
+
+// Al final del archivo
+export const CLASS_CARDS = [
+  // Abominación
+  ESPECIMEN_PERFECTO,
+  ESPECIMEN_PERFECTO_FINAL_STAND,
+  ESPECIMEN_PERFECTO_EVOLUCIONADO,
+  EXPLORADOR_INFECTADO,
+  RECOLECTOR_DE_TEJIDOS,
+  NECROFAGO_HAMBRIENTO,
+  RITUAL_MENOR,
+  ANATOMISTA_EXPERTO,
+  INVOCACION_SINIESTRA,
+  PERFECCIONISTA_OBSESIVO,
+  RITUAL_DE_PERFECCION,
+  MAESTRO_NECROMANTICO,
+  EVOLUCION_PERFECTA,
+
+  // Caos
+  APRENDIZ_ERRATICO,
+  MAGO_DEL_CAOS,
+  RITUAL_CAOTICO,
+  MERCADER_LOCO,
+  MANIPULADOR_DEL_DESTINO,
+  PORTAL_INESTABLE,
+  CAOS_CONTROLADO,
+  SENOR_DEL_CAOS,
+  TORMENTA_IMPREDECIBLE,
+  REALIDAD_FRACTURADA,
+
+  // Ciclo
+  EXPLORADOR_CREPUSCULAR,
+  RITUAL_DEL_AMANECER,
+  VIDENTE_LUNAR,
+  CAMBIAFORMAS_LUNAR,
+  INVOCADOR_DE_ECLIPSE,
+  GUARDIAN_DEL_EQUILIBRIO,
+  MOMENTO_PERFECTO,
+  MAESTRO_DEL_TIEMPO,
+  ECLIPSE_ETERNO,
+  CONVERGENCIA_CELESTIAL,
+
+  // Vitalidad
+  FANATICO_DESESPERADO,
+  BERSERKER_SANGUINARIO,
+  CAZADOR_DE_RECOMPENSAS,
+  RITUAL_SANGRIENTO,
+  GUERRERO_HERIDO,
+  SENOR_DE_LA_SANGRE,
+  PACTO_DE_PODER,
+  PACTO_FINAL,
+  FRENESI_FINAL,
+  AVATAR_DE_LA_DESTRUCCION,
+  TOKEN_2_2_PRISA,
+  TOKEN_4_4_PRISA_LIFESTEAL,
+] as const
+
+export const CLASS_CARDS_BY_ID = Object.fromEntries(
+  CLASS_CARDS.map(c => [c.id, c] as const)
+)

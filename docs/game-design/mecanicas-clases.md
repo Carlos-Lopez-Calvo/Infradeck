@@ -1,5 +1,23 @@
 # 🏛️ MECÁNICAS DE CLASES
 
+## 📋 Estado Actual y Objetivos
+
+### Estado actual
+- Motor de juego funcional con stack, triggers y recursos de clase
+- Cartas de clase y básicas implementadas y testeadas
+- Final Stand y bonus por clase activos
+
+### Objetivos del TFG
+- Partida completa jugable con todas las mecánicas
+- UI para visualizar recursos de clase, Final Stand y pila
+- Deckbuilder y colección de cartas
+- Sistema de sobres y recompensas
+- Inicio de sesión y gestión de usuarios
+- Pantalla de victoria/derrota y estadísticas
+- Documentación y manual de usuario
+
+---
+
 ## 🧬 **ABOMINACIÓN - Espécimen Perfecto**
 
 ### **Concepto Core**
