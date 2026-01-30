@@ -2,7 +2,10 @@ import { GameState, GamePhase, StackItem, getCardByIdGlobal, } from './game-stat
 import { onPriorityWindow } from './game-state'
 import { getCurrentPlayerIndex } from './turns'
 import { EffectAction } from '../types/cards'
-import { effectConditionPasses, applyAction, triggerTriggeredEffects, applyGuardianAura } from './effects'
+import { effectConditionPasses } from './effects/core'
+import { applyAction } from './effects/dispatcher'
+import { triggerTriggeredEffects } from './effects/board-effects'
+import { applyGuardianAura } from './effects/ciclo-effects'
 
 
 // Helper para disparar prioridad en el jugador activo

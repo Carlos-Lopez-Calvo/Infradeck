@@ -101,7 +101,7 @@ export function createEffectContext(
   action: EffectAction,
   targetHints?: TargetRef[]
 ): EffectContext {
-  const oppIndex = getOpponentPlayerIndex(state, playerIndex)
+  const oppIndex = playerIndex === 0 ? 1 : 0
   return {
     state,
     playerIndex,

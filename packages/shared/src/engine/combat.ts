@@ -2,7 +2,8 @@ import { GameState, CreatureOnBoard, GamePhase, AttackResult, getCardByIdGlobal 
 import { getCurrentPlayerIndex, getOpponentPlayerIndex } from './turns'
 import { hasFinalStandImmunity, checkAndActivateFinalStand } from './final-stand'
 import { notifyEffectTriggered, notifyLeaveBattlefield, triggerPriority } from './priority'
-import { applyAction, updateConditionalBuffs } from './effects'
+import { applyAction } from './effects/dispatcher'
+import { updateConditionalBuffs } from './effects/board-effects'
 import { Ability, EffectTiming } from '../types/cards'
 
 // =======================
@@ -39,11 +40,11 @@ export function applyAbilityEffects(
 // Lógica de combate
 // =======================
 
-// Ataque a héroe enemigo
+// Ataque a héroe enemigo (estilo Hearthstone - puedes atacar en cualquier momento)
 export function declareAttackHero(state: GameState, attackerIndex: number, attackerBoardIndex: number): AttackResult {
   const active = getCurrentPlayerIndex(state)
   if (attackerIndex !== active) return { ok: false, error: 'No es tu turno' }
-  if (state.turn.phase !== GamePhase.COMBAT && state.turn.phase !== GamePhase.MAIN) return { ok: false, error: 'No estás en fase de combate' }
+  if (state.turn.phase !== GamePhase.PLAYING) return { ok: false, error: 'No puedes atacar ahora' }
 
   const me = state.players[attackerIndex]
   const oppIndex = getOpponentPlayerIndex(state)
@@ -115,11 +116,11 @@ export function declareAttackHero(state: GameState, attackerIndex: number, attac
   return { ok: true }
 }
 
-// Ataque a criatura enemiga
+// Ataque a criatura enemiga (estilo Hearthstone - puedes atacar en cualquier momento)
 export function declareAttackCreature(state: GameState, attackerIndex: number, attackerBoardIndex: number, defenderBoardIndex: number): AttackResult {
   const active = getCurrentPlayerIndex(state)
   if (attackerIndex !== active) return { ok: false, error: 'No es tu turno' }
-  if (state.turn.phase !== GamePhase.COMBAT && state.turn.phase !== GamePhase.MAIN) return { ok: false, error: 'No estás en fase de combate' }
+  if (state.turn.phase !== GamePhase.PLAYING) return { ok: false, error: 'No puedes atacar ahora' }
 
   const me = state.players[attackerIndex]
   const oppIndex = getOpponentPlayerIndex(state)

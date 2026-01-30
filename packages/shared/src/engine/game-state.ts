@@ -17,10 +17,7 @@ import { notifyEnterBattlefield } from './priority'
 // Enums y Tipos principales
 // =======================
 export enum GamePhase {
-  START = 'START',
-  MAIN = 'MAIN',
-  COMBAT = 'COMBAT',
-  END = 'END',
+  PLAYING = 'PLAYING', // Fase única donde puedes hacer todo (como Hearthstone)
 }
 
 export interface Entity {
@@ -156,7 +153,7 @@ export function createGame(
   })
   return {
     players: [base(p1), base(p2)],
-    turn: { currentPlayerIndex: 0, phase: GamePhase.START, turnNumber: 1 },
+    turn: { currentPlayerIndex: 0, phase: GamePhase.PLAYING, turnNumber: 0 }, // Empieza en 0, startTurn lo incrementa
     stack: [],
     rngSeed,
     endOfTurnTasks: [],
@@ -192,12 +189,17 @@ export function createInitialGameState(): GameState {
 }
 
 export function startGame(state: GameState): void {
+  // Robar mano inicial (5 cartas cada jugador)
   draw(state, 0, 5)
   draw(state, 1, 5)
+  
+  // El jugador 0 empieza con 1 de maná (como Hearthstone)
   state.players[0].maxMana = 1
   state.players[0].mana = 1
-  state.turn.phase = GamePhase.MAIN
-  onPriorityWindow(state, { phase: GamePhase.MAIN, activePlayer: getCurrentPlayerIndex(state) })
+  
+  // Establecer fase de juego
+  state.turn.phase = GamePhase.PLAYING
+  console.log('[GAME] Game started - Player 0 begins')
 }
 
 
@@ -361,16 +363,10 @@ export function playCard(
 export type AttackResult = { ok: true } | { ok: false, error: string }
 
 // =======================
-// Fase de combate
+// Combate (estilo Hearthstone - sin fases separadas)
 // =======================
-export function beginCombat(state: GameState): void {
-  state.turn.phase = GamePhase.COMBAT
-  onPriorityWindow(state, { phase: GamePhase.COMBAT, activePlayer: getCurrentPlayerIndex(state) })
-}
-export function endCombat(state: GameState): void {
-  state.turn.phase = GamePhase.MAIN
-  onPriorityWindow(state, { phase: GamePhase.MAIN, activePlayer: getCurrentPlayerIndex(state) })
-}
+// En Hearthstone, puedes atacar en cualquier momento durante tu turno
+// No hay funciones beginCombat/endCombat, todo ocurre en la fase PLAYING
 
 export type DiscoverHandler = (state: GameState, info: {
   playerIndex: number
@@ -406,7 +402,13 @@ export function setAdvancedSelectionRequest(handler: AdvancedSelectionHandler) {
 // =======================
 import { triggerPriority, addToStack, getStack, passPriority, resolveStack, notifyCardPlayed, notifyEffectTriggered, notifyLeaveBattlefield, applyStackItem } from './priority'
 
-import { effectConditionPasses, triggerBoardEffects, applyOnEnterEffects, applyAction, resolveSingleTarget, consumeEntropy, gainEntropyOnPlay, getRandomHintsForAction } from './effects'
+import { applyAction } from './effects/dispatcher'
+import { effectConditionPasses } from './effects/core'
+import { consumeEntropy, gainEntropyOnPlay } from './effects/caos-effects'
+import { applyOnEnterEffects, getRandomHintsForAction } from './effects/board-effects'
+
+// Re-exportar funciones que todavía se usan en otros módulos
+export { effectConditionPasses, consumeEntropy, gainEntropyOnPlay }
 import { summonSpecimen, handleSpecimenOnEnter, getUniqueAbilitiesFromGraveyard, hasSpecimenOnBoard, getSpecimenCost } from './specimen'
 import { declareAttackHero, declareAttackCreature, hasAbility, enemyHasTaunt, applyAbilityEffects, canTargetCreature } from './combat'
 import { activateFinalStand, checkAndActivateFinalStand, hasFinalStandImmunity, applyFinalStandBonus } from './final-stand'

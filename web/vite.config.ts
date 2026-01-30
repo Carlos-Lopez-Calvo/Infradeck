@@ -7,7 +7,7 @@ export default defineConfig({
   resolve: {
     alias: {
       // ✅ CORREGIDO: Path absoluto al index.ts
-      '@infradeck/shared': path.resolve(__dirname, '../../packages/shared/src/index.ts')
+      '@infradeck/shared': path.resolve(__dirname, '../packages/shared/src/index.ts')
     },
     dedupe: ['react', 'react-dom'],
   }

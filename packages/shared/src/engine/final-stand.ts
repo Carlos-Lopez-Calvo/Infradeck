@@ -1,6 +1,6 @@
 import { GameState, PlayerState, getCardByIdGlobal } from './game-state'
 import { CardType } from '../types/cards'
-import { applyOnEnterEffects } from './effects'
+import { applyOnEnterEffects } from './effects/board-effects'
 import { notifyEnterBattlefield } from './priority'
 import { hasSpecimenOnBoard } from './specimen'
 // Si usas un resolver global de cartas, importa aquí:

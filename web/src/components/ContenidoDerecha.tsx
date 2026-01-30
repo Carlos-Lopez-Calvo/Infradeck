@@ -63,7 +63,7 @@ export function ContenidoDerecha() {
               {isAmalgama && (
                 <button
                   className="mt-3 px-3 py-2 rounded-lg border border-white/30 bg-emerald-700 text-white text-sm disabled:opacity-50"
-                  disabled={!isMyTurn || phase !== 'MAIN' || (specimenCost ?? 0) > mana}
+                  disabled={!isMyTurn || (specimenCost ?? 0) > mana}
                   onClick={() => actions.summonSpecimen()}
                   title={`Invocar G4BR13L (${specimenCost ?? 0} maná)`}
                 >
@@ -112,21 +112,20 @@ export function ContenidoDerecha() {
         </div>
                     <div className="w-1/2 h-full bg-black rounded-lg flex flex-col items-center justify-center">
     <button
-        className='w-24 h-24 flex flex-col justify-center items-center rounded-full border bg-red-600 active:scale-95 transition'
+        className='w-24 h-24 flex flex-col justify-center items-center rounded-full border bg-red-600 active:scale-95 transition disabled:opacity-50 disabled:cursor-not-allowed'
         onClick={() => {
-            if (phase === 'MAIN') {
-                actions.beginCombat()
-            } else if (phase === 'COMBAT') {
-                   actions.endTurn() // el servidor iniciará el turno del oponente
-                } else {
-                // En cualquier otro estado, garantizamos avanzar a MAIN
-                actions.startTurn()
+            if (isMyTurn) {
+                actions.endTurn() // Termina tu turno y pasa al oponente
             }
         }}
-        title={phase === 'MAIN' ? 'Combat' : phase === 'COMBAT' ? 'End Turn' : 'Next'}
+        disabled={!isMyTurn}
+        title={isMyTurn ? 'Terminar Turno' : 'Turno del Oponente'}
     >
         <span className="text-white font-bold text-lg">
-        {phase === 'MAIN' ? 'Combatir' : phase === 'COMBAT' ? 'Finalizar turno' : 'Siguiente'}
+            {isMyTurn ? 'Terminar' : 'Esperando'}
+        </span>
+        <span className="text-white text-xs">
+            {isMyTurn ? 'Turno' : 'oponente'}
         </span>
     </button>
 </div>

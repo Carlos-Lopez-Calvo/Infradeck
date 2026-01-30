@@ -21,7 +21,7 @@ import { CLASS_CARDS } from '../../cards/class-cards'
 
 // ===== FUNCIONES AUXILIARES =====
 
-function resolveSingleTarget(
+export function resolveSingleTarget(
   state: any,
   playerIndex: number,
   targetType: EffectTarget,
@@ -36,11 +36,16 @@ function resolveSingleTarget(
 
   // Si hay hint, usarlo directamente
   if (hint) {
-    if (hint.type === 'HERO') return { kind: 'HERO', playerIndex: hint.playerIndex }
-    if (hint.type === 'CREATURE' || hint.type === 'CREATURE_ENEMY' || hint.type === 'CREATURE_SELF')
-      return { kind: 'CREATURE', playerIndex: hint.playerIndex, index: hint.index }
-    if (hint.type === 'MULTI') 
-      return { kind: 'MULTI', playerIndex: hint.playerIndex, scope: hint.scope ?? 'FRIENDLY' }
+    if (hint.type === 'HERO_SELF') return { kind: 'HERO', playerIndex }
+    if (hint.type === 'HERO_ENEMY') return { kind: 'HERO', playerIndex: oppIndex }
+    if (hint.type === 'CREATURE_SELF')
+      return { kind: 'CREATURE', playerIndex, index: hint.index }
+    if (hint.type === 'CREATURE_ENEMY')
+      return { kind: 'CREATURE', playerIndex: oppIndex, index: hint.index }
+    if (hint.type === 'ANY_CREATURE') {
+      const ownerIdx = hint.owner === 'SELF' ? playerIndex : oppIndex
+      return { kind: 'CREATURE', playerIndex: ownerIdx, index: hint.index }
+    }
   }
 
   // Resolución automática según targetType
@@ -50,11 +55,11 @@ function resolveSingleTarget(
     case EffectTarget.ENEMY_HERO:
       return { kind: 'HERO', playerIndex: oppIndex }
     case EffectTarget.ALL_FRIENDLY_CREATURES:
-      return { kind: 'MULTI', playerIndex, scope: 'FRIENDLY' }
+      return { kind: 'MULTI', scope: 'FRIENDLY' }
     case EffectTarget.ALL_ENEMY_CREATURES:
-      return { kind: 'MULTI', playerIndex: oppIndex, scope: 'ENEMY' }
+      return { kind: 'MULTI', scope: 'ENEMY' }
     case EffectTarget.ALL_CREATURES:
-      return { kind: 'MULTI', playerIndex, scope: 'ALL' }
+      return { kind: 'MULTI', scope: 'FRIENDLY' } // TODO: Need to handle both boards
     case EffectTarget.RANDOM_ENEMY:
       if (opp.board.length > 0) {
         const idx = Math.floor(Math.random() * opp.board.length)
@@ -141,20 +146,21 @@ export function handleScry(ctx: EffectContext): void {
   console.log('[SCRY] top cards to reveal', topCards)
   
   // Activar el modal para que el jugador vea las cartas y decida
-  onScryRequest(state, {
-    cards: topCards,
-    onResolve: (keepAtTop: string[]) => {
-      console.log('[SCRY] onResolve', { keepAtTop })
-      const toBottom = topCards.filter(id => !keepAtTop.includes(id))
-      // Remover las cartas reveladas del deck
-      p.deck.splice(0, scryCount)
-      // Volver a poner las que se quedan arriba
-      p.deck.unshift(...keepAtTop)
-      // Mover al fondo las que se descartaron
-      p.deck.push(...toBottom)
-      console.log('[SCRY] resolved', { newDeckTop: p.deck.slice(0, 3) })
-    }
+  const decision = onScryRequest(state, {
+    playerIndex,
+    cards: topCards
   })
+  
+  console.log('[SCRY] decision', decision)
+  
+  // Si la decisión es BOTTOM, mover las cartas al fondo
+  if (decision === 'BOTTOM') {
+    p.deck.splice(0, scryCount)
+    p.deck.push(...topCards)
+    console.log('[SCRY] moved to bottom')
+  } else {
+    console.log('[SCRY] kept at top')
+  }
 }
 
 export function handleAdvancedSelection(ctx: EffectContext): void {
@@ -173,21 +179,26 @@ export function handleAdvancedSelection(ctx: EffectContext): void {
   const topCards = p.deck.slice(0, selectCount)
   console.log('[ADVANCED_SELECTION] cards to show', topCards)
   
+  // TODO: Advanced selection necesita una interfaz diferente para seleccionar una carta
+  // Por ahora, simplemente mostramos las cartas al jugador y tomamos la primera
   onAdvancedSelectionRequest(state, {
-    cards: topCards,
-    onResolve: (chosenId: string) => {
-      console.log('[ADVANCED_SELECTION] chosen', chosenId)
-      const chosenIdx = p.deck.indexOf(chosenId)
-      if (chosenIdx !== -1) {
-        const [chosen] = p.deck.splice(chosenIdx, 1)
-        p.hand.push(chosen)
-      }
-      const rest = topCards.filter(id => id !== chosenId)
-      p.deck = p.deck.filter(id => !rest.includes(id))
-      p.deck.push(...rest)
-      console.log('[ADVANCED_SELECTION] resolved', { hand: p.hand.length, deck: p.deck.length })
-    }
+    playerIndex,
+    cards: topCards
   })
+  
+  // Temporalmente tomar la primera carta del grupo revelado
+  if (topCards.length > 0) {
+    const chosenId = topCards[0]
+    const chosenIdx = p.deck.indexOf(chosenId)
+    if (chosenIdx !== -1) {
+      const [chosen] = p.deck.splice(chosenIdx, 1)
+      p.hand.push(chosen)
+    }
+    const rest = topCards.filter(id => id !== chosenId)
+    p.deck = p.deck.filter(id => !rest.includes(id))
+    p.deck.push(...rest)
+    console.log('[ADVANCED_SELECTION] resolved (auto-selected first)', { hand: p.hand.length, deck: p.deck.length })
+  }
 }
 
 // ===== EFECTOS DE BUFF =====
@@ -659,14 +670,16 @@ export function handleSummonCreature(ctx: EffectContext): void {
 
     if (!pool.length) return
     const ref = pool[Math.floor(Math.random() * pool.length)]
+    const refCard = getCardByIdGlobal(ref.id)
+    
     const entity: any = {
       id: `creature-${Date.now()}-${Math.floor(Math.random() * 1e6)}`,
       cardId: ref.id,
       ownerId: me.id,
-      attack: ref.attack ?? 0,
-      health: ref.health ?? 1,
-      exhausted: !(ref.abilities?.includes(Ability.PRISA)),
-      abilities: ref.abilities ? ref.abilities.map(a => String(a)) : [],
+      attack: refCard?.attack ?? 0,
+      health: refCard?.health ?? 1,
+      exhausted: !(refCard?.abilities?.includes(Ability.PRISA)),
+      abilities: refCard?.abilities ? refCard.abilities.map(a => String(a)) : [],
       effects: [],
     }
     me.board.push(entity)

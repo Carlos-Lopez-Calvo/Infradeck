@@ -2,7 +2,7 @@ import { GameState, PlayerState, CreatureOnBoard, getCardByIdGlobal} from './gam
 import { ESPECIMEN_PERFECTO } from '../cards/class-cards'
 import { Ability, CardType } from '../types/cards'
 import { notifyEnterBattlefield } from './priority'
-import { triggerTriggeredEffects } from './effects'
+import { triggerTriggeredEffects } from './effects/board-effects'
 
 // =======================
 // Helpers de specimen

@@ -6,17 +6,15 @@
 // Core
 export * from './core'
 
-// Efectos por categoría
+// Dispatcher (punto de entrada principal)
+export { applyAction, createEffectContext } from './dispatcher'
+
+// Board effects (triggers, ON_ENTER, buffs condicionales, etc.)
+export * from './board-effects'
+
+// Efectos por categoría (exportados para uso interno y testing)
 export * from './global-effects'
-export * from './abominacion-effects'
 export * from './caos-effects'
 export * from './ciclo-effects'
 export * from './vitalidad-effects'
-
-// Registry de handlers (se implementará en Fase 4)
-// import { EffectActionType } from '../../types/cards'
-// import { EffectHandler } from './core'
-// 
-// export const EFFECT_HANDLERS: Record<EffectActionType, EffectHandler> = {
-//   // Se llenará en Fase 4
-// }
+export * from './abominacion-effects'

@@ -7,8 +7,8 @@
     "jsx": "react-jsx",
     "strict": true,
     "paths": {
-      "@infradeck/shared": ["../../packages/shared/src/index.ts"],
-      "@infradeck/shared/*": ["../../packages/shared/src/*"]
+      "@infradeck/shared": ["../packages/shared/src/index.ts"],
+      "@infradeck/shared/*": ["../packages/shared/src/*"]
     }
   },
   "include": ["src/**/*", "vite.config.ts"]

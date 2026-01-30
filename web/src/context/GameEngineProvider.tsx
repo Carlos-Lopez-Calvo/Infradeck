@@ -3,7 +3,6 @@ import React, { createContext, useContext, useLayoutEffect, useMemo, useRef, use
 import {
   GameState, createGame, startGame,
   startTurn as engineStartTurn, endTurn as engineEndTurn,
-  beginCombat, endCombat,
   setCardResolver, setPriorityWindow, playCard, setDiscoverRequest, setScryRequest, setAdvancedSelectionRequest,
   BASIC_CARDS_BY_ID, CLASS_CARDS_BY_ID, declareAttackHero, declareAttackCreature,
   EffectActionType, EffectTarget, EffectTiming,
@@ -11,6 +10,7 @@ import {
 } from '@infradeck/shared'
 
 import { Card as UICard } from '../components/Card'
+import { UnifiedTargetModal, TargetType, TargetSelection } from '../components/UnifiedTargetModal'
 
 import { sampleDecks } from '../utils/sample-decks'
 
@@ -26,8 +26,6 @@ type Ctx = {
   isMyTurn: boolean
   actions: {
     startTurn: () => void
-    beginCombat: () => void
-    endCombat: () => void
     endTurn: () => void
     playFromHand: (handIndex: number) => void
     attackHero: (attackerBoardIndex: number) => void
@@ -36,16 +34,20 @@ type Ctx = {
   }
 }
 
-type TargetModalState =
+// Estado unificado para selección de objetivos
+type UnifiedTargetModalState =
   | null
   | {
       playerIndex: number
-      handIndex: number
+      handIndex: number  // -1 para specimen o habilidades
       choice?: 'BASE' | 'BUFF'
-      targetKind: 'CREATURE_ENEMY' | 'CREATURE_SELF'
+      targetType: TargetType
+      step?: number
+      previousSelection?: any
+      onComplete: (selection: TargetSelection) => void
     }
 
-const GameEngineContext = createContext<Ctx | null>(null)
+export const GameEngineContext = createContext<Ctx | null>(null)
 
 type DiscoverModalState =
   | null
@@ -103,7 +105,7 @@ const turnKey = `${gameState.turn.turnNumber}:${gameState.turn.currentPlayerInde
 const nextDiscoverChoiceRef = useRef<{ choice: 'BASE' | 'BUFF' | null; usesLeft: number }>({ choice: null, usesLeft: 0 })
 const lastDiscoverChoiceRef = useRef<'BASE'|'BUFF'|null>(null)
 const [discoverModal, setDiscoverModal] = useState<DiscoverModalState>(null)
-const [targetModal, setTargetModal] = useState<TargetModalState>(null)
+const [unifiedTargetModal, setUnifiedTargetModal] = useState<UnifiedTargetModalState>(null)
 const [discoverMinimized, setDiscoverMinimized] = useState(false)
 
 type ScryModalState = null | { cards: string[]; playerIndex: number }
@@ -112,14 +114,6 @@ const scryDecisionRef = useRef<'TOP' | 'BOTTOM' | null>(null)
 
 type AdvancedSelectionModalState = null | { cards: string[]; playerIndex: number }
 const [advancedSelectionModal, setAdvancedSelectionModal] = useState<AdvancedSelectionModalState>(null)
-
-type AttackSpellModalState = null | {
-  playerIndex: number
-  handIndex: number
-  step: 'SELECT_ATTACKER' | 'SELECT_DEFENDER'
-  attackerIndex?: number
-}
-const [attackSpellModal, setAttackSpellModal] = useState<AttackSpellModalState>(null)
 
 useLayoutEffect(() => {
   setCardResolver(getCardById)
@@ -331,7 +325,28 @@ lastPlaySigRef.current = sig
   
     if (act?.target === EffectTarget.TARGET_CREATURE || act?.target === EffectTarget.TARGET_FRIENDLY_CREATURE) {
       setDiscoverModal(null)
-      setTargetModal({ playerIndex, handIndex, choice, targetKind: act?.target === EffectTarget.TARGET_FRIENDLY_CREATURE ? 'CREATURE_SELF' : 'CREATURE_ENEMY' })
+      const targetType: TargetType = act?.target === EffectTarget.TARGET_FRIENDLY_CREATURE ? 'CREATURE_SELF' : 'CREATURE_ENEMY'
+      setUnifiedTargetModal({
+        playerIndex,
+        handIndex,
+        choice,
+        targetType,
+        onComplete: (selection: any) => {
+          setUnifiedTargetModal(null)
+          const targets: any[] = selection.type === 'HERO' 
+            ? [{ type: selection.playerType === 'SELF' ? 'HERO_SELF' : 'HERO_ENEMY' }]
+            : [{ type: selection.playerType === 'SELF' ? 'CREATURE_SELF' : 'CREATURE_ENEMY', index: selection.index }]
+          
+          setGameState(prev => {
+            const next: GameState = JSON.parse(JSON.stringify(prev))
+            next.pendingTargets = targets as any
+            if (next.turn.currentPlayerIndex !== playerIndex) return next
+            const res = playCard(next, playerIndex, handIndex, getCardById, { targets: targets as any })
+            if (!res.ok) console.warn('playCard failed:', res)
+            return next
+          })
+        }
+      })
       isPlayingRef.current = false
       return
     }
@@ -357,32 +372,24 @@ lastPlaySigRef.current = sig
         return next
       })
     },
-    beginCombat: () => {
-      if (!isMyTurn) return
-      setGameState(prev => {
-        const next: GameState = JSON.parse(JSON.stringify(prev))
-        beginCombat(next)
-        return next
-      })
-    },
-    endCombat: () => {
-      if (!isMyTurn) return
-      setGameState(prev => {
-        const next: GameState = JSON.parse(JSON.stringify(prev))
-        endCombat(next)
-        return next
-      })
-    },
     endTurn: () => {
-      if (!isMyTurn) return
+      console.log('[UI] endTurn clicked', { isMyTurn, currentPlayerIndex: gameState.turn.currentPlayerIndex })
+      if (!isMyTurn) {
+        console.log('[UI] endTurn blocked - not my turn')
+        return
+      }
       setGameState(prev => {
+        console.log('[UI] endTurn executing', { 
+          prevPlayer: prev.turn.currentPlayerIndex,
+          prevTurn: prev.turn.turnNumber 
+        })
         const next: GameState = JSON.parse(JSON.stringify(prev))
+        // endTurn ya inicia automáticamente el turno del siguiente jugador
         engineEndTurn(next)
-        engineStartTurn(next)
-        {
-          const i = next.turn.currentPlayerIndex
-          next.players[i].board.forEach(c => { c.exhausted = false; c.damagedThisTurn = false })
-        }
+        console.log('[UI] endTurn completed', { 
+          nextPlayer: next.turn.currentPlayerIndex,
+          nextTurn: next.turn.turnNumber 
+        })
         return next
       })
     },
@@ -419,10 +426,48 @@ lastPlaySigRef.current = sig
         e.action?.type === EffectActionType.ATTACK_SPELL
       )
       if (hasAttackSpell) {
-        setAttackSpellModal({ 
-          playerIndex: pIdx, 
-          handIndex, 
-          step: 'SELECT_ATTACKER' 
+        setUnifiedTargetModal({
+          playerIndex: pIdx,
+          handIndex,
+          targetType: 'DUAL_CREATURES',
+          step: 1,
+          onComplete: (selection: any) => {
+            if (selection.type === 'DUAL') {
+              setUnifiedTargetModal(null)
+              setGameState(prev => {
+                const next: GameState = JSON.parse(JSON.stringify(prev))
+                const targets: any[] = [
+                  { type: 'CREATURE_SELF', index: selection.attacker.index },
+                  { type: 'CREATURE_ENEMY', index: selection.defender.index }
+                ]
+                const res = playCard(next, pIdx, handIndex, getCardById, { targets: targets as any })
+                if (!res.ok) console.warn('playCard failed:', res)
+                return next
+              })
+            } else {
+              // Pasar al paso 2 (seleccionar defensor)
+              setUnifiedTargetModal({
+                playerIndex: pIdx,
+                handIndex,
+                targetType: 'DUAL_CREATURES',
+                step: 2,
+                previousSelection: selection,
+                onComplete: (selection2: any) => {
+                  setUnifiedTargetModal(null)
+                  setGameState(prev => {
+                    const next: GameState = JSON.parse(JSON.stringify(prev))
+                    const targets: any[] = [
+                      { type: 'CREATURE_SELF', index: selection.attacker?.index ?? selection.index },
+                      { type: 'CREATURE_ENEMY', index: selection2.defender?.index ?? selection2.index }
+                    ]
+                    const res = playCard(next, pIdx, handIndex, getCardById, { targets: targets as any })
+                    if (!res.ok) console.warn('playCard failed:', res)
+                    return next
+                  })
+                }
+              })
+            }
+          }
         })
         isPlayingRef.current = false
         return
@@ -442,7 +487,27 @@ lastPlaySigRef.current = sig
      const wantsFriendly = card.effects?.some(
        e => e.timing === EffectTiming.ON_PLAY && e.action?.target === EffectTarget.TARGET_FRIENDLY_CREATURE
      )
-     setTargetModal({ playerIndex: pIdx, handIndex, targetKind: wantsFriendly ? 'CREATURE_SELF' : 'CREATURE_ENEMY' })
+     const targetType: TargetType = wantsFriendly ? 'CREATURE_SELF' : 'CREATURE_ENEMY'
+     setUnifiedTargetModal({
+       playerIndex: pIdx,
+       handIndex,
+       targetType,
+       onComplete: (selection: any) => {
+         setUnifiedTargetModal(null)
+         const targets: any[] = selection.type === 'HERO'
+           ? [{ type: selection.playerType === 'SELF' ? 'HERO_SELF' : 'HERO_ENEMY' }]
+           : [{ type: selection.playerType === 'SELF' ? 'CREATURE_SELF' : 'CREATURE_ENEMY', index: selection.index }]
+         
+         setGameState(prev => {
+           const next: GameState = JSON.parse(JSON.stringify(prev))
+           next.pendingTargets = targets as any
+           if (next.turn.currentPlayerIndex !== pIdx) return next
+           const res = playCard(next, pIdx, handIndex, getCardById, { targets: targets as any })
+           if (!res.ok) console.warn('playCard failed:', res)
+           return next
+         })
+       }
+     })
      isPlayingRef.current = false
      return
    }
@@ -462,7 +527,6 @@ attackHero: (attackerBoardIndex: number) => {
       attackerBoardIndex,
     })
     const next: GameState = JSON.parse(JSON.stringify(prev))
-    if (next.turn.phase !== 'COMBAT') beginCombat(next)
     const res = declareAttackHero(next, next.turn.currentPlayerIndex, attackerBoardIndex)
     console.log('[ACTIONS] attackHero result', { ok: res.ok, phaseAfter: next.turn.phase })
     if (!res.ok) console.warn('attackHero failed:', res.error)
@@ -479,7 +543,6 @@ attackCreature: (attackerBoardIndex: number, defenderBoardIndex: number) => {
       defenderBoardIndex
     })
     const next: GameState = JSON.parse(JSON.stringify(prev))
-    if (next.turn.phase !== 'COMBAT') beginCombat(next)
     const res = declareAttackCreature(next, next.turn.currentPlayerIndex, attackerBoardIndex, defenderBoardIndex)
     console.log('[ACTIONS] attackCreature result', { ok: res.ok, phaseAfter: next.turn.phase })
     if (!res.ok) console.warn('attackCreature failed:', res.error)
@@ -494,7 +557,24 @@ summonSpecimen: () => {
   const needsTarget = (p.programmedSpecimenEffects ?? []).includes('DAMAGE_3_ON_ENTER')
 
   if (needsTarget) {
-    setTargetModal({ playerIndex: pIdx, handIndex: -1, targetKind: 'CREATURE_ENEMY' } as any)
+    setUnifiedTargetModal({
+      playerIndex: pIdx,
+      handIndex: -1,
+      targetType: 'CREATURE_ENEMY',
+      onComplete: (selection: any) => {
+        setUnifiedTargetModal(null)
+        const targets: any[] = selection.type === 'HERO'
+          ? [{ type: 'HERO_ENEMY' }]
+          : [{ type: 'CREATURE_ENEMY', index: selection.index }]
+        
+        setGameState(prev => {
+          const next: GameState = JSON.parse(JSON.stringify(prev))
+          next.pendingTargets = targets as any
+          summonSpecimen(next, pIdx)
+          return next
+        })
+      }
+    })
     setTimeout(() => { isPlayingRef.current = false }, 0)
     return
   }
@@ -509,14 +589,15 @@ summonSpecimen: () => {
 },
 }), [isMyTurn, gameState.turn.currentPlayerIndex, gameState.players, setGameState])
 
-  // Bot
+  // Bot (estilo Hearthstone - sin fases de combate)
   useLayoutEffect(() => {
     if (!BOT_ENABLED) return
-    const isBotTurn = !isMyTurn && (gameState.turn.phase === 'MAIN')
+    const isBotTurn = !isMyTurn && (gameState.turn.phase === 'PLAYING')
     if (!isBotTurn) return
     if (processedTurnRef.current === botTurnKey) return
     processedTurnRef.current = botTurnKey
     ;(async () => {
+      // Bot juega cartas
       for (let plays = 0; plays < 2; plays++) {
         let played = false
         setGameState(prev => {
@@ -538,13 +619,10 @@ summonSpecimen: () => {
         if (!played) break
         await delay(300)
       }
-      setGameState(prev => {
-        const next: GameState = JSON.parse(JSON.stringify(prev))
-        if (next.turn.currentPlayerIndex === meIndex) return next
-        beginCombat(next)
-        return next
-      })
+      
       await delay(200)
+      
+      // Bot ataca con todas sus criaturas
       setGameState(prev => {
         const next: GameState = JSON.parse(JSON.stringify(prev))
         const botIdx = next.turn.currentPlayerIndex
@@ -555,17 +633,17 @@ summonSpecimen: () => {
             declareAttackHero(next, botIdx, i)
           }
         }
-        endCombat(next)
         return next
       })
+      
       await delay(200)
+      
+      // Bot termina su turno
       setGameState(prev => {
         const next: GameState = JSON.parse(JSON.stringify(prev))
         if (next.turn.currentPlayerIndex !== meIndex) {
           engineEndTurn(next)
-          engineStartTurn(next)
-          const i = next.turn.currentPlayerIndex
-          next.players[i].board.forEach(c => { c.exhausted = false; c.damagedThisTurn = false })
+          // endTurn ya llama a startTurn del siguiente jugador
         }
         return next
       })
@@ -667,174 +745,34 @@ summonSpecimen: () => {
   )
 })()}
 
-                        {/* Overlay selección de objetivo */}
-        {targetModal && (() => {
-        const { playerIndex, handIndex, choice, targetKind } = targetModal
-        const self = gameState.players[playerIndex]
-        const enemyIndex = 1 - playerIndex
-        const enemy = gameState.players[enemyIndex]
-
-        const commitWithTargets = (targets: any[]) => {
-          setTargetModal(null)
-          setGameState(prev => {
-            const next: GameState = JSON.parse(JSON.stringify(prev))
-            next.pendingTargets = targets
-            if (handIndex === -1) {
-              summonSpecimen(next, playerIndex)
-              return next
-            }
-            if (next.turn.currentPlayerIndex !== playerIndex) return next
-            const res = playCard(next, playerIndex, handIndex, getCardById, { targets })
-            if (!res.ok) console.warn('playCard failed:', res)
-            return next
-          })
-        }
-
-        const onPickHeroEnemy = () => commitWithTargets([{ type: 'HERO_ENEMY' } as any])
-        const onPickEnemy = (defenderIndex: number) =>
-          commitWithTargets([{ type: 'CREATURE_ENEMY', index: defenderIndex } as any])
-
-        const onPickSelf = (allyIndex: number) =>
-          commitWithTargets([{ type: 'CREATURE_SELF', index: allyIndex } as any])
+      {/* Modal unificado de selección de objetivos */}
+      {unifiedTargetModal && (() => {
+        const { playerIndex, targetType, onComplete } = unifiedTargetModal
+        const selfPlayer = gameState.players[playerIndex]
+        const enemyPlayer = gameState.players[1 - playerIndex]
 
         return (
-          <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/70 text-white">
-            <div className="bg-gray-900 rounded-xl border border-white/20 px-6 py-5 shadow-2xl w-[95%] max-w-4xl text-center">
-              <div className="text-2xl font-bold mb-4">Selecciona objetivo</div>
-
-              {/* Si el objetivo es enemigo, permite héroe enemigo */}
-              {targetKind === 'CREATURE_ENEMY' && (
-                <div className="mb-4 flex justify-center">
-                  <button
-                    className="rounded-lg border border-red-400 hover:bg-red-500/10 px-4 py-2 text-red-300 font-semibold"
-                    onClick={onPickHeroEnemy}
-                  >
-                    Héroe enemigo
-                  </button>
-                </div>
-              )}
-
-              {/* Lista de criaturas según el targetKind */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 justify-center">
-                {(targetKind === 'CREATURE_ENEMY' ? enemy.board : self.board).map((crea, idx) => {
-                  const base = getCardById(crea.cardId)
-                  const preview = base ? { ...base, attack: crea.attack, health: crea.health, abilities: crea.abilities } : null
-                  const onClick = targetKind === 'CREATURE_ENEMY'
-                    ? () => onPickEnemy(idx)
-                    : () => onPickSelf(idx)
-                  return (
-                    <button key={crea.id} className="rounded-lg border border-white/20 hover:bg-white/5 p-2" onClick={onClick}>
-                      {preview && <UICard card={preview as any} />}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          </div>
-        )
-      })()}
-
-      {/* Overlay ATTACK_SPELL (doble targeting) */}
-      {attackSpellModal && (() => {
-        const { playerIndex, handIndex, step, attackerIndex } = attackSpellModal
-        const self = gameState.players[playerIndex]
-        const enemy = gameState.players[1 - playerIndex]
-
-        if (step === 'SELECT_ATTACKER') {
-          return (
-            <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/70 text-white">
-              <div className="bg-gray-900 rounded-xl border-2 border-green-400 px-6 py-5 shadow-2xl w-[95%] max-w-4xl text-center">
-                <div className="text-3xl font-bold mb-4 text-green-300">Selecciona tu atacante</div>
-                <div className="text-lg mb-4 text-gray-300">Elige la criatura aliada que atacará</div>
-
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 justify-center">
-                  {self.board.map((crea, idx) => {
-                    const base = getCardById(crea.cardId)
-                    const preview = base ? { ...base, attack: crea.attack, health: crea.health, abilities: crea.abilities } : null
-                    const canAttack = crea.attack > 0 && crea.health > 0
-                    
-                    return (
-                      <button 
-                        key={crea.id} 
-                        className={`rounded-lg border p-2 ${
-                          canAttack 
-                            ? 'border-green-400 hover:bg-green-500/10' 
-                            : 'border-gray-600 opacity-50 cursor-not-allowed'
-                        }`}
-                        disabled={!canAttack}
-                        onClick={() => {
-                          if (canAttack) {
-                            setAttackSpellModal({
-                              playerIndex,
-                              handIndex,
-                              step: 'SELECT_DEFENDER',
-                              attackerIndex: idx
-                            })
-                          }
-                        }}
-                      >
-                        {preview && <UICard card={preview as any} />}
-                      </button>
-                    )
-                  })}
-                </div>
-
-                <button
-                  className="mt-4 px-4 py-2 rounded bg-red-500 hover:bg-red-600 text-white"
-                  onClick={() => setAttackSpellModal(null)}
-                >
-                  Cancelar
-                </button>
-              </div>
-            </div>
-          )
-        }
-
-        // step === 'SELECT_DEFENDER'
-        return (
-          <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/70 text-white">
-            <div className="bg-gray-900 rounded-xl border-2 border-red-400 px-6 py-5 shadow-2xl w-[95%] max-w-4xl text-center">
-              <div className="text-3xl font-bold mb-4 text-red-300">Selecciona el defensor</div>
-              <div className="text-lg mb-4 text-gray-300">Elige la criatura enemiga que será atacada</div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 justify-center">
-                {enemy.board.map((crea, idx) => {
-                  const base = getCardById(crea.cardId)
-                  const preview = base ? { ...base, attack: crea.attack, health: crea.health, abilities: crea.abilities } : null
-                  
-                  return (
-                    <button 
-                      key={crea.id} 
-                      className="rounded-lg border border-red-400 hover:bg-red-500/10 p-2"
-                      onClick={() => {
-                        // Ejecutar el ataque con ambos targets
-                        setAttackSpellModal(null)
-                        setGameState(prev => {
-                          const next: GameState = JSON.parse(JSON.stringify(prev))
-                          const targets = [
-                            { type: 'CREATURE_SELF', index: attackerIndex } as any,
-                            { type: 'CREATURE_ENEMY', index: idx } as any
-                          ]
-                          const res = playCard(next, playerIndex, handIndex, getCardById, { targets })
-                          if (!res.ok) console.warn('playCard failed:', res)
-                          return next
-                        })
-                      }}
-                    >
-                      {preview && <UICard card={preview as any} />}
-                    </button>
-                  )
-                })}
-              </div>
-
-              <button
-                className="mt-4 px-4 py-2 rounded bg-gray-500 hover:bg-gray-600 text-white"
-                onClick={() => setAttackSpellModal({ playerIndex, handIndex, step: 'SELECT_ATTACKER' })}
-              >
-                ← Volver
-              </button>
-            </div>
-          </div>
+          <UnifiedTargetModal
+            title="Selecciona objetivo"
+            subtitle={targetType === 'DUAL_CREATURES' ? undefined : 'Elige un objetivo válido'}
+            targetType={targetType}
+            selfPlayer={{
+              id: selfPlayer.id,
+              name: selfPlayer.name,
+              board: selfPlayer.board
+            }}
+            enemyPlayer={{
+              id: enemyPlayer.id,
+              name: enemyPlayer.name,
+              board: enemyPlayer.board
+            }}
+            getCardById={getCardById}
+            onSelect={onComplete}
+            onCancel={() => setUnifiedTargetModal(null)}
+            step={unifiedTargetModal.step}
+            maxStep={targetType === 'DUAL_CREATURES' ? 2 : 1}
+            previousSelection={unifiedTargetModal.previousSelection}
+          />
         )
       })()}
 
