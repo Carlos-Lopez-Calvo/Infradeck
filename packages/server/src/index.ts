@@ -132,6 +132,20 @@ io.on('connection', (socket) => {
       socket.to(playerData.roomId).emit('opponent:playCard', { cardId: 'card_played' })
       
       console.log(`[GAME] Card played successfully`)
+    } else if (result.needsDiscover) {
+      // La carta necesita discover (elegir entre opciones)
+      socket.emit('game:needsDiscover', { 
+        handIndex: data.handIndex,
+        options: result.discoverOptions || []
+      })
+      console.log(`[GAME] Card needs discover: ${result.discoverOptions?.length} options`)
+    } else if (result.needsScry) {
+      // La carta necesita scry (decidir sobre cartas del mazo)
+      socket.emit('game:needsScry', { 
+        handIndex: data.handIndex,
+        cards: result.scryCards || []
+      })
+      console.log(`[GAME] Card needs scry: ${result.scryCards?.length} cards`)
     } else if (result.needsTarget) {
       // La carta necesita selección de targets
       socket.emit('game:needsTarget', { 
@@ -142,6 +156,61 @@ io.on('connection', (socket) => {
     } else {
       socket.emit('game:error', result.error || 'Unknown error')
       console.error(`[GAME] Error playing card: ${result.error}`)
+    }
+  })
+
+  // Handler para respuesta de discover
+  socket.on('game:discoverResponse', async (data) => {
+    const playerData = socketToPlayer.get(socket.id)
+    if (!playerData?.roomId) {
+      socket.emit('game:error', 'Not in a game room')
+      return
+    }
+
+    console.log(`[GAME] Player ${playerId} made discover choice: ${data.choice}`)
+
+    const result = await gameRoomManager.handlePlayCard(
+      playerData.roomId,
+      playerData.playerId,
+      data.handIndex,
+      undefined, // no targets
+      data.choice // discover choice
+    )
+
+    if (result.success && result.gameState) {
+      io.to(playerData.roomId).emit('game:stateUpdate', result.gameState)
+      socket.to(playerData.roomId).emit('opponent:playCard', { cardId: 'card_played' })
+    } else {
+      socket.emit('game:error', result.error || 'Unknown error')
+      console.error(`[GAME] Error after discover: ${result.error}`)
+    }
+  })
+
+  // Handler para respuesta de scry
+  socket.on('game:scryResponse', async (data) => {
+    const playerData = socketToPlayer.get(socket.id)
+    if (!playerData?.roomId) {
+      socket.emit('game:error', 'Not in a game room')
+      return
+    }
+
+    console.log(`[GAME] Player ${playerId} made scry decision: ${data.decision}`)
+
+    const result = await gameRoomManager.handlePlayCard(
+      playerData.roomId,
+      playerData.playerId,
+      data.handIndex,
+      undefined, // no targets
+      undefined, // no discover choice
+      data.decision // scry decision
+    )
+
+    if (result.success && result.gameState) {
+      io.to(playerData.roomId).emit('game:stateUpdate', result.gameState)
+      socket.to(playerData.roomId).emit('opponent:playCard', { cardId: 'card_played' })
+    } else {
+      socket.emit('game:error', result.error || 'Unknown error')
+      console.error(`[GAME] Error after scry: ${result.error}`)
     }
   })
 

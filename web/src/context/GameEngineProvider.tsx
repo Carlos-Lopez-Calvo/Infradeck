@@ -427,8 +427,8 @@ lastPlaySigRef.current = sig
       )
       if (hasAttackSpell) {
         setUnifiedTargetModal({
-          playerIndex: pIdx,
-          handIndex,
+          playerIndex: pIdx, 
+          handIndex, 
           targetType: 'DUAL_CREATURES',
           step: 1,
           onComplete: (selection: any) => {

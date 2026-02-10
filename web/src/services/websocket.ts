@@ -13,6 +13,8 @@ interface ServerToClientEvents {
   'game:end': (data: { winner: number; reason: string }) => void
   'game:error': (error: string) => void
   'game:needsTarget': (data: { handIndex: number; targetType: string }) => void
+  'game:needsDiscover': (data: { handIndex: number; options: Array<{ id: string; label: string; preview?: any }> }) => void
+  'game:needsScry': (data: { handIndex: number; cards: string[] }) => void
   'opponent:playCard': (data: { cardId: string }) => void
   'opponent:endTurn': () => void
 }
@@ -25,6 +27,8 @@ interface ClientToServerEvents {
   'game:attack': (data: { attackerIndex: number; targetType: 'hero' | 'creature'; targetIndex?: number }) => void
   'game:endTurn': () => void
   'game:summonSpecimen': () => void
+  'game:discoverResponse': (data: { handIndex: number; choice: string }) => void
+  'game:scryResponse': (data: { handIndex: number; decision: 'TOP' | 'BOTTOM' }) => void
 }
 
 type TypedSocket = Socket<ServerToClientEvents, ClientToServerEvents>
@@ -148,6 +152,28 @@ export class WebSocketService {
   onNeedsTarget(callback: (data: { handIndex: number; targetType: string }) => void) {
     if (!this.socket) return
     this.socket.on('game:needsTarget', callback)
+  }
+
+  onNeedsDiscover(callback: (data: { handIndex: number; options: Array<{ id: string; label: string; preview?: any }> }) => void) {
+    if (!this.socket) return
+    this.socket.on('game:needsDiscover', callback)
+  }
+
+  onNeedsScry(callback: (data: { handIndex: number; cards: string[] }) => void) {
+    if (!this.socket) return
+    this.socket.on('game:needsScry', callback)
+  }
+
+  sendDiscoverChoice(handIndex: number, choice: string) {
+    if (!this.socket) throw new Error('Not connected')
+    console.log('[WS] Sending discoverResponse:', { handIndex, choice })
+    this.socket.emit('game:discoverResponse', { handIndex, choice })
+  }
+
+  sendScryDecision(handIndex: number, decision: 'TOP' | 'BOTTOM') {
+    if (!this.socket) throw new Error('Not connected')
+    console.log('[WS] Sending scryResponse:', { handIndex, decision })
+    this.socket.emit('game:scryResponse', { handIndex, decision })
   }
 
   onOpponentPlayCard(callback: (data: { cardId: string }) => void) {

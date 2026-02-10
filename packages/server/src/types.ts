@@ -24,6 +24,10 @@ export interface ClientToServerEvents {
   'game:attack': (data: { attackerIndex: number; targetType: 'hero' | 'creature'; targetIndex?: number }) => void
   'game:endTurn': () => void
   'game:summonSpecimen': () => void
+  
+  // Advanced interactions
+  'game:discoverResponse': (data: { handIndex: number; choice: string }) => void
+  'game:scryResponse': (data: { handIndex: number; decision: 'TOP' | 'BOTTOM' }) => void
 }
 
 export interface ServerToClientEvents {
@@ -42,7 +46,17 @@ export interface ServerToClientEvents {
   'game:stateUpdate': (gameState: any) => void
   'game:end': (data: { winner: number; reason: string }) => void
   'game:error': (error: string) => void
+  
+  // Advanced interactions
   'game:needsTarget': (data: { handIndex: number; targetType: string }) => void
+  'game:needsDiscover': (data: { 
+    handIndex: number
+    options: Array<{ id: string; label: string; preview?: any }> 
+  }) => void
+  'game:needsScry': (data: { 
+    handIndex: number
+    cards: string[]
+  }) => void
   
   // Opponent actions (for animations/feedback)
   'opponent:playCard': (data: { cardId: string }) => void

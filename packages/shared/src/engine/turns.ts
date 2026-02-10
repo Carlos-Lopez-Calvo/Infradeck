@@ -23,11 +23,11 @@ export function startTurn(state: GameState): void {
   state.turn.turnNumber += 1 
   const i = getCurrentPlayerIndex(state)
   const p = state.players[i]
-  
+
   console.log('[TURN] Starting turn', { turnNumber: state.turn.turnNumber, player: i })
 
   // APLICA BONUS DE FINAL STAND
-  applyFinalStandBonus(state, i)
+    applyFinalStandBonus(state, i)
     
   // Incrementa maná máximo (hasta 10)
   if (p.maxMana < 10) p.maxMana += 1
@@ -48,25 +48,25 @@ export function startTurn(state: GameState): void {
   console.log('[TURN] Creatures awakened', { boardSize: p.board.length })
 
   // Estado de Eclipse/Ciclo (específico de clase CICLO)
-  if (p.classResource?.type === 'ESTADO') {
+    if (p.classResource?.type === 'ESTADO') {
     // Si estaba en Eclipse y no es permanente, vuelve a Día
-    if (!p.permanentEclipse && p.classResource.state === 'ECLIPSE') {
-      p.classResource.state = 'DIA'
+      if (!p.permanentEclipse && p.classResource.state === 'ECLIPSE') {
+        p.classResource.state = 'DIA'
       console.log('[TURN] Eclipse ended, returning to DAY')
-    }
+      }
     
     // Sincroniza formas de cartas CICLO en el tablero
-    if (p.classResource.state) {
-      for (let bi = 0; bi < p.board.length; bi++) {
-        const ent = p.board[bi]
-        const base: any = getCardByIdGlobal(ent.cardId)
-        if (!base || !base.dayForm || base.transformsWithCycle !== true) continue
+      if (p.classResource.state) {
+        for (let bi = 0; bi < p.board.length; bi++) {
+          const ent = p.board[bi]
+          const base: any = getCardByIdGlobal(ent.cardId)
+          if (!base || !base.dayForm || base.transformsWithCycle !== true) continue
         
-        const form = getCurrentForm(base, p.classResource.state as CycleState)
-        ent.attack = form.attack ?? ent.attack
+          const form = getCurrentForm(base, p.classResource.state as CycleState)
+          ent.attack = form.attack ?? ent.attack
         const newMax = form.health ?? ent.health
         if (ent.health > newMax) ent.health = newMax
-        ent.abilities = form.abilities ? form.abilities.map((a: any) => String(a)) : []
+          ent.abilities = form.abilities ? form.abilities.map((a: any) => String(a)) : []
       }
       // Recalcula auras dinámicas (Guardian_del_Equilibrio)
       applyGuardianAura(state, i)

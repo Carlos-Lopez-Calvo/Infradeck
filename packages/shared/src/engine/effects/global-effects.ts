@@ -155,12 +155,12 @@ export function handleScry(ctx: EffectContext): void {
   
   // Si la decisión es BOTTOM, mover las cartas al fondo
   if (decision === 'BOTTOM') {
-    p.deck.splice(0, scryCount)
+      p.deck.splice(0, scryCount)
     p.deck.push(...topCards)
     console.log('[SCRY] moved to bottom')
   } else {
     console.log('[SCRY] kept at top')
-  }
+    }
 }
 
 export function handleAdvancedSelection(ctx: EffectContext): void {
@@ -189,16 +189,16 @@ export function handleAdvancedSelection(ctx: EffectContext): void {
   // Temporalmente tomar la primera carta del grupo revelado
   if (topCards.length > 0) {
     const chosenId = topCards[0]
-    const chosenIdx = p.deck.indexOf(chosenId)
-    if (chosenIdx !== -1) {
-      const [chosen] = p.deck.splice(chosenIdx, 1)
-      p.hand.push(chosen)
-    }
-    const rest = topCards.filter(id => id !== chosenId)
-    p.deck = p.deck.filter(id => !rest.includes(id))
-    p.deck.push(...rest)
+      const chosenIdx = p.deck.indexOf(chosenId)
+      if (chosenIdx !== -1) {
+        const [chosen] = p.deck.splice(chosenIdx, 1)
+        p.hand.push(chosen)
+      }
+      const rest = topCards.filter(id => id !== chosenId)
+      p.deck = p.deck.filter(id => !rest.includes(id))
+      p.deck.push(...rest)
     console.log('[ADVANCED_SELECTION] resolved (auto-selected first)', { hand: p.hand.length, deck: p.deck.length })
-  }
+    }
 }
 
 // ===== EFECTOS DE BUFF =====

@@ -19,9 +19,13 @@ interface OnlineGameContextType {
   gameEnded: boolean
   winner: number | null
   
-  // Target selection
+  // Advanced interactions
   pendingTargetSelection: { handIndex: number; targetType: string } | null
   setPendingTargetSelection: (data: { handIndex: number; targetType: string } | null) => void
+  pendingDiscoverSelection: { handIndex: number; options: Array<{ id: string; label: string; preview?: any }> } | null
+  setPendingDiscoverSelection: (data: { handIndex: number; options: Array<{ id: string; label: string; preview?: any }> } | null) => void
+  pendingScryDecision: { handIndex: number; cards: string[] } | null
+  setPendingScryDecision: (data: { handIndex: number; cards: string[] } | null) => void
   
   // Actions
   connectToServer: () => Promise<void>
@@ -31,6 +35,8 @@ interface OnlineGameContextType {
   playCard: (handIndex: number, targets?: any[]) => void
   attack: (attackerIndex: number, targetType: 'hero' | 'creature', targetIndex?: number) => void
   endTurn: () => void
+  sendDiscoverChoice: (handIndex: number, choice: string) => void
+  sendScryDecision: (handIndex: number, decision: 'TOP' | 'BOTTOM') => void
   resetGame: () => void
 }
 
@@ -47,6 +53,8 @@ export function OnlineGameProvider({ children }: { children: React.ReactNode }) 
   const [gameEnded, setGameEnded] = useState(false)
   const [winner, setWinner] = useState<number | null>(null)
   const [pendingTargetSelection, setPendingTargetSelection] = useState<{ handIndex: number; targetType: string } | null>(null)
+  const [pendingDiscoverSelection, setPendingDiscoverSelection] = useState<{ handIndex: number; options: Array<{ id: string; label: string; preview?: any }> } | null>(null)
+  const [pendingScryDecision, setPendingScryDecision] = useState<{ handIndex: number; cards: string[] } | null>(null)
 
   const connectToServer = async () => {
     try {
@@ -100,6 +108,16 @@ export function OnlineGameProvider({ children }: { children: React.ReactNode }) 
       wsService.onNeedsTarget((data) => {
         console.log('[CLIENT] Card needs target selection:', data)
         setPendingTargetSelection(data)
+      })
+
+      wsService.onNeedsDiscover((data) => {
+        console.log('[CLIENT] Card needs discover selection:', data)
+        setPendingDiscoverSelection(data)
+      })
+
+      wsService.onNeedsScry((data) => {
+        console.log('[CLIENT] Card needs scry decision:', data)
+        setPendingScryDecision(data)
       })
 
       wsService.onPlayerLeft(() => {
@@ -160,6 +178,20 @@ export function OnlineGameProvider({ children }: { children: React.ReactNode }) 
     wsService.endTurn()
   }
 
+  const sendDiscoverChoice = (handIndex: number, choice: string) => {
+    if (!gameState) return
+    console.log('[CLIENT] Sending discover choice:', { handIndex, choice })
+    wsService.sendDiscoverChoice(handIndex, choice)
+    setPendingDiscoverSelection(null)
+  }
+
+  const sendScryDecision = (handIndex: number, decision: 'TOP' | 'BOTTOM') => {
+    if (!gameState) return
+    console.log('[CLIENT] Sending scry decision:', { handIndex, decision })
+    wsService.sendScryDecision(handIndex, decision)
+    setPendingScryDecision(null)
+  }
+
   const resetGame = () => {
     setIsSearching(false)
     setMatchFound(false)
@@ -168,6 +200,9 @@ export function OnlineGameProvider({ children }: { children: React.ReactNode }) 
     setGameState(null)
     setGameEnded(false)
     setWinner(null)
+    setPendingTargetSelection(null)
+    setPendingDiscoverSelection(null)
+    setPendingScryDecision(null)
   }
 
   const isMyTurn = gameState && playerId
@@ -193,6 +228,10 @@ export function OnlineGameProvider({ children }: { children: React.ReactNode }) 
     winner,
     pendingTargetSelection,
     setPendingTargetSelection,
+    pendingDiscoverSelection,
+    setPendingDiscoverSelection,
+    pendingScryDecision,
+    setPendingScryDecision,
     connectToServer,
     disconnectFromServer,
     startMatchmaking,
@@ -200,6 +239,8 @@ export function OnlineGameProvider({ children }: { children: React.ReactNode }) 
     playCard,
     attack,
     endTurn,
+    sendDiscoverChoice,
+    sendScryDecision,
     resetGame
   }
 

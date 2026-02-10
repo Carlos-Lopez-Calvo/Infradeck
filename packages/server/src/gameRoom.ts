@@ -2,6 +2,7 @@ import type { GameRoom, Player } from './types.js'
 import { getCardById } from './card-resolver.js'
 import * as GameEngine from './game-engine.js'
 import { detectTargetRequirement } from './target-detector.js'
+import { setDiscoverHandler, setScryHandler } from './game-handlers.js'
 
 export class GameRoomManager {
   private rooms = new Map<string, GameRoom>()
@@ -101,8 +102,20 @@ export class GameRoomManager {
     roomId: string, 
     playerId: string, 
     handIndex: number, 
-    targets?: any[]
-  ): Promise<{ success: boolean; gameState?: any; error?: string; needsTarget?: boolean; targetType?: string }> {
+    targets?: any[],
+    discoverChoice?: string,
+    scryDecision?: 'TOP' | 'BOTTOM'
+  ): Promise<{ 
+    success: boolean
+    gameState?: any
+    error?: string
+    needsTarget?: boolean
+    targetType?: string
+    needsDiscover?: boolean
+    discoverOptions?: Array<{ id: string; label: string; preview?: any }>
+    needsScry?: boolean
+    scryCards?: string[]
+  }> {
     const room = this.rooms.get(roomId)
     if (!room || !room.gameState) {
       return { success: false, error: 'Room or game not found' }
@@ -131,19 +144,49 @@ export class GameRoomManager {
       return { success: false, error: 'Card not found' }
     }
 
-    // Si no se proporcionaron targets, verificar si la carta los necesita
-    if (!targets || targets.length === 0) {
-      const targetReq = detectTargetRequirement(card, room.gameState, playerIndex)
-      
-      if (targetReq.needsTarget) {
-        // Devolver que necesita targets sin jugar la carta
-        return { 
-          success: false, 
-          needsTarget: true, 
-          targetType: targetReq.targetType,
-          error: 'Card needs target selection'
-        }
+    // Detectar qué tipo de interacción necesita la carta
+    const req = detectTargetRequirement(card, room.gameState, playerIndex)
+    
+    // Si necesita discover y no se ha proporcionado la elección
+    if (req.needsDiscover && !discoverChoice) {
+      return { 
+        success: false, 
+        needsDiscover: true, 
+        discoverOptions: req.discoverOptions,
+        error: 'Card needs discover selection'
       }
+    }
+    
+    // Si necesita scry y no se ha proporcionado la decisión
+    if (req.needsScry && !scryDecision) {
+      return { 
+        success: false, 
+        needsScry: true, 
+        scryCards: req.scryCards,
+        error: 'Card needs scry decision'
+      }
+    }
+    
+    // Si necesita targets y no se han proporcionado
+    if (req.needsTarget && (!targets || targets.length === 0)) {
+      return { 
+        success: false, 
+        needsTarget: true, 
+        targetType: req.targetType,
+        error: 'Card needs target selection'
+      }
+    }
+
+    // Configurar handlers para discover y scry antes de jugar la carta
+    // Esto permitirá que el motor de juego use las decisiones del jugador
+    if (discoverChoice) {
+      console.log('[GAME_ROOM] Setting discover handler with choice:', discoverChoice)
+      await setDiscoverHandler(() => discoverChoice)
+    }
+    
+    if (scryDecision) {
+      console.log('[GAME_ROOM] Setting scry handler with decision:', scryDecision)
+      await setScryHandler(() => scryDecision)
     }
 
     // Usar la función del motor de juego

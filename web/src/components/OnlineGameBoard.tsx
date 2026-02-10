@@ -3,6 +3,8 @@ import { GameBoard } from './GameBoard'
 import { GameEngineContext } from '../context/GameEngineProvider'
 import { useOnlineGame } from '../context/OnlineGameProvider'
 import { UnifiedTargetModal, TargetType } from './UnifiedTargetModal'
+import { DiscoverModal } from './DiscoverModal'
+import { ScryModal } from './ScryModal'
 import { getCardByIdGlobal } from '@infradeck/shared'
 
 export function OnlineGameBoard() {
@@ -14,7 +16,13 @@ export function OnlineGameBoard() {
     attack: onlineAttack,
     endTurn: onlineEndTurn,
     pendingTargetSelection,
-    setPendingTargetSelection
+    setPendingTargetSelection,
+    pendingDiscoverSelection,
+    setPendingDiscoverSelection,
+    pendingScryDecision,
+    setPendingScryDecision,
+    sendDiscoverChoice,
+    sendScryDecision
   } = useOnlineGame()
 
   if (!gameState) {
@@ -122,6 +130,38 @@ export function OnlineGameBoard() {
           }}
           step={1}
           maxStep={1}
+        />
+      )}
+
+      {/* Modal de Discover (elegir entre opciones) */}
+      {pendingDiscoverSelection && (
+        <DiscoverModal
+          isOpen={true}
+          options={pendingDiscoverSelection.options}
+          onSelect={(choiceId) => {
+            console.log('[ONLINE] Discover choice selected:', choiceId)
+            sendDiscoverChoice(pendingDiscoverSelection.handIndex, choiceId)
+          }}
+          onCancel={() => {
+            console.log('[ONLINE] Discover cancelled')
+            setPendingDiscoverSelection(null)
+          }}
+        />
+      )}
+
+      {/* Modal de Scry (ver y decidir sobre cartas del mazo) */}
+      {pendingScryDecision && (
+        <ScryModal
+          isOpen={true}
+          cardIds={pendingScryDecision.cards}
+          onDecision={(decision) => {
+            console.log('[ONLINE] Scry decision:', decision)
+            sendScryDecision(pendingScryDecision.handIndex, decision)
+          }}
+          onCancel={() => {
+            console.log('[ONLINE] Scry cancelled')
+            setPendingScryDecision(null)
+          }}
         />
       )}
     </>

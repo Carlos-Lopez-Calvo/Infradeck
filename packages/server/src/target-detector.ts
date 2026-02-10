@@ -1,16 +1,22 @@
-// Detecta si una carta necesita selección de targets
+// Detecta si una carta necesita interacción del jugador (targets, discover, scry, etc)
 
 export interface TargetRequirement {
-  needsTarget: boolean
+  needsTarget?: boolean
   targetType?: 'CREATURE_ENEMY' | 'CREATURE_FRIENDLY' | 'CREATURE_ANY' | 'HERO_ENEMY' | 'CHARACTER_ANY'
+  needsDiscover?: boolean
+  discoverOptions?: Array<{ id: string; label: string; preview?: any }>
+  needsScry?: boolean
+  scryCards?: string[]
+  needsAdvancedSelection?: boolean
+  advancedSelectionCards?: string[]
 }
 
 export function detectTargetRequirement(card: any, gameState: any, playerIndex: number): TargetRequirement {
   if (!card || !card.effects) {
-    return { needsTarget: false }
+    return {}
   }
 
-  // Buscar efectos ON_PLAY que necesiten targets
+  // Buscar efectos ON_PLAY que necesiten interacción
   for (const effect of card.effects) {
     // EffectTiming.ON_PLAY es el string 'ON_PLAY'
     if (effect.timing !== 'ON_PLAY') continue
@@ -25,10 +31,38 @@ export function detectTargetRequirement(card: any, gameState: any, playerIndex: 
       }
     }
 
+    const actionType = effect.action?.type
     const target = effect.action?.target
 
-    // Targets que requieren selección del jugador
-    // EffectTarget.TARGET_CREATURE es el string 'TARGET_CREATURE'
+    // Detectar DISCOVER (pagar vida o entropía)
+    if (actionType === 'DISCOVER_PAY_LIFE' || actionType === 'DISCOVER_PAY_ENTROPY') {
+      const options = effect.action.options
+      if (options && options.base && options.buff) {
+        return {
+          needsDiscover: true,
+          discoverOptions: [
+            { id: 'BASE', label: options.baseLabel || 'Opción Base' },
+            { id: 'BUFF', label: options.buffLabel || 'Opción Mejorada' }
+          ]
+        }
+      }
+    }
+
+    // Detectar SCRY (ver carta superior del mazo)
+    if (actionType === 'SCRY') {
+      const player = gameState.players[playerIndex]
+      const amount = effect.action.amount || 1
+      const topCards = player.deck.slice(0, Math.min(amount, player.deck.length))
+      
+      if (topCards.length > 0) {
+        return {
+          needsScry: true,
+          scryCards: topCards
+        }
+      }
+    }
+
+    // Detectar targets normales
     switch (target) {
       case 'TARGET_CREATURE':
         return { needsTarget: true, targetType: 'CREATURE_ANY' }
@@ -52,5 +86,5 @@ export function detectTargetRequirement(card: any, gameState: any, playerIndex: 
     }
   }
 
-  return { needsTarget: false }
+  return {}
 }
