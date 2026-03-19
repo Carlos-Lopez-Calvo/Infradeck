@@ -36,9 +36,6 @@ export function effectConditionPasses(state: GameState, playerIndex: number, eff
       if (c.comparison === 'EQUAL') return (cr.amount ?? 0) === want
       if (c.comparison === 'GREATER_EQUAL') return (cr.amount ?? 0) >= want
     }
-    if (typeof want === 'string' && 'state' in cr) {
-      return cr.state === want
-    }
     return false
   }
   
@@ -78,7 +75,6 @@ export function effectConditionPasses(state: GameState, playerIndex: number, eff
     switch (String(c.value)) {
       case 'ALLY_DIED_THIS_TURN':       return !!p.allyDiedThisTurn
       case 'SPECIMEN_SUMMONED':         return !!p.specimenSummonedThisTurn
-      case 'NO_STATE_CHANGE_THIS_TURN': return !p.manualCycleChangedThisTurn
       case 'MANA_5_PLUS':               return p.mana >= 5
       case 'MANA_6_PLUS':               return p.mana >= 6
       case 'SOLO_ATTACKER':             return (p.attackersDeclaredThisTurn ?? 0) === 1

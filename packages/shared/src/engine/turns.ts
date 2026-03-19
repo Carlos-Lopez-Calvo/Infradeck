@@ -1,9 +1,7 @@
-import { GameState, GamePhase, getCardByIdGlobal } from './game-state'
+import { GameState, GamePhase } from './game-state'
 import { triggerPriority } from './priority'
 import { triggerBoardEffects, updateConditionalBuffs } from './effects/board-effects'
-import { applyGuardianAura } from './effects/ciclo-effects'
 import { applyFinalStandBonus } from './final-stand'
-import { getCurrentForm, CycleState } from '../types/cards'
 
 // =======================
 // Gestión de turnos
@@ -47,37 +45,9 @@ export function startTurn(state: GameState): void {
   })
   console.log('[TURN] Creatures awakened', { boardSize: p.board.length })
 
-  // Estado de Eclipse/Ciclo (específico de clase CICLO)
-    if (p.classResource?.type === 'ESTADO') {
-    // Si estaba en Eclipse y no es permanente, vuelve a Día
-      if (!p.permanentEclipse && p.classResource.state === 'ECLIPSE') {
-        p.classResource.state = 'DIA'
-      console.log('[TURN] Eclipse ended, returning to DAY')
-      }
-    
-    // Sincroniza formas de cartas CICLO en el tablero
-      if (p.classResource.state) {
-        for (let bi = 0; bi < p.board.length; bi++) {
-          const ent = p.board[bi]
-          const base: any = getCardByIdGlobal(ent.cardId)
-          if (!base || !base.dayForm || base.transformsWithCycle !== true) continue
-        
-          const form = getCurrentForm(base, p.classResource.state as CycleState)
-          ent.attack = form.attack ?? ent.attack
-        const newMax = form.health ?? ent.health
-        if (ent.health > newMax) ent.health = newMax
-          ent.abilities = form.abilities ? form.abilities.map((a: any) => String(a)) : []
-      }
-      // Recalcula auras dinámicas (Guardian_del_Equilibrio)
-      applyGuardianAura(state, i)
-      console.log('[TURN] Cycle state synchronized', { state: p.classResource.state })
-    }
-  }
-    
   // Reset flags de turno
   p.attackersDeclaredThisTurn = 0
   p.lastAttackTargetHero = false
-  p.manualCycleChangedThisTurn = false
   p.allyDiedThisTurn = false
   p.specimenSummonedThisTurn = false
 
@@ -136,34 +106,6 @@ export function endTurn(state: GameState): void {
     console.log('[TURN] Executed end of turn tasks', { count: tasks.length })
   }
 
-  // Cambio de estado de Ciclo (Día ↔ Noche, específico de clase CICLO)
-  if (p.classResource?.type === 'ESTADO') {
-    if (!p.permanentEclipse) {
-      const oldState = p.classResource.state
-      if (p.classResource.state === 'DIA') p.classResource.state = 'NOCHE'
-      else if (p.classResource.state === 'NOCHE') p.classResource.state = 'DIA'
-      else if (p.classResource.state === 'ECLIPSE') p.classResource.state = 'DIA'
-      console.log('[TURN] Cycle state changed', { from: oldState, to: p.classResource.state })
-    }
-    
-    // Sincroniza formas de cartas CICLO tras el cambio
-    if (p.classResource.state) {
-      for (let bi = 0; bi < p.board.length; bi++) {
-        const ent = p.board[bi]
-        const base = getCardByIdGlobal(ent.cardId)
-        if (!base || !(base as any).dayForm || (base as any).transformsWithCycle !== true) continue
-        
-        const form = getCurrentForm(base as any, p.classResource.state as CycleState)
-        ent.attack = form.attack ?? ent.attack
-        const newMax = form.health ?? ent.health
-        if (ent.health > newMax) ent.health = newMax
-        ent.abilities = form.abilities ? form.abilities.map(a => String(a)) : []
-      }
-      // Recalcula auras dinámicas
-      applyGuardianAura(state, i)
-    }
-  }
-  
   // Cambiar al siguiente jugador
   state.turn.currentPlayerIndex = getOpponentPlayerIndex(state)
   console.log('[TURN] Switching to player', state.turn.currentPlayerIndex)

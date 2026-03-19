@@ -54,14 +54,11 @@ export interface PlayerState {
   graveyard: string[]
   board: CreatureOnBoard[]
   classResource?: {
-    type: 'CEMENTERIO' | 'ENTROPIA' | 'ESTADO' | 'VIDA'
+    type: 'CEMENTERIO' | 'ENTROPIA' | 'VIDA'
     amount?: number
-    state?: 'DIA' | 'NOCHE' | 'ECLIPSE'
   }
   specimenSummons?: number
-  permanentEclipse?: boolean
   specimenFreeThisTurn?: boolean
-  manualCycleChangedThisTurn?: boolean
   allyDiedThisTurn?: boolean
   specimenSummonedThisTurn?: boolean
   attackersDeclaredThisTurn?: number
@@ -77,8 +74,6 @@ export interface PlayerState {
   cardCostReductionSkipOnce?: boolean        // ← nuevo
   playedChaosEffects?: EffectAction[]        // ← nuevo historial
   forceDiscoverBuff?: boolean                // ← NUEVO
-  cycleAuraApplied?: 'DIA' | 'NOCHE' | null
-cycleAuraStacks?: number
 }
 
 export interface TurnState {
@@ -139,17 +134,13 @@ export function createGame(
     board: [],
     classResource: initialClassResource(p.classType),  // <- debe existir
     specimenSummons: 0,
-    permanentEclipse: false,
     specimenFreeThisTurn: false,
-    manualCycleChangedThisTurn: false,
     allyDiedThisTurn: false,
     specimenSummonedThisTurn: false,
     attackersDeclaredThisTurn: 0,
     lastAttackTargetHero: false,
     programmedSpecimenEffects: [],
     playedChaosEffects: [],                           // ← inicializa historial
-    cycleAuraApplied: null,
-    cycleAuraStacks: 0
   })
   return {
     players: [base(p1), base(p2)],
@@ -206,7 +197,6 @@ export function startGame(state: GameState): void {
 function initialClassResource(classType: string): PlayerState['classResource'] {
   switch (classType) {
     case 'CAOS':         return { type: 'ENTROPIA', amount: 0 }
-    case 'CICLO':        return { type: 'ESTADO', state: 'DIA' }
     case 'VITALIDAD':    return { type: 'VIDA' }
     case 'ABOMINACION':  return { type: 'CEMENTERIO', amount: 0 }
     default:             return undefined

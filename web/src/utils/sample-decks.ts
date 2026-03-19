@@ -43,12 +43,6 @@ export const sampleDecks = {
     'Guardian_Novato', 'Guardian_Novato',
     'Primera_Oportunidad', 'Primera_Oportunidad'
   ],
-
-  CICLO: [
-    // Cartas de clase
-    'Comerciante_Sagaz', 'Comerciante_Sagaz', 'Comerciante_Sagaz', 'Comerciante_Sagaz', 'Comerciante_Sagaz', 'Comerciante_Sagaz', 'Comerciante_Sagaz', 'Comerciante_Sagaz', 'Comerciante_Sagaz', 'Comerciante_Sagaz', 'Comerciante_Sagaz',
-],
-
   VITALIDAD: [
     // Cartas de clase
     'Pacto_Final',

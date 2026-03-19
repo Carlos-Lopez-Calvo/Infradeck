@@ -26,8 +26,8 @@ export function detectTargetRequirement(card: any, gameState: any, playerIndex: 
     if (condition) {
       // Si tiene condición de recurso de clase, verificarla
       if (condition.type === 'CLASS_RESOURCE' && typeof condition.value === 'string') {
-        const playerState = gameState.players[playerIndex].classResource?.state
-        if (playerState !== condition.value) continue
+        // Ya no existe recurso por estado (día/noche). Saltar este efecto.
+        continue
       }
     }
 

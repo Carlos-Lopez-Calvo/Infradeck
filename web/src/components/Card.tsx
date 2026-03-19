@@ -19,7 +19,6 @@ const timingTooltips: Record<string, string> = {
 export const classTypeColors: Record<string, string> = {
   CAOS: '#fbbf24',
   ABOMINACION: '#b11ec2ff',
-  CICLO: '#fbbf24',
   VITALIDAD: '#990606ff',
   // añade más si tienes otras clases
 }

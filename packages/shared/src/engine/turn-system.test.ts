@@ -25,17 +25,13 @@ describe('🎮 Hearthstone-style Turn System', () => {
         deck: deck1,
         classResource: { type: 'ENTROPIA', amount: 0 },
         specimenSummons: 0,
-        permanentEclipse: false,
         specimenFreeThisTurn: false,
-        manualCycleChangedThisTurn: false,
         allyDiedThisTurn: false,
         specimenSummonedThisTurn: false,
         attackersDeclaredThisTurn: 0,
         lastAttackTargetHero: false,
         programmedSpecimenEffects: [],
-        playedChaosEffects: [],
-        cycleAuraApplied: null,
-        cycleAuraStacks: 0
+        playedChaosEffects: []
       },
       {
         id: 'player-1',
@@ -44,17 +40,13 @@ describe('🎮 Hearthstone-style Turn System', () => {
         deck: deck2,
         classResource: { type: 'VIDA' },
         specimenSummons: 0,
-        permanentEclipse: false,
         specimenFreeThisTurn: false,
-        manualCycleChangedThisTurn: false,
         allyDiedThisTurn: false,
         specimenSummonedThisTurn: false,
         attackersDeclaredThisTurn: 0,
         lastAttackTargetHero: false,
         programmedSpecimenEffects: [],
-        playedChaosEffects: [],
-        cycleAuraApplied: null,
-        cycleAuraStacks: 0
+        playedChaosEffects: []
       }
     )
   })
@@ -375,7 +367,9 @@ describe('🎮 Hearthstone-style Turn System', () => {
       
       const result = declareAttackHero(state, 1, 0)
       expect(result.ok).toBe(false)
-      expect(result.error).toContain('No es tu turno')
+      if (!result.ok) {
+        expect(result.error).toContain('No es tu turno')
+      }
     })
   })
 

@@ -35,7 +35,6 @@ export enum CardRarity {
 export enum ClassType {
   ABOMINACION = 'ABOMINACION',
   CAOS = 'CAOS', 
-  CICLO = 'CICLO',
   VITALIDAD = 'VITALIDAD'
 }
 
@@ -65,13 +64,6 @@ export type ClassResourceCost =
   | { type: 'VIDA', amount: number }              // VITALIDAD: pagar vida
   | { type: 'ENTROPIA', amount: number }          // CAOS: requiere Entropía
   | { type: 'CEMENTERIO', amount: number }        // ABOMINACIÓN: cartas en cementerio
-  | { type: 'ESTADO', state: CycleState }         // CICLO: requiere estado específico
-
-export enum CycleState {
-  DIA = 'DIA',
-  NOCHE = 'NOCHE', 
-  ECLIPSE = 'ECLIPSE'
-}
 
 // ===== EFECTOS DE CARTAS =====
 
@@ -99,12 +91,10 @@ export enum EffectActionType {
   LOSE_ABILITY = 'LOSE_ABILITY',
   
   // State changes
-  CHANGE_CYCLE_STATE = 'CHANGE_CYCLE_STATE',
   GAIN_ENTROPY = 'GAIN_ENTROPY',
   DISCOVER_PAY_ENTROPY = 'DISCOVER_PAY_ENTROPY',
   
   // Special effects
-  ACTIVATE_ECLIPSE = 'ACTIVATE_ECLIPSE',
   SUMMON_SPECIMEN = 'SUMMON_SPECIMEN',
   TRANSFORM = 'TRANSFORM',        
   DISCOVER_PAY_LIFE = 'DISCOVER_PAY_LIFE',
@@ -184,8 +174,7 @@ export enum EffectTiming {
     RANDOM_ENEMY = 'RANDOM_ENEMY',
     RANDOM_CREATURE = 'RANDOM_CREATURE',
     RANDOM_CHARACTER = 'RANDOM_CHARACTER',
-    TARGET_SPELL = 'TARGET_SPELL',
-    CYCLE_CARDS = 'CYCLE_CARDS'
+    TARGET_SPELL = 'TARGET_SPELL'
   }
 
 // ===== DEFINICIÓN PRINCIPAL DE CARTA =====
@@ -221,48 +210,6 @@ export interface Card {
   artUrl?: string
 }
 
-// ===== CARTAS ESPECIALES =====
-
-// Para CICLO - cartas con stats variables según estado
-export interface CycleCard extends Omit<Card, 'attack' | 'health' | 'abilities' | 'effects'> {
-  classType: ClassType.CICLO
-  
-  // Stats por estado
-  dayForm: {
-    attack?: number
-    health?: number  
-    abilities: Ability[]
-    effects: CardEffect[]
-  }
-  
-  nightForm: {
-    attack?: number
-    health?: number
-    abilities: Ability[]
-    effects: CardEffect[]
-  }
-  
-  eclipseForm: {
-    attack?: number
-    health?: number
-    abilities: Ability[]
-    effects: CardEffect[]
-  }
-  
-  // Transformación automática según estado del ciclo
-  transformsWithCycle?: boolean
-  manualTransform?: boolean
-}
-
-// Efectos específicos para transformaciones de CICLO
-export interface CycleTransformEffect extends CardEffect {
-  action: {
-    type: EffectActionType.TRANSFORM | EffectActionType.CHANGE_CYCLE_STATE
-    target: EffectTarget.CYCLE_CARDS | EffectTarget.SELF
-    value: CycleState | 'NEXT_CYCLE_STATE' | 'RANDOM_CYCLE_STATE'
-  }
-}
-
 // Para ABOMINACIÓN - Espécimen Perfecto especial
 export interface SpecimenCard extends Card {
   classType: ClassType.ABOMINACION
@@ -274,13 +221,8 @@ export interface SpecimenCard extends Card {
 
 // ===== UTILIDADES DE TIPO =====
 
-export type PlayableCard = Card | CycleCard
-export type AnyCard = Card | CycleCard | SpecimenCard
-
-// Type guards
-export function isCycleCard(card: AnyCard): card is CycleCard {
-  return card.classType === ClassType.CICLO && 'dayForm' in card
-}
+export type PlayableCard = Card
+export type AnyCard = Card | SpecimenCard
 
 export function isSpecimenCard(card: AnyCard): card is SpecimenCard {
   return card.classType === ClassType.ABOMINACION && 'isSpecimen' in card
@@ -288,37 +230,6 @@ export function isSpecimenCard(card: AnyCard): card is SpecimenCard {
 
 export function isCreature(card: Card): boolean {
   return card.type === CardType.CREATURE
-}
-
-// Utilidades para cartas de CICLO
-export function getCurrentForm(card: CycleCard, currentState: CycleState) {
-  switch (currentState) {
-    case CycleState.DIA:
-      return card.dayForm
-    case CycleState.NOCHE:
-      return card.nightForm
-    case CycleState.ECLIPSE:
-      return card.eclipseForm
-    default:
-      return card.dayForm
-  }
-}
-
-export function getNextCycleState(currentState: CycleState): CycleState {
-  switch (currentState) {
-    case CycleState.DIA:
-      return CycleState.NOCHE
-    case CycleState.NOCHE:
-      return CycleState.ECLIPSE
-    case CycleState.ECLIPSE:
-      return CycleState.DIA
-    default:
-      return CycleState.DIA
-  }
-}
-
-export function canTransform(card: CycleCard): boolean {
-  return card.transformsWithCycle === true || card.manualTransform === true
 }
 
 // ===== CONSTANTES DEL JUEGO =====

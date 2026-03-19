@@ -1,30 +1,15 @@
 import React, { useState } from 'react'
 import { Card, ReversoCard } from './Card'
 import { useGameEngine } from '../context/GameEngineProvider'
-import { getCardByIdGlobal, getCurrentForm } from '@infradeck/shared'
+import { getCardByIdGlobal } from '@infradeck/shared'
 
 export function Hand() {
   const [hovered, setHovered] = useState<number | null>(null)
   const [isHandHovered, setIsHandHovered] = useState(false)
-  const { currentPlayer, actions, isMyTurn, gameState } = useGameEngine()
-
-  const meIndex = gameState.players[0].id === currentPlayer.id ? 0 : 1
-  const resolveViewCard = (cardId: string, ownerIndex: number) => {
+  const { currentPlayer, actions, isMyTurn } = useGameEngine()
+  const resolveViewCard = (cardId: string) => {
     const base: any = getCardByIdGlobal(cardId)
     if (!base) return null
-    const owner = gameState.players[ownerIndex]
-    const isCycle = !!(base as any).dayForm
-    if (isCycle && owner.classResource?.type === 'ESTADO') {
-      const state = owner.classResource.state || 'DIA'
-      const form = getCurrentForm(base, state as any) || {}
-      return {
-        ...base,
-        attack: form.attack ?? base.attack ?? 0,
-        health: form.health ?? base.health ?? 0,
-        abilities: form.abilities ?? [],
-        effects: form.effects ?? [],
-      }
-    }
     return {
       ...base,
       abilities: Array.isArray(base.abilities) ? base.abilities : [],
@@ -34,7 +19,7 @@ export function Hand() {
 
   // Mantén el índice real de la mano para playCard
   const handItems = currentPlayer.hand
-    .map((id, idx) => ({ card: resolveViewCard(id, meIndex), handIndex: idx }))
+    .map((id, idx) => ({ card: resolveViewCard(id), handIndex: idx }))
 
   return (
     <div

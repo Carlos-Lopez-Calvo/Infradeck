@@ -87,8 +87,7 @@ export function startTurn(state: GameState): void {
     c.damagedThisTurn = false 
   })
   
-  // 6. Actualiza estado de Ciclo (para clase CICLO)
-  // - Si estaba en Eclipse, vuelve a Día
+  // 6. Ejecuta limpieza de estados temporales
   // - Sincroniza transformaciones de cartas
   // - Recalcula auras (Guardian del Equilibrio)
   
@@ -126,8 +125,7 @@ export function endTurn(state: GameState): void {
   // 4. Ejecuta tareas programadas
   state.endOfTurnTasks.forEach(fn => fn())
   
-  // 5. Cambio de estado Ciclo (Día ↔ Noche)
-  // Solo para clase CICLO
+  // 5. Cambio de jugador
   
   // 6. Cambiar al siguiente jugador
   state.turn.currentPlayerIndex = getOpponentPlayerIndex(state)

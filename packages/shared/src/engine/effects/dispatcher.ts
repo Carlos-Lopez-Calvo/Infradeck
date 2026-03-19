@@ -39,12 +39,8 @@ import {
   consumeEntropy
 } from './caos-effects'
 
-// Efectos de Ciclo
-import {
-  handleChangeCycleState,
-  handleActivateEclipse,
-  handleTransform
-} from './ciclo-effects'
+// Efectos de transformaciones especiales
+import { handleTransform } from './transform-effects'
 
 // Efectos de Vitalidad
 import {
@@ -95,9 +91,6 @@ const EFFECT_HANDLERS: Partial<Record<EffectActionType, EffectHandler>> = {
   [EffectActionType.DISCOVER_PAY_ENTROPY]: handleDiscoverPayEntropy,
   [EffectActionType.REUSE_RANDOM_PAST_CHAOS_EFFECT]: handleReuseRandomPastEffect,
   
-  // Efectos de CICLO
-  [EffectActionType.CHANGE_CYCLE_STATE]: handleChangeCycleState,
-  [EffectActionType.ACTIVATE_ECLIPSE]: handleActivateEclipse,
   [EffectActionType.TRANSFORM]: handleTransform,
   
   // Efectos de VITALIDAD

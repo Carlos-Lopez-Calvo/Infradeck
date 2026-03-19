@@ -179,7 +179,7 @@
 #### **2.2.3. Redacción de la propuesta**
 **Propuesta de valor:**
 
-> "Infradeck es un TCG 1v1 digital que combina la profundidad estratégica del stack de Magic con la accesibilidad de Hearthstone, presentando 4 clases únicas con mecánicas asimétricas innovadoras: construir el Espécimen Perfecto, controlar el caos con Entropía, dominar los ciclos Día/Noche/Eclipse, o sacrificar vida por poder."
+> "Infradeck es un TCG 1v1 digital que combina la profundidad estratégica del stack de Magic con la accesibilidad de Hearthstone, presentando clases únicas con mecánicas asimétricas: construir el Espécimen Perfecto, controlar el caos con Entropía, o sacrificar vida por poder."
 
 **Público objetivo:**
 - Jugadores de TCG con experiencia (18-35 años)
@@ -530,7 +530,6 @@ MatchTurns (match_id, turn_number, actions_json)
 - **Paleta de colores:**
   - Abominación: Verdes oscuros/tóxicos
   - Caos: Rojos/naranjas caóticos
-  - Ciclo: Azules/amarillos (Día/Noche)
   - Vitalidad: Rojos sangre/carmesí
   - Básicas: Grises neutros
 
@@ -1545,7 +1544,6 @@ const { state, resolver } = useGameEngine()
 1. **Espécimen**: De costo fijo → costo escalable (mejor balance)
 2. **Counter spell**: De cancelar stack item → flag pendiente (más simple)
 3. **Entropía**: De resetear turno → persistir (más estratégico)
-4. **Ciclo**: De manual completo → auto + manual Eclipse (mejor UX)
 5. **Final Stand**: De simple +10 vida → bonus por clase (más interesante)
 
 **Características pospuestas:**

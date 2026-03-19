@@ -118,16 +118,6 @@ export function applyFinalStandBonus(state: GameState, playerIndex: number): voi
       break
     }
     
-    case 'CICLO': {
-      // Todas tus cartas funcionan como Eclipse permanentemente
-      if (player.classResource?.type === 'ESTADO') {
-        player.classResource.state = 'ECLIPSE'
-        player.permanentEclipse = true
-      }
-      console.log(`🌓 CICLO Final Stand: Permanent Eclipse`)
-      break
-    }
-    
     case 'VITALIDAD': {
       player.freeLifeCosts = false
       player.lifeCredit = 999

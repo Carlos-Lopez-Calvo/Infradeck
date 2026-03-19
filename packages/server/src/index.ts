@@ -6,6 +6,9 @@ import { nanoid } from 'nanoid'
 import { GameRoomManager } from './gameRoom.js'
 import { MatchmakingQueue } from './matchmaking.js'
 import type { ClientToServerEvents, ServerToClientEvents, Player } from './types.js'
+import { prisma } from './db.js'
+import bcrypt from 'bcryptjs'
+import crypto from 'crypto'
 
 const app = express()
 const httpServer = createServer(app)
@@ -23,6 +26,196 @@ app.use(express.json())
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: Date.now() })
+})
+
+// =====================================================
+// REST API - Autenticación y Mazos
+// =====================================================
+
+// Registro con username, email y contraseña
+app.post('/auth/register', async (req, res) => {
+  try {
+    const { username, email, password } = req.body as {
+      username?: string
+      email?: string
+      password?: string
+    }
+
+    if (!username || !email || !password) {
+      return res.status(400).json({ error: 'username, email and password are required' })
+    }
+
+    const trimmedUsername = username.trim()
+    const trimmedEmail = email.trim().toLowerCase()
+
+    if (!trimmedUsername || !trimmedEmail) {
+      return res.status(400).json({ error: 'username and email cannot be empty' })
+    }
+
+    if (password.length < 8) {
+      return res.status(400).json({ error: 'password_too_short' })
+    }
+
+    const existing = await prisma.user.findFirst({
+      where: {
+        email: trimmedEmail,
+      },
+    })
+
+    if (existing) {
+      return res.status(409).json({ error: 'user_already_exists' })
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10)
+
+    // Generar sufijo hex de 8 dígitos para el nombre de usuario visible
+    const tag = crypto.randomBytes(4).toString('hex') // 8 chars hex
+    const finalUsername = `${trimmedUsername}#${tag}`
+
+    const user = await prisma.user.create({
+      data: {
+        username: finalUsername,
+        email: trimmedEmail,
+        passwordHash,
+      },
+    })
+
+    return res.status(201).json({ id: user.id, username: user.username, email: user.email })
+  } catch (error) {
+    console.error('[AUTH] register error', error)
+    return res.status(500).json({ error: 'internal_error' })
+  }
+})
+
+// Login solo con email + contraseña
+app.post('/auth/login', async (req, res) => {
+  try {
+    const { email, password } = req.body as { email?: string; password?: string }
+    if (!email || !password) {
+      return res.status(400).json({ error: 'email and password are required' })
+    }
+
+    const trimmed = email.trim().toLowerCase()
+    const user = await prisma.user.findFirst({
+      where: {
+        email: trimmed,
+      },
+    })
+
+    if (!user) {
+      return res.status(401).json({ error: 'invalid_credentials' })
+    }
+
+    const ok = await bcrypt.compare(password, user.passwordHash)
+    if (!ok) {
+      return res.status(401).json({ error: 'invalid_credentials' })
+    }
+
+    return res.json({ id: user.id, username: user.username, email: user.email })
+  } catch (error) {
+    console.error('[AUTH] login error', error)
+    return res.status(500).json({ error: 'internal_error' })
+  }
+})
+
+// Listar mazos del usuario
+app.get('/decks', async (req, res) => {
+  try {
+    const userId = req.query.userId as string | undefined
+    if (!userId) {
+      return res.status(400).json({ error: 'userId is required' })
+    }
+
+    const decks = await prisma.deck.findMany({
+      where: { ownerId: userId },
+      include: { cards: true },
+      orderBy: { createdAt: 'desc' },
+    })
+
+    return res.json(decks)
+  } catch (error) {
+    console.error('[DECKS] list error', error)
+    return res.status(500).json({ error: 'internal_error' })
+  }
+})
+
+// Crear / actualizar mazo
+app.post('/decks', async (req, res) => {
+  try {
+    const { id, userId, name, classType, cards } = req.body as {
+      id?: string
+      userId?: string
+      name?: string
+      classType?: string
+      cards?: Array<{ cardId: string; count: number }>
+    }
+
+    if (!userId || !name || !classType || !Array.isArray(cards)) {
+      return res.status(400).json({ error: 'userId, name, classType and cards are required' })
+    }
+
+    if (!cards.length) {
+      return res.status(400).json({ error: 'deck must have at least one card' })
+    }
+
+    if (classType === 'CICLO') {
+      return res.status(400).json({ error: 'class_not_supported' })
+    }
+
+    if (id) {
+      // Update existente: borramos cartas y recreamos
+      const deck = await prisma.deck.update({
+        where: { id },
+        data: {
+          name,
+          classType,
+          cards: {
+            deleteMany: {},
+            create: cards.map(c => ({
+              cardId: c.cardId,
+              count: c.count ?? 1,
+            })),
+          },
+        },
+        include: { cards: true },
+      })
+      return res.json(deck)
+    } else {
+      // Crear nuevo
+      const deck = await prisma.deck.create({
+        data: {
+          name,
+          classType,
+          ownerId: userId,
+          cards: {
+            create: cards.map(c => ({
+              cardId: c.cardId,
+              count: c.count ?? 1,
+            })),
+          },
+        },
+        include: { cards: true },
+      })
+      return res.status(201).json(deck)
+    }
+  } catch (error) {
+    console.error('[DECKS] upsert error', error)
+    return res.status(500).json({ error: 'internal_error' })
+  }
+})
+
+// Borrar mazo
+app.delete('/decks/:id', async (req, res) => {
+  try {
+    const { id } = req.params
+    if (!id) return res.status(400).json({ error: 'id is required' })
+
+    await prisma.deck.delete({ where: { id } })
+    return res.status(204).send()
+  } catch (error) {
+    console.error('[DECKS] delete error', error)
+    return res.status(500).json({ error: 'internal_error' })
+  }
 })
 
 const gameRoomManager = new GameRoomManager()
@@ -150,7 +343,7 @@ io.on('connection', (socket) => {
       // La carta necesita selección de targets
       socket.emit('game:needsTarget', { 
         handIndex: data.handIndex,
-        targetType: result.targetType 
+        targetType: result.targetType ?? 'CREATURE_ANY'
       })
       console.log(`[GAME] Card needs target selection: ${result.targetType}`)
     } else {

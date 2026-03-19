@@ -6,7 +6,7 @@ import {
   setCardResolver, setPriorityWindow, playCard, setDiscoverRequest, setScryRequest, setAdvancedSelectionRequest,
   BASIC_CARDS_BY_ID, CLASS_CARDS_BY_ID, declareAttackHero, declareAttackCreature,
   EffectActionType, EffectTarget, EffectTiming,
-  summonSpecimen, isCycleCard, getCurrentForm, CycleState
+  summonSpecimen
 } from '@infradeck/shared'
 
 import { Card as UICard } from '../components/Card'
@@ -77,21 +77,7 @@ export function GameEngineProvider({ children }: { children: React.ReactNode }) 
     : 'player1'
 
     const getCardById = (id: string) => {
-      const base = BASIC_CARDS_BY_ID[id] ?? CLASS_CARDS_BY_ID[id]
-      if (!base) return base
-      // Si es de ciclo, devuelve una vista con la forma actual
-      if ((base as any).dayForm && currentPlayer.classResource?.type === 'ESTADO') {
-        const state = (currentPlayer.classResource.state ?? 'DIA') as CycleState
-        const form = getCurrentForm(base as any, state)
-        return {
-          ...base,
-          attack: form.attack ?? base.attack ?? 0,
-          health: form.health ?? base.health ?? 0,
-          abilities: form.abilities ?? [],
-          effects: form.effects ?? [],
-        }
-      }
-      return base
+      return BASIC_CARDS_BY_ID[id] ?? CLASS_CARDS_BY_ID[id]
     }
 
   const isPlayingRef = useRef(false)
@@ -475,12 +461,6 @@ lastPlaySigRef.current = sig
     
       const needsTarget = card.effects?.some(e => {
         if (e.timing !== EffectTiming.ON_PLAY) return false
-        // Si tiene condición de estado, respétala
-        const cond = e.condition
-        if (cond?.type === 'CLASS_RESOURCE' && typeof cond.value === 'string') {
-          const st = gameState.players[pIdx].classResource?.state
-          if (st !== cond.value) return false
-        }
         return e.action?.target === EffectTarget.TARGET_CREATURE || e.action?.target === EffectTarget.TARGET_FRIENDLY_CREATURE
       })
    if (needsTarget) {

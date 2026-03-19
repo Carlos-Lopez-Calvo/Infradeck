@@ -109,7 +109,6 @@ const isStackTargetable = currentTarget === 'TARGET_SPELL' && enemyHasStackItem
     const cr = p.classResource
     if (!cr) return '-'
     if (cr.type === 'ENTROPIA' || cr.type === 'CEMENTERIO') return `${cr.type}: ${cr.amount ?? 0}`
-    if (cr.type === 'ESTADO') return `Ciclo: ${cr.state}`
     if (cr.type === 'VIDA') return 'Vida'
     return String(cr.type)
   }
