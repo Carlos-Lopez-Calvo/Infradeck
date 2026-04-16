@@ -1,0 +1,82 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  profile    UserProfile?
+  currency   UserCurrency?
+  collection UserCard[]
+  decks      Deck[]
+}
+
+model UserProfile {
+  id        String   @id @default(cuid())
+  nickname  String
+  avatarUrl String?
+  level     Int      @default(1)
+  xp        Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UserCurrency {
+  id        String   @id @default(cuid())
+  gold      Int      @default(1000)
+  gems      Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UserCard {
+  id        String   @id @default(cuid())
+  cardId    String
+  owned     Int      @default(0)
+  foilOwned Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, cardId])
+}
+
+model Deck {
+  id        String   @id @default(cuid())
+  name      String
+  classType String
+  createdAt DateTime @default(now())
+
+  ownerId String
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  cards   DeckCard[]
+}
+
+model DeckCard {
+  id        String @id @default(cuid())
+  cardId    String
+  count     Int    @default(1)
+
+  deckId String
+  deck   Deck  @relation(fields: [deckId], references: [id], onDelete: Cascade)
+}
+

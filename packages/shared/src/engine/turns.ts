@@ -40,7 +40,14 @@ export function startTurn(state: GameState): void {
 
   // Despierta criaturas y resetea flags de daño
   p.board.forEach(c => { 
-    c.exhausted = false
+    // Regla especial Coloso de Hierro:
+    // permanece exhausto hasta "despertar" ganando PRISA.
+    if (c.cardId === 'Coloso_de_Hierro' && !c.abilities.includes('PRISA')) {
+      c.exhausted = true
+    } else {
+      c.exhausted = false
+    }
+    c.impatientHeroLockThisTurn = false
     c.damagedThisTurn = false 
   })
   console.log('[TURN] Creatures awakened', { boardSize: p.board.length })
@@ -49,6 +56,7 @@ export function startTurn(state: GameState): void {
   p.attackersDeclaredThisTurn = 0
   p.lastAttackTargetHero = false
   p.allyDiedThisTurn = false
+  p.alliesDiedThisTurnCount = 0
   p.specimenSummonedThisTurn = false
 
   // Triggers de inicio de turno
@@ -68,6 +76,7 @@ export function draw(state: GameState, playerIndex: number, count = 1): void {
     if (!top) break
     p.hand.push(top)
   }
+  updateConditionalBuffs(state, playerIndex)
 }
 // =======================
 

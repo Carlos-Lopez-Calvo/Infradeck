@@ -14,6 +14,7 @@ import { onDiscoverRequest } from '../game-state'
 import { notifyLeaveBattlefield, notifyEffectTriggered } from '../priority'
 import { declareAttackCreature } from '../combat'
 import { applyAction as dispatchAction } from './dispatcher'
+import { updateConditionalBuffs } from './board-effects'
 
 // ===== HANDLERS DE EFECTOS DE VITALIDAD =====
 
@@ -73,6 +74,9 @@ export function handleDiscoverPayLife(ctx: EffectContext): void {
     console.log('[DISCOVER_PAY_LIFE] applying BASE ->', options.base)
     dispatchAction(state, playerIndex, options.base, targetHints)
   }
+
+  // Si cambió vida como recurso, refrescar pasivos condicionales (p.ej. Vampiro Ancestral).
+  updateConditionalBuffs(state, playerIndex)
 }
 
 /**
@@ -167,8 +171,10 @@ export function handleAttackSpell(ctx: EffectContext): void {
     defenderStats: `${defender.attack}/${defender.health}`
   })
   
-  // Ejecutar el ataque usando el sistema de combate
-  declareAttackCreature(state, playerIndex, hintAtk.index, hintDef.index)
+  // Ejecutar ataque forzado por hechizo:
+  // debe resolver combate y habilidades (veneno, lifesteal, on-kill, etc.)
+  // sin requerir que el atacante pueda declarar ataque normal.
+  declareAttackCreature(state, playerIndex, hintAtk.index, hintDef.index, { forcedBySpell: true })
   console.log('[ATTACK_SPELL] attack completed')
 }
 

@@ -38,7 +38,7 @@ const timingNames: Record<string, string> = {
 // Descripciones para el tooltip
 const abilityDescriptions: Record<Ability, string> = {
   PRISA: 'Puede atacar el turno que entra.',
-  IMPACIENTE: 'Ataca antes que otras criaturas.',
+  IMPACIENTE: 'Puede atacar el turno que entra, pero ese turno solo puede atacar criaturas.',
   ROBO_DE_VIDA: 'Recupera vida igual al daño que hace.',
   VENENO: 'Destruye cualquier criatura que dañe.',
   TAUNT: 'Debe ser atacada primero.',
@@ -123,7 +123,7 @@ return (
 </div>
         {/* Descripciones de efectos */}
         <div className="w-full max-h-16 overflow-y-auto overflow-x-hidden text-start flex flex-col gap-0.5">
-          {card.effects.map((effect, idx) => (
+          {card.effects.length > 0 ? card.effects.map((effect, idx) => (
             <p key={idx} className='text-white text-[10px] relative'>
               <span
                 className="font-bold cursor-pointer"
@@ -134,7 +134,11 @@ return (
               </span>{" "}
               {effect.description.replace(/^[^:]+:\s*/i, "")}
             </p>
-          ))}
+          )) : (
+            <p className='text-white text-[10px]'>
+              {card.description || 'Sin texto de efecto.'}
+            </p>
+          )}
         </div>
         {/* Tooltips debajo de la carta: solo para efectos/timing, no para habilidades */}
         {hoveredTiming !== null && (

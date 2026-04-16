@@ -4,10 +4,9 @@
  */
 
 import { GameState, CreatureOnBoard, TargetRef, getCardByIdGlobal } from '../game-state'
-import { Card, EffectTiming, EffectTarget } from '../../types/cards'
+import { Ability, Card, EffectTiming, EffectTarget } from '../../types/cards'
 import { effectConditionPasses } from './core'
 import { applyAction } from './dispatcher'
-import { notifyEffectTriggered } from '../priority'
 
 /**
  * Triggers de efectos en criaturas del tablero (START_OF_TURN, END_OF_TURN, etc.)
@@ -23,6 +22,17 @@ export function triggerBoardEffects(
     const ent = p.board[i]
     const card = getCardByIdGlobal(ent.cardId)
     if (!card || !card.effects) continue
+
+    // Coloso de Hierro: reforzar condición explícitamente al inicio de turno.
+    // Si hay 3+ criaturas totales en tablero, gana Prisa.
+    if (timing === EffectTiming.START_OF_TURN && ent.cardId === 'Coloso_de_Hierro') {
+      const oppIdx = playerIndex === 0 ? 1 : 0
+      const totalCreatures = p.board.length + state.players[oppIdx].board.length
+      if (totalCreatures >= 3 && !ent.abilities.includes(String(Ability.PRISA))) {
+        ent.abilities.push(String(Ability.PRISA))
+        ent.exhausted = false
+      }
+    }
     
     for (const eff of card.effects) {
       if (eff.timing !== timing) continue
@@ -43,12 +53,6 @@ export function triggerBoardEffects(
           : undefined
       
       applyAction(state, playerIndex, eff.action, hints)
-      notifyEffectTriggered(
-        state, 
-        playerIndex, 
-        card.id, 
-        timing === EffectTiming.START_OF_TURN ? 'ON_PLAY' : 'END_OF_TURN'
-      )
     }
   }
 }
@@ -68,14 +72,19 @@ export function applyOnEnterEffects(
     if (eff.timing === EffectTiming.ON_ENTER && effectConditionPasses(state, playerIndex, eff)) {
       console.log('[ON_ENTER] applying', { cardId: card.id, effectId: eff.id })
       
-      // Priorizar objetivos UI (pendingTargets); si no hay y el target es SELF, usar SELF
+      // Priorizar objetivos UI (pendingTargets). Si no hay, solo usamos auto-SELF
+      // cuando el efecto lo declara explícitamente (SELF) o en excepciones concretas
+      // de diseño de carta (por ejemplo, Maestro_de_Armas: "puede ser él mismo").
       const uiHints: TargetRef[] =
         state.pendingTargets && state.pendingTargets.length
           ? ([...(state.pendingTargets as TargetRef[])] as TargetRef[])
           : ([] as TargetRef[])
       
       const selfHints: TargetRef[] =
-        eff.action?.target === EffectTarget.SELF
+        (
+          eff.action?.target === EffectTarget.SELF ||
+          (card.id === 'Maestro_de_Armas' && eff.action?.target === EffectTarget.TARGET_FRIENDLY_CREATURE)
+        )
           ? ([{ type: 'CREATURE_SELF', index: state.players[playerIndex].board.length - 1 }] as TargetRef[])
           : ([] as TargetRef[])
       
@@ -110,7 +119,6 @@ export function triggerTriggeredEffects(state: GameState, playerIndex: number): 
           : undefined
       
       applyAction(state, playerIndex, eff.action, hints)
-      notifyEffectTriggered(state, playerIndex, card.id, 'ON_PLAY')
     }
   }
 }
@@ -122,9 +130,12 @@ export function triggerTriggeredEffects(state: GameState, playerIndex: number): 
 export function updateConditionalBuffs(state: GameState, playerIndex: number): void {
   const p = state.players[playerIndex]
   
-  // Optimización: solo ejecutar si hay Duelista Frenetico en el tablero
+  // Optimización: solo ejecutar si hay criaturas con buffs condicionales conocidos.
   const hasDuelista = p.board.some(c => c.cardId === 'Duelista_Frenetico')
-  if (!hasDuelista) return
+  const hasComerciante = p.board.some(c => c.cardId === 'Comerciante_Sagaz')
+  const hasVampiro = p.board.some(c => c.cardId === 'Vampiro_Ancestral')
+  const hasCampeon = p.board.some(c => c.cardId === 'Campeon_Caido')
+  if (!hasDuelista && !hasComerciante && !hasVampiro && !hasCampeon) return
   
   console.log('[updateConditionalBuffs]', { playerIndex, boardLength: p.board.length })
   
@@ -132,39 +143,81 @@ export function updateConditionalBuffs(state: GameState, playerIndex: number): v
     const ent = p.board[i]
     
     // Solo procesamos Duelista Frenetico
-    if (ent.cardId !== 'Duelista_Frenetico') continue
-    
-    const isOnlyCreature = p.board.length === 1
-    const hasConditionalBuff = !!ent.conditionalBuff
-    
-    console.log('[updateConditionalBuffs] Duelista check', {
-      index: i,
-      isOnlyCreature,
-      hasConditionalBuff,
-      currentAttack: ent.attack,
-      currentHealth: ent.health
-    })
-    
-    // Aplicar buff si es la única criatura y no lo tiene
-    if (isOnlyCreature && !hasConditionalBuff) {
-      ent.attack += 2
-      ent.health += 1
-      ent.conditionalBuff = 'DUELISTA_SOLO'
-      console.log('[updateConditionalBuffs] Applied buff', {
-        newAttack: ent.attack,
-        newHealth: ent.health
+    if (ent.cardId === 'Duelista_Frenetico') {
+      const isOnlyCreature = p.board.length === 1
+      const hasConditionalBuff = !!ent.conditionalBuff
+      
+      console.log('[updateConditionalBuffs] Duelista check', {
+        index: i,
+        isOnlyCreature,
+        hasConditionalBuff,
+        currentAttack: ent.attack,
+        currentHealth: ent.health
       })
+      
+      // Aplicar buff si es la única criatura y no lo tiene
+      if (isOnlyCreature && !hasConditionalBuff) {
+        ent.attack += 2
+        ent.health += 1
+        ent.conditionalBuff = 'DUELISTA_SOLO'
+        console.log('[updateConditionalBuffs] Applied buff', {
+          newAttack: ent.attack,
+          newHealth: ent.health
+        })
+      }
+      
+      // Quitar buff si hay otras criaturas y lo tiene
+      if (!isOnlyCreature && hasConditionalBuff) {
+        ent.attack -= 2
+        ent.health -= 1
+        delete ent.conditionalBuff
+        console.log('[updateConditionalBuffs] Removed buff', {
+          newAttack: ent.attack,
+          newHealth: ent.health
+        })
+      }
+      continue
     }
-    
-    // Quitar buff si hay otras criaturas y lo tiene
-    if (!isOnlyCreature && hasConditionalBuff) {
-      ent.attack -= 2
-      ent.health -= 1
-      delete ent.conditionalBuff
-      console.log('[updateConditionalBuffs] Removed buff', {
-        newAttack: ent.attack,
-        newHealth: ent.health
-      })
+
+    if (ent.cardId === 'Comerciante_Sagaz') {
+      const hasSixOrMore = p.hand.length >= 6
+      const hasTaunt = ent.abilities.includes('TAUNT')
+      const grantedByCondition = !!ent.conditionalTauntFromHand
+
+      if (hasSixOrMore && !hasTaunt) {
+        ent.abilities.push('TAUNT')
+        ent.conditionalTauntFromHand = true
+      } else if (!hasSixOrMore && grantedByCondition) {
+        ent.abilities = ent.abilities.filter(a => a !== 'TAUNT')
+        delete ent.conditionalTauntFromHand
+      }
+      continue
+    }
+
+    if (ent.cardId === 'Vampiro_Ancestral') {
+      const lowLife = p.life <= 10
+      const hasBuff = ent.conditionalBuff === 'VAMPIRO_LOW_LIFE'
+      if (lowLife && !hasBuff) {
+        ent.attack += 2
+        ent.health += 2
+        ent.conditionalBuff = 'VAMPIRO_LOW_LIFE'
+      } else if (!lowLife && hasBuff) {
+        ent.attack -= 2
+        ent.health -= 2
+        delete ent.conditionalBuff
+      }
+      continue
+    }
+
+    if (ent.cardId === 'Campeon_Caido') {
+      const desired = p.alliesDiedThisTurnCount ?? 0
+      const applied = ent.deathScalingBonusApplied ?? 0
+      if (desired !== applied) {
+        const delta = desired - applied
+        ent.attack += delta
+        ent.health += delta
+        ent.deathScalingBonusApplied = desired
+      }
     }
   }
 }

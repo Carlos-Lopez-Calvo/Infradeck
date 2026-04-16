@@ -9,6 +9,7 @@ import { startTurn, endTurn, getCurrentPlayerIndex } from './turns'
 import { playCard } from './game-state'
 import { declareAttackHero, declareAttackCreature } from './combat'
 import { BASIC_CARDS } from '../cards/basic-cards'
+import { setCardResolver } from './game-state'
 
 describe('🎮 Hearthstone-style Turn System', () => {
   let state: GameState
@@ -49,6 +50,7 @@ describe('🎮 Hearthstone-style Turn System', () => {
         playedChaosEffects: []
       }
     )
+    setCardResolver((id: string) => BASIC_CARDS.find(c => c.id === id))
   })
 
   describe('Turn Phases', () => {
@@ -147,6 +149,86 @@ describe('🎮 Hearthstone-style Turn System', () => {
       
       expect(state.players[0].board[0].exhausted).toBe(false)
       expect(state.players[0].board[0].damagedThisTurn).toBe(false)
+    })
+
+    it('should apply START_OF_TURN effects on board (Berserker_Herido)', () => {
+      state.turn.currentPlayerIndex = 0
+      state.players[0].board.push({
+        id: 'berserker-1',
+        cardId: 'Berserker_Herido',
+        ownerId: state.players[0].id,
+        attack: 4,
+        health: 2,
+        exhausted: false,
+        abilities: [],
+        effects: []
+      })
+
+      startTurn(state)
+
+      expect(state.players[0].board[0].health).toBe(1)
+    })
+
+    it('should grant PRISA to Coloso_de_Hierro at START_OF_TURN with 3+ total creatures', () => {
+      state.turn.currentPlayerIndex = 0
+      state.players[0].board.push({
+        id: 'coloso-1',
+        cardId: 'Coloso_de_Hierro',
+        ownerId: state.players[0].id,
+        attack: 6,
+        health: 4,
+        exhausted: true,
+        damagedThisTurn: false,
+        abilities: [],
+        effects: []
+      })
+      state.players[0].board.push({
+        id: 'ally-1',
+        cardId: 'Soldado_Veterano',
+        ownerId: state.players[0].id,
+        attack: 2,
+        health: 2,
+        exhausted: true,
+        damagedThisTurn: false,
+        abilities: [],
+        effects: []
+      })
+      state.players[1].board.push({
+        id: 'enemy-1',
+        cardId: 'Soldado_Veterano',
+        ownerId: state.players[1].id,
+        attack: 2,
+        health: 2,
+        exhausted: true,
+        damagedThisTurn: false,
+        abilities: [],
+        effects: []
+      })
+
+      startTurn(state)
+
+      expect(state.players[0].board[0].abilities).toContain('PRISA')
+      expect(state.players[0].board[0].exhausted).toBe(false)
+    })
+
+    it('should keep Coloso_de_Hierro exhausted if it has not awakened', () => {
+      state.turn.currentPlayerIndex = 0
+      state.players[0].board.push({
+        id: 'coloso-2',
+        cardId: 'Coloso_de_Hierro',
+        ownerId: state.players[0].id,
+        attack: 6,
+        health: 4,
+        exhausted: true,
+        damagedThisTurn: false,
+        abilities: [],
+        effects: []
+      })
+
+      startTurn(state)
+
+      expect(state.players[0].board[0].abilities).not.toContain('PRISA')
+      expect(state.players[0].board[0].exhausted).toBe(true)
     })
   })
 

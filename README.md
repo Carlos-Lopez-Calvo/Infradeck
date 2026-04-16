@@ -3,17 +3,17 @@
 ### **1.1. Contexto y justificación del Trabajo**
 **Contenido a incluir:**
 - **Popularidad de los TCG digitales**: Hearthstone (100M+ jugadores), Magic Arena, Legends of Runeterra
-- **Nicho identificado**: Falta de TCG 1v1 con mecánicas profundas de stack y counterplay
+- **Nicho identificado**: Falta de TCG 1v1 con mecánicas profundas y clases asimétricas
 - **Oportunidad educativa**: Aplicar conocimientos de desarrollo full-stack, arquitectura de software y teoría de juegos
-- **Justificación técnica**: Demostrar capacidad de crear sistemas complejos (motor de juego, UI reactiva, backend escalable)
+- **Justificación técnica**: Demostrar capacidad de crear sistemas complejos (motor de juego, UI reactiva, backend con real-time)
 
 ### **1.2. Objetivos del Trabajo**
-1. ✅ **Diseñar un sistema de juego completo** con 4 clases únicas (Abominación, Caos, Ciclo, Vitalidad)
-2. ✅ **Implementar motor de juego robusto** con stack LIFO, prioridad, triggers y mecánicas avanzadas
-3. 🔄 **Desarrollar UI web completa** con selección de objetivos, visualización de pila y feedback visual
-4. ⏳ **Crear sistema de colección** con sobres, recompensas y progresión
-5. ⏳ **Implementar sistema de usuarios** con login, persistencia de datos y estadísticas
-6. ⏳ **Desarrollar multijugador online** con emparejamiento y sincronización en tiempo real
+1. ✅ **Diseñar un sistema de juego completo** con 3 clases únicas (Abominación, Caos, Vitalidad)
+2. ✅ **Implementar motor de juego robusto** con prioridad, triggers y mecánicas avanzadas
+3. ✅ **Desarrollar UI web completa** con selección de objetivos, targeting modal, discover, scry y feedback visual
+4. 🔄 **Crear sistema de colección** con recompensas y progresión (modelo de datos implementado, UI pendiente)
+5. ✅ **Implementar sistema de usuarios** con login/registro, JWT, persistencia con Prisma/SQLite
+6. ✅ **Desarrollar multijugador online** con matchmaking, Socket.IO y sincronización en tiempo real
 7. ✅ **Documentar completamente** el diseño, desarrollo y testing
 
 ### **1.3. Impacto en sostenibilidad, ético-social y de diversidad**
@@ -42,16 +42,18 @@
 - Documentación paralela al desarrollo
 
 **Decisiones arquitectónicas clave:**
-1. **Monorepo con PNPM workspaces** → compartir lógica entre frontend/backend
+1. **Monorepo manual** con paquetes enlazados via `file:` y path aliases → compartir lógica entre frontend/backend
 2. **TypeScript full-stack** → type safety crítica para lógica compleja
-3. **Stack LIFO real** → profundidad estratégica vs resolución inmediata
+3. **Efectos declarativos con dispatcher** → cartas definidas como datos, ejecutadas por handlers registrados
 4. **Espécimen con costo escalable** → balance y anti-spam
 
 **Stack tecnológico:**
-- Frontend: React + TypeScript + Vite + Tailwind CSS
-- Backend: Node.js + Express + TypeScript (futuro)
-- Base de datos: PostgreSQL + Prisma ORM (futuro)
-- Testing: Vitest (106 tests, <100ms)
+- Frontend: React 18/19 + TypeScript 5.9 + Vite 7 + Tailwind CSS 3.4
+- Backend: Node.js + Express 4 + Socket.IO 4 + TypeScript
+- Base de datos: SQLite + Prisma ORM
+- Testing: Vitest (shared), Node test runner via tsx (server)
+- Real-time: Socket.IO 4 (matchmaking + partidas online)
+- Auth: JWT + bcryptjs
 - Game Engine: Shared package `@infradeck/shared`
 
 ### **1.5. Planificación del Trabajo**
@@ -62,9 +64,8 @@
 - Servidor de desarrollo (local o cloud)
 
 **Software:**
-- Node.js 18+, PNPM, Git
-- VSCode con extensiones TypeScript
-- Docker para base de datos (futuro)
+- Node.js 18+, npm, Git
+- Cursor (basado en VSCode) con extensiones TypeScript
 - Figma para diseño UI/UX
 
 **Recursos externos:**
@@ -77,12 +78,12 @@
 
 | Fase | Duración | Estado | Entregables |
 |------|----------|--------|-------------|
-| **Fase 1: Motor y Cartas** | 4 semanas | ✅ Completada | Engine funcional, 70 cartas, 106 tests |
-| **Fase 2: UI Básica** | 3 semanas | 🔄 80% | Juego jugable, bot local, combate |
-| **Fase 3: Deckbuilder** | 2 semanas | ⏳ Pendiente | Construcción de mazos, selección de clase |
-| **Fase 4: Sistema de Usuario** | 3 semanas | ⏳ Pendiente | Login, colección, progresión |
-| **Fase 5: Multijugador** | 4 semanas | ⏳ Pendiente | WebSockets, emparejamiento |
-| **Fase 6: Pulido Final** | 2 semanas | ⏳ Pendiente | Animaciones, feedback, responsive |
+| **Fase 1: Motor y Cartas** | 4 semanas | ✅ Completada | Engine funcional, 70+ cartas, tests |
+| **Fase 2: UI Completa** | 3 semanas | ✅ Completada | Juego jugable, bot local, combate, targeting, discover, scry |
+| **Fase 3: Deckbuilder** | 2 semanas | ⏳ Pendiente | Construcción de mazos UI (modelo de datos existe) |
+| **Fase 4: Sistema de Usuario** | 3 semanas | ✅ Completada | Login/registro JWT, Prisma/SQLite, perfiles, monedas |
+| **Fase 5: Multijugador** | 4 semanas | ✅ Completada | Socket.IO, matchmaking, partidas online |
+| **Fase 6: Pulido Final** | 2 semanas | 🔄 En progreso | Animaciones, feedback, responsive |
 | **Documentación TFG** | 2 semanas | 🔄 En progreso | Memoria completa |
 
 #### **1.5.3. Diagrama de Gantt**
@@ -98,19 +99,20 @@
 | Bugs en producción | Media | Medio | Testing exhaustivo, CI/CD |
 
 ### **1.6. Breve sumario de los productos obtenidos**
-**Productos actuales:**
-1. ✅ **Motor de juego completo** (14 tests engine, mecánicas avanzadas)
-2. ✅ **70 cartas balanceadas** (4 clases + básicas, 92 tests)
-3. ✅ **UI funcional básica** (mano, tablero, combate, bot)
-4. ✅ **Documentación de diseño** (8 archivos, reglas completas)
-5. ✅ **Sistema de testing** (106 tests verdes, CI ready)
+**Productos implementados:**
+1. ✅ **Motor de juego completo** (combate, turnos, efectos por clase, Final Stand, espécimen)
+2. ✅ **70+ cartas balanceadas** (3 clases + básicas, con tests)
+3. ✅ **UI web completa** (tablero, mano, targeting modal, discover, scry, bot local)
+4. ✅ **Backend con API REST** (Express, auth JWT, CRUD de mazos, colección, recompensas)
+5. ✅ **Base de datos** (Prisma + SQLite: usuarios, perfiles, monedas, colección, mazos)
+6. ✅ **Multijugador online** (Socket.IO, matchmaking FIFO, partidas en tiempo real)
+7. ✅ **Sistema de usuarios** (registro, login, JWT, perfiles con nivel/XP)
+8. ✅ **Documentación de diseño** (archivos de diseño y reglas completas)
 
 **Productos pendientes:**
-6. ⏳ Deckbuilder y validación de mazos
-7. ⏳ Sistema de usuarios y autenticación
-8. ⏳ Colección y sobres
-9. ⏳ Backend con API REST
-10. ⏳ Multijugador con WebSockets
+9. ⏳ Deckbuilder UI (modelo de datos existe, falta interfaz visual)
+10. ⏳ UI de colección y sobres
+11. 🔄 Pulido visual y animaciones finales
 
 ### **1.7. Breve descripción de los otros capítulos de la memoria**
 
@@ -251,24 +253,24 @@
 #### **2.3.1. Arquitectura global**
 ```
 ┌─────────────────────────────────────────┐
-│          Cliente Web (React)            │
+│        Cliente Web (React + Vite)       │
 │  ┌────────────┐      ┌───────────────┐  │
 │  │ Components │◄────►│ Game Engine   │  │
 │  │  (UI/UX)   │      │   (Shared)    │  │
 │  └────────────┘      └───────────────┘  │
 └──────────────┬──────────────────────────┘
-               │ REST API / WebSockets
+               │ REST API + Socket.IO
 ┌──────────────▼──────────────────────────┐
-│       Servidor (Node.js + Express)      │
+│    Servidor (Express + Socket.IO)       │
 │  ┌────────────┐      ┌───────────────┐  │
-│  │   API      │◄────►│  Game Logic   │  │
-│  │  Endpoints │      │   (Shared)    │  │
+│  │ REST API + │◄────►│  Game Engine  │  │
+│  │ WS Handlers│      │   (Shared)    │  │
 │  └────────────┘      └───────────────┘  │
 └──────────────┬──────────────────────────┘
-               │ SQL Queries
+               │ Prisma ORM
 ┌──────────────▼──────────────────────────┐
-│      Base de Datos (PostgreSQL)         │
-│  Users | Decks | Cards | Matches | ...  │
+│         Base de Datos (SQLite)          │
+│  Users | Profiles | Currency | Decks    │
 └─────────────────────────────────────────┘
 ```
 
@@ -323,53 +325,73 @@ UI → Jugadores: Mostrar efecto resuelto
 | Build Tool | Vite | 7.x | Build ultra-rápido, HMR excelente |
 | Styling | Tailwind CSS | 3.4 | Utility-first, diseño rápido |
 | Animaciones | Framer Motion | 12.x | Animaciones declarativas React |
-| State | Zustand | 5.x | Ligero, simple, sin boilerplate |
+| State | React Context | - | Estado local y de juego via Context API |
 | Types | TypeScript | 5.9 | Type safety crítica |
-| Testing | Vitest | 1.x | Integración Vite, velocidad |
+| Testing | Vitest + Node test runner | 1.x | Vitest para shared, tsx --test para server |
 | Backend | Node.js + Express | 20.x / 4.x | JavaScript isomórfico |
-| DB | PostgreSQL | 16.x | Relacional, ACID, robusto |
+| DB | SQLite | - | Ligero, sin infraestructura, Prisma ORM |
 | ORM | Prisma | 5.x | Type-safe, migrations fáciles |
-| Real-time | Socket.io | 4.x | WebSockets simplificados |
+| Real-time | Socket.io | 4.x | WebSockets con rooms, reconnection |
+| Auth | JWT + bcryptjs | - | Tokens stateless, hashing seguro |
 
 #### **2.3.4. Arquitectura Cliente**
 ```
-apps/web/
+web/
 ├── src/
-│   ├── components/      # Componentes UI
+│   ├── components/      # Componentes UI (flat)
 │   │   ├── Card.tsx
 │   │   ├── GameBoard.tsx
+│   │   ├── OnlineGameBoard.tsx
 │   │   ├── Hand.tsx
-│   │   └── ...
-│   ├── context/         # React Context
-│   │   └── GameEngineProvider.tsx
-│   ├── hooks/           # Custom hooks
-│   ├── utils/           # Utilidades
-│   └── main.tsx         # Entry point
-├── public/              # Assets estáticos
-└── vite.config.ts       # Configuración Vite
+│   │   ├── Mazo.tsx
+│   │   ├── ContenidoIzquierda.tsx   # Hero life orbs
+│   │   ├── ContenidoDerecha.tsx     # Mana, deck, class resource
+│   │   ├── UnifiedTargetModal.tsx   # Targeting UI
+│   │   ├── DiscoverModal.tsx        # Online discover
+│   │   ├── ScryModal.tsx            # Online scry
+│   │   ├── Landing.tsx
+│   │   ├── AuthScreen.tsx
+│   │   ├── HomeScreen.tsx
+│   │   └── OnlineMatchmaking.tsx
+│   ├── context/
+│   │   ├── GameEngineProvider.tsx    # Estado partida local + bot
+│   │   ├── AuthContext.tsx           # Login/registro/token
+│   │   └── OnlineGameProvider.tsx   # Socket.IO + estado online
+│   ├── services/
+│   │   └── websocket.ts             # WebSocketService singleton
+│   ├── utils/
+│   │   └── sample-decks.ts          # Mazos de prueba
+│   └── main.tsx
+├── public/
+└── vite.config.ts
 ```
 
-**Patrón de componentes:**
-- Container/Presentational
-- Hooks para lógica reutilizable
-- Context para estado global (GameEngine)
+**Patrones:**
+- `GameBoard` compartido entre local y online (OnlineGameBoard lo envuelve con mock de Context)
+- Lógica pesada (targeting, discover, scry, bot) en `GameEngineProvider`, no en componentes
+- Navegación manual via `useState<Route>` (sin React Router)
+- 3 Contexts: Auth, GameEngine (local), OnlineGame
 
-#### **2.3.5. Arquitectura Servidor** (Futuro)
+#### **2.3.5. Arquitectura Servidor** (Implementado)
 ```
-apps/api/
+packages/server/
 ├── src/
-│   ├── routes/          # Endpoints REST
-│   │   ├── auth.ts
-│   │   ├── cards.ts
-│   │   ├── decks.ts
-│   │   └── matches.ts
-│   ├── services/        # Lógica de negocio
-│   ├── middleware/      # Auth, validation
-│   ├── sockets/         # WebSocket handlers
-│   └── server.ts        # Entry point
+│   ├── index.ts              # Express + Socket.IO + rutas HTTP + handlers WS
+│   ├── db.ts                 # Singleton PrismaClient
+│   ├── game-engine.ts        # Bridge dinámico al engine de shared
+│   ├── gameRoom.ts           # GameRoomManager (partidas en memoria)
+│   ├── matchmaking.ts        # Cola FIFO de matchmaking
+│   ├── card-resolver.ts      # Lookup de cartas desde shared
+│   ├── target-detector.ts    # Detección de targets pre-engine
+│   ├── game-handlers.ts      # Hooks discover/scry para server
+│   ├── auth-economy-utils.ts # Utilidades auth + economía
+│   ├── types.ts              # Tipos Socket.IO events
+│   └── auth-economy-utils.test.ts
 ├── prisma/
-│   └── schema.prisma    # Modelo de datos
-└── tests/               # Tests backend
+│   ├── schema.prisma         # User, UserProfile, UserCurrency, UserCard, Deck, DeckCard
+│   ├── dev.db                # SQLite database
+│   └── migrations/           # Historial de migrations
+└── package.json
 ```
 
 #### **2.3.6. Diseño de arquitectura Front-End**
@@ -389,43 +411,91 @@ UI refleja nuevo estado
 - Virtual scrolling en colección de cartas
 - Debounce en búsquedas
 
-#### **2.3.7. Diseño de arquitectura Back-End** (Futuro)
+#### **2.3.7. Diseño de arquitectura Back-End** (Implementado)
 
-**Capas:**
-1. **Routes**: Validación de requests, autenticación
-2. **Services**: Lógica de negocio (crear mazo, abrir sobre)
-3. **Repositories**: Acceso a base de datos (Prisma)
-4. **WebSockets**: Sincronización de partidas en tiempo real
+**Estructura actual (monolítica en `index.ts`):**
+1. **Rutas HTTP**: Auth (register/login), CRUD mazos, colección, recompensas
+2. **Middleware**: `requireAuth` (JWT Bearer), CORS, express.json
+3. **Socket.IO handlers**: matchmaking (join/leave), game actions (playCard, attack, endTurn, discover, scry)
+4. **GameRoomManager**: Partidas en memoria con engine de shared
+5. **Prisma**: Acceso a SQLite (User, Profile, Currency, Cards, Decks)
 
 **Principios:**
-- Separación de responsabilidades
-- Dependency injection
-- Error handling centralizado
-- Logging estructurado
+- Server como fuente de verdad para partidas online
+- Engine de shared ejecuta lógica, server valida y emite estado
+- Dynamic imports para el shared package (ESM compatibility)
+- Partidas in-memory (se pierden al reiniciar servidor)
 
-#### **2.3.8. Arquitectura Bases de datos** (Futuro)
+#### **2.3.8. Arquitectura Bases de datos** (Implementado)
 
-**Esquema principal:**
-```sql
-Users (id, email, username, created_at)
-Cards (id, name, cost, type, rarity, class, ...)
-UserCards (user_id, card_id, quantity)
-Decks (id, user_id, name, class, created_at)
-DeckCards (deck_id, card_id, quantity)
-Matches (id, player1_id, player2_id, winner_id, duration, ...)
-MatchTurns (match_id, turn_number, actions_json)
+**Prisma + SQLite** (`packages/server/prisma/schema.prisma`):
+
+```prisma
+model User {
+  id           String        @id @default(cuid())
+  username     String        @unique
+  email        String        @unique
+  passwordHash String
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  profile      UserProfile?
+  currency     UserCurrency?
+  cards        UserCard[]
+  decks        Deck[]
+}
+
+model UserProfile {
+  id        String @id @default(cuid())
+  userId    String @unique
+  nickname  String?
+  avatarUrl String?
+  level     Int    @default(1)
+  xp        Int    @default(0)
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UserCurrency {
+  id     String @id @default(cuid())
+  userId String @unique
+  gold   Int    @default(0)
+  gems   Int    @default(0)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UserCard {
+  id        String @id @default(cuid())
+  userId    String
+  cardId    String
+  owned     Int    @default(0)
+  foilOwned Int    @default(0)
+  user      User   @relation(fields: [userId], references: [id])
+  @@unique([userId, cardId])
+}
+
+model Deck {
+  id        String     @id @default(cuid())
+  name      String
+  classType String
+  ownerId   String
+  owner     User       @relation(fields: [ownerId], references: [id])
+  cards     DeckCard[]
+}
+
+model DeckCard {
+  id     String @id @default(cuid())
+  deckId String
+  cardId String
+  count  Int
+  deck   Deck   @relation(fields: [deckId], references: [id])
+}
 ```
 
 **Relaciones:**
-- User 1:N Decks
-- User M:N Cards (through UserCards)
-- Deck M:N Cards (through DeckCards)
-- User M:N Matches (as player)
-
-**Índices:**
-- `users(email)` - login rápido
-- `decks(user_id)` - listar mazos de usuario
-- `matches(player1_id, player2_id)` - historial
+- User 1:1 UserProfile (cascade delete)
+- User 1:1 UserCurrency (cascade delete)
+- User 1:N UserCard (colección)
+- User 1:N Deck
+- Deck 1:N DeckCard
 
 #### **2.3.9. Flujo de datos y comunicación**
 
@@ -671,16 +741,17 @@ MatchTurns (match_id, turn_number, actions_json)
 ### **2.7. Conclusiones de los materiales y métodos escogidos**
 
 **Aciertos:**
-- Monorepo permitió reutilización efectiva (shared package usado en web + futuro backend)
+- Monorepo con shared package permitió reutilización efectiva (engine usado en web + server)
 - TypeScript previno innumerables bugs en lógica compleja
 - Testing desde día 1 dio confianza para refactorings
+- Socket.IO simplificó enormemente la implementación de multijugador (rooms, eventos tipados)
 - Documentación paralela facilitó TFG
 
 **Lecciones aprendidas:**
 - Paper prototype antes de código habría ahorrado tiempo en UI
 - Balance de cartas requiere testing humano real (simulaciones insuficientes)
-- WebSockets requieren planificación cuidadosa (autenticación, reconnection, anti-cheat)
-- Socket.io reduce complejidad vs WebSockets nativos (rooms, fallback, reconnection automática)
+- Separar autenticación REST de identidad Socket.IO crea una brecha de seguridad a resolver
+- SQLite es suficiente para desarrollo pero migrar a PostgreSQL sería necesario en producción
 
 ---
 
@@ -690,51 +761,77 @@ MatchTurns (match_id, turn_number, actions_json)
 ```
 infradeck/
 ├── packages/
-│   └── shared/                    # Game engine compartido
+│   ├── shared/                        # Game engine compartido (@infradeck/shared)
+│   │   ├── src/
+│   │   │   ├── engine/               # Lógica core
+│   │   │   │   ├── game-state.ts     # GameState, PlayerState, CreatureOnBoard
+│   │   │   │   ├── turns.ts          # startTurn, endTurn, draw
+│   │   │   │   ├── combat.ts         # declareAttackHero, declareAttackCreature
+│   │   │   │   ├── priority.ts       # notifyEffectTriggered, notifyCardPlayed
+│   │   │   │   ├── effects/          # Sistema de efectos
+│   │   │   │   │   ├── dispatcher.ts # applyAction + EFFECT_HANDLERS
+│   │   │   │   │   ├── core.ts       # EffectContext, effectConditionPasses
+│   │   │   │   │   ├── board-effects.ts
+│   │   │   │   │   ├── global-effects.ts
+│   │   │   │   │   ├── caos-effects.ts
+│   │   │   │   │   ├── vitalidad-effects.ts
+│   │   │   │   │   ├── abominacion-effects.ts
+│   │   │   │   │   └── transform-effects.ts
+│   │   │   │   ├── final-stand.ts
+│   │   │   │   ├── specimen.ts
+│   │   │   │   ├── card-validator.ts
+│   │   │   │   └── utils.ts
+│   │   │   ├── cards/
+│   │   │   │   ├── basic-cards.ts    # Cartas neutrales
+│   │   │   │   └── class-cards.ts    # Cartas de clase
+│   │   │   ├── types/
+│   │   │   │   └── cards.ts          # Tipos, enums, GAME_CONSTANTS
+│   │   │   └── index.ts             # Re-exports
+│   │   └── package.json
+│   └── server/                        # Backend (@infradeck/server)
 │       ├── src/
-│       │   ├── engine/           # Lógica core
-│       │   │   ├── game-state.ts
-│       │   │   ├── turns.ts
-│       │   │   ├── combat.ts
-│       │   │   ├── priority.ts
-│       │   │   ├── effects.ts
-│       │   │   ├── final-stand.ts
-│       │   │   └── utils.ts
-│       │   ├── cards/            # Definiciones de cartas
-│       │   │   ├── basic-cards.ts (30 cartas)
-│       │   │   └── class-cards.ts (40 cartas)
-│       │   └── types/
-│       │       └── cards.ts      # TypeScript types
-│       └── tests/                # 106 tests
-│           ├── engine.test.ts (14)
-│           └── cards.test.ts (92)
-├── apps/
-│   └── web/                      # Frontend React
-│       ├── src/
-│       │   ├── components/
-│       │   ├── context/
-│       │   ├── hooks/
-│       │   └── utils/
-│       └── public/
-│           └── imgCards/         # Assets de cartas
-└── docs/                         # Documentación
-    ├── game-design/
-    ├── development/
-    └── testing/
+│       │   ├── index.ts              # Express + Socket.IO (monolítico)
+│       │   ├── db.ts                 # Prisma singleton
+│       │   ├── game-engine.ts        # Bridge al shared engine
+│       │   ├── gameRoom.ts           # GameRoomManager
+│       │   ├── matchmaking.ts        # Cola FIFO
+│       │   ├── card-resolver.ts
+│       │   ├── target-detector.ts
+│       │   ├── game-handlers.ts
+│       │   ├── auth-economy-utils.ts
+│       │   └── types.ts              # Socket.IO event types
+│       ├── prisma/
+│       │   ├── schema.prisma
+│       │   ├── dev.db
+│       │   └── migrations/
+│       └── package.json
+├── web/                               # Frontend principal (@infradeck/web)
+│   ├── src/
+│   │   ├── components/               # Componentes UI (flat)
+│   │   ├── context/                  # Auth, GameEngine, OnlineGame
+│   │   ├── services/                 # WebSocketService
+│   │   ├── utils/                    # Sample decks
+│   │   └── main.tsx
+│   ├── public/
+│   │   └── imgCards/
+│   └── vite.config.ts
+├── apps/web/                          # Frontend legacy (no usar)
+├── docs/                              # Documentación de diseño
+│   ├── game-design/
+│   ├── development/
+│   └── testing/
+└── .cursor/rules/                     # Reglas para Cursor AI
 ```
 
 ### **3.2. Plataforma de desarrollo**
 
 #### **3.2.1. Software**
 - **SO**: macOS 24.4.0 (Darwin)
-- **IDE**: VSCode + extensiones:
-  - ESLint, Prettier
-  - TypeScript + JavaScript
-  - Tailwind CSS IntelliSense
-  - Vitest Runner
+- **IDE**: Cursor (basado en VSCode) + extensiones TypeScript, Tailwind CSS IntelliSense
 - **Control versiones**: Git 2.x
-- **Package manager**: PNPM 8.x
+- **Package manager**: npm (paquetes independientes enlazados con `file:`)
 - **Browser DevTools**: Chrome DevTools, React DevTools
+- **Dev server**: Vite 7 (frontend), tsx watch (backend)
 
 #### **3.2.2. Hardware**
 - **Mac**: MacBook con M1/M2 o equivalente Intel
@@ -746,18 +843,19 @@ infradeck/
 - **Fuentes**: AvQest.ttf (custom)
 - **Imágenes**: Artwork de cartas (placeholder/generated)
 - **Iconos**: @radix-ui/react-icons
-- **Hosting**: Vercel (frontend), Railway (backend futuro)
+- **Hosting**: Vercel (frontend), Railway (backend) — planificado
 
 #### **3.2.4. APIs utilizadas**
-**Actuales:** Ninguna (juego local)
+**Implementadas:**
+- API REST propia (Express): auth, mazos, colección, recompensas
+- Socket.IO: matchmaking, partidas en tiempo real
+
 **Futuras:**
-- API REST propia para backend
-- Socket.io para WebSockets
 - Stripe/PayPal para pagos (opcional)
 
 ---
 
-### **3.2. Implementación de base de datos** (Futuro - Fase 4)
+### **3.2. Implementación de base de datos** (Implementado)
 
 **Esquema Prisma:**
 ```prisma
@@ -902,266 +1000,80 @@ npx prisma generate
 
 ---
 
-### **3.4. Desarrollo del Back-End** (Futuro - Fase 5)
+### **3.4. Desarrollo del Back-End** (Implementado)
 
-#### **Arquitectura Backend con WebSockets**
+#### **Arquitectura Backend**
 
-```
-apps/api/
-├── src/
-│   ├── server.ts                # Express + Socket.io setup
-│   ├── routes/                  # REST API endpoints
-│   │   ├── auth.ts             # POST /register, /login
-│   │   ├── decks.ts            # CRUD mazos
-│   │   ├── cards.ts            # GET cartas, colección
-│   │   └── matchmaking.ts      # POST /queue (HTTP fallback)
-│   ├── sockets/                 # ⭐ WebSocket handlers
-│   │   ├── matchmaking.ts      # Queue, pairing logic
-│   │   ├── game.ts             # Game actions (play, attack, etc)
-│   │   └── disconnect.ts       # Reconnection logic
-│   ├── services/
-│   │   ├── game-manager.ts     # Gestión de partidas activas
-│   │   ├── matchmaking.ts      # Cola y emparejamiento
-│   │   └── auth.ts             # JWT verification
-│   ├── middleware/
-│   │   ├── auth.ts             # Socket & REST auth
-│   │   └── validation.ts       # Input validation
-│   └── types/
-│       └── socket-events.ts    # TypeScript events interface
-└── tests/
-    ├── sockets/                # Tests WebSocket handlers
-    └── integration/            # Tests end-to-end
-```
+El servidor está implementado en `packages/server/` con una arquitectura monolítica en `index.ts` que combina rutas HTTP y handlers Socket.IO.
 
-#### **Endpoints REST (Complemento a WebSockets)**
+#### **Endpoints REST implementados**
 
 ```typescript
-// Auth (HTTP)
-POST   /api/auth/register       // Crear cuenta
-POST   /api/auth/login          // Login → JWT token
-POST   /api/auth/logout         // Invalidar token
+// Auth
+POST   /auth/register           // Crear cuenta (username, email, password)
+POST   /auth/login              // Login → JWT token (7d expiry)
 
-// Cards (HTTP - solo lectura)
-GET    /api/cards               // Lista todas las cartas
-GET    /api/users/me/cards      // Colección del usuario
+// User
+GET    /me                      // Perfil + stats (requireAuth)
+GET    /me/collection           // UserCard[] (requireAuth)
+GET    /me/decks                // Decks con cards (requireAuth)
+POST   /me/decks                // Crear/actualizar mazo (requireAuth)
+DELETE /me/decks/:id            // Borrar mazo (requireAuth)
+POST   /me/rewards              // Añadir gold/gems (requireAuth)
 
-// Decks (HTTP - CRUD)
-GET    /api/users/me/decks      // Listar mazos
-POST   /api/decks               // Crear mazo
-PUT    /api/decks/:id           // Editar mazo
-DELETE /api/decks/:id           // Borrar mazo
-POST   /api/decks/:id/validate  // Validar mazo
-
-// Matches (HTTP - historial)
-GET    /api/matches/:id         // Detalle partida pasada
-GET    /api/users/me/matches    // Historial de partidas
-GET    /api/users/me/stats      // Estadísticas globales
-
-// Packs (HTTP)
-POST   /api/packs/open          // Abrir sobre → 5 cartas
+// Health
+GET    /health                  // Status check
 ```
 
-#### **Eventos WebSocket (Especificación TypeScript)**
+#### **Eventos WebSocket implementados**
+
+Definidos en `packages/server/src/types.ts`:
 
 ```typescript
-// packages/shared/src/types/socket-events.ts
-
 // Cliente → Servidor
-export interface ClientToServerEvents {
-  // Matchmaking
-  joinQueue: (data: { deckId: string }) => void
-  leaveQueue: () => void
-  
-  // Game Actions
-  playCard: (data: { cardId: string, targets?: TargetRef[] }) => void
-  attack: (data: { attackerId: string, targetId: string }) => void
-  mulligan: (data: { cardsToReplace: string[] }) => void
-  passPriority: () => void
-  endTurn: () => void
-  respondWithCard: (data: { cardId: string, targets?: TargetRef[] }) => void
-  
-  // Social
-  sendEmote: (data: { emoteId: string }) => void
-  concede: () => void
+interface ClientToServerEvents {
+  'matchmaking:join': (playerName: string) => void
+  'matchmaking:leave': () => void
+  'game:playCard': (data) => void
+  'game:discoverResponse': (data) => void
+  'game:scryResponse': (data) => void
+  'game:endTurn': () => void
+  'game:attack': (data) => void
 }
 
 // Servidor → Cliente
-export interface ServerToClientEvents {
-  // Matchmaking
-  queueJoined: (data: { position: number }) => void
-  matchFound: (data: { matchId: string, opponentId: string, yourPlayerIndex: number }) => void
-  
-  // Game State
-  gameStarted: (data: { initialState: GameState, yourPlayerIndex: number }) => void
-  mulliganPhase: (data: { hand: string[], timeLimit: number }) => void
-  stateUpdate: (data: { state: GameState, lastAction?: ActionLog }) => void
-  priorityWindow: (data: { canRespond: boolean, timeLimit: number }) => void
-  stackResolved: (data: { state: GameState, resolvedActions: ResolvedAction[] }) => void
-  
-  // Game End
-  gameOver: (data: { winnerId: string, reason: string, stats: MatchStats }) => void
-  
-  // Errors & Disconnection
-  invalidAction: (data: { message: string, code: string }) => void
-  opponentDisconnected: (data: { reconnectWindow: number }) => void
-  opponentReconnected: () => void
+interface ServerToClientEvents {
+  'connection:success': (data: { playerId }) => void
+  'matchmaking:joined': () => void
+  'matchmaking:matched': (data: { roomId, opponentName }) => void
+  'game:start': (data: { state, playerIndex, opponentName }) => void
+  'game:stateUpdate': (data: { state }) => void
+  'game:targetRequest': (data) => void
+  'game:discoverRequest': (data) => void
+  'game:scryRequest': (data) => void
+  'game:over': (data: { winner, reason }) => void
+  'opponent:disconnected': () => void
 }
 ```
 
-#### **Setup del servidor Socket.io**
+#### **Flujo de partida online**
 
-```typescript
-// apps/api/src/server.ts
-import express from 'express'
-import { createServer } from 'http'
-import { Server } from 'socket.io'
-
-const app = express()
-const httpServer = createServer(app)
-
-const io = new Server<ClientToServerEvents, ServerToClientEvents>(httpServer, {
-  cors: {
-    origin: process.env.FRONTEND_URL,
-    credentials: true
-  },
-  pingTimeout: 60000,
-  pingInterval: 25000
-})
-
-// Middleware de autenticación WebSocket
-io.use(async (socket, next) => {
-  const token = socket.handshake.auth.token
-  
-  try {
-    const user = await verifyToken(token)
-    socket.data.userId = user.id
-    socket.data.username = user.username
-    next()
-  } catch (err) {
-    next(new Error('Authentication failed'))
-  }
-})
-
-// Setup handlers
-import { setupMatchmakingHandlers } from './sockets/matchmaking'
-import { setupGameHandlers } from './sockets/game'
-
-io.on('connection', (socket) => {
-  console.log(`User connected: ${socket.data.username}`)
-  
-  setupMatchmakingHandlers(io, socket)
-  setupGameHandlers(io, socket)
-  
-  socket.on('disconnect', () => {
-    console.log(`User disconnected: ${socket.data.username}`)
-    handleDisconnect(io, socket)
-  })
-})
-
-httpServer.listen(3000)
+```
+1. Conexión: socket connect → server asigna nanoid() como playerId
+2. Matchmaking: 'matchmaking:join' → MatchmakingQueue (FIFO)
+3. Match found: 2 jugadores → GameRoomManager crea room con nanoid(10)
+4. Game start: setTimeout 2s → 'game:start' con estado inicial
+5. Game loop: acciones via socket → server valida con engine → broadcast estado
+6. Game over: server detecta vida ≤ 0 → 'game:over'
 ```
 
-#### **Validación Server-Side (Anti-cheat)**
+**Gestión de estado:**
+- Partidas in-memory (`GameRoomManager` con `Map<roomId, GameRoom>`)
+- `socketToPlayer: Map<socketId, { playerId, roomId }>` vincula conexiones
+- Engine de shared ejecuta lógica, server es authoritative
+- Target detection pre-engine para discover/scry/targeting
 
-```typescript
-// apps/api/src/sockets/game.ts
-socket.on('playCard', ({ cardId, targets }) => {
-  const match = getActiveMatch(socket.data.matchId)
-  const state = match.gameState
-  
-  // 1. Verificar es tu turno
-  if (state.turn.currentPlayerIndex !== socket.data.playerIndex) {
-    return socket.emit('invalidAction', { 
-      message: 'No es tu turno',
-      code: 'NOT_YOUR_TURN'
-    })
-  }
-  
-  // 2. Verificar carta en mano
-  const player = state.players[socket.data.playerIndex]
-  if (!player.hand.includes(cardId)) {
-    return socket.emit('invalidAction', { 
-      message: 'No tienes esa carta',
-      code: 'CARD_NOT_IN_HAND'
-    })
-  }
-  
-  // 3. Validar con GameEngine (shared package)
-  const result = playCard(state, cardId, targets)
-  
-  if (!result.success) {
-    return socket.emit('invalidAction', { 
-      message: result.error,
-      code: 'INVALID_PLAY'
-    })
-  }
-  
-  // 4. Actualizar estado y broadcast
-  match.gameState = result.state
-  match.lastActivity = new Date()
-  
-  io.to(match.matchId).emit('stateUpdate', { 
-    state: result.state,
-    lastAction: { type: 'PLAY_CARD', cardId }
-  })
-  
-  // 5. Guardar en DB para replay
-  await saveMatchAction(match.matchId, {
-    turn: state.turn.turnNumber,
-    playerId: socket.data.userId,
-    action: 'PLAY_CARD',
-    data: { cardId, targets }
-  })
-})
-```
-
-#### **Gestión de State del Server**
-
-```typescript
-// En memoria durante desarrollo
-interface ActiveMatch {
-  matchId: string
-  player1: { userId: string, socketId: string, connected: boolean }
-  player2: { userId: string, socketId: string, connected: boolean }
-  gameState: GameState  // Del shared engine
-  createdAt: Date
-  lastActivity: Date
-}
-
-const activeMatches = new Map<string, ActiveMatch>()
-
-// Producción: Redis para horizontal scaling
-// await redis.set(`match:${matchId}`, JSON.stringify(match))
-```
-
-#### **Sistema de Reconnection**
-
-```typescript
-socket.on('disconnect', () => {
-  const match = getActiveMatch(socket.data.matchId)
-  if (!match) return
-  
-  match.player1.connected = false
-  
-  // Notificar oponente
-  io.to(match.player2.socketId).emit('opponentDisconnected', { 
-    reconnectWindow: 60 
-  })
-  
-  // Timer de 60 segundos
-  setTimeout(() => {
-    if (!match.player1.connected) {
-      // Victoria por W.O.
-      io.to(match.matchId).emit('gameOver', {
-        winnerId: match.player2.userId,
-        reason: 'TIMEOUT',
-        stats: calculateStats(match.gameState)
-      })
-      activeMatches.delete(socket.data.matchId)
-    }
-  }, 60000)
-})
-```
+**Nota:** Socket.IO actualmente no valida JWT — usa playerId por conexión. La identidad de cuenta (REST) y la de partida (Socket) son capas separadas.
 
 ---
 
@@ -1170,9 +1082,9 @@ socket.on('disconnect', () => {
 #### **3.5.1. Seguridad del sistema**
 
 **Autenticación:**
-- JWT tokens (httpOnly cookies)
-- Refresh tokens en DB
-- Passwords hasheados con bcrypt (12 rounds)
+- JWT tokens via `Authorization: Bearer <token>` (7 días expiración)
+- Passwords hasheados con bcryptjs (10 salt rounds)
+- Middleware `requireAuth` extrae y verifica JWT en rutas protegidas
 
 **Validación:**
 - Todas las acciones validadas en servidor
@@ -1209,40 +1121,21 @@ export async function authenticate(req, res, next) {
 
 #### **Seguridad en WebSockets**
 
-**Autenticación Socket.io:**
-```typescript
-// Al conectar, validar JWT
-io.use(async (socket, next) => {
-  const token = socket.handshake.auth.token
-  
-  try {
-    const payload = jwt.verify(token, process.env.JWT_SECRET)
-    socket.data.userId = payload.userId
-    socket.data.username = payload.username
-    next()
-  } catch (err) {
-    next(new Error('Authentication failed'))
-  }
-})
-```
+**Socket.IO (estado actual):**
+- Sin autenticación JWT en Socket.IO — cada conexión recibe un `nanoid()` como playerId
+- Identidad de cuenta (REST/JWT) y de partida (Socket/playerId) son capas separadas
+- **Mejora pendiente**: Vincular socket con cuenta de usuario validando JWT en handshake
 
-**Validación de acciones:**
-- ✅ Toda acción validada server-side con GameEngine
-- ✅ No confiar en cliente para estado del juego
-- ✅ Rate limiting en eventos (máx 10 acciones/segundo)
-- ✅ Timeout en ventanas de prioridad (15s automático)
+**Validación de acciones (implementado):**
+- ✅ Toda acción validada server-side con GameEngine de shared
+- ✅ Server es fuente de verdad para estado del juego
+- ✅ Target detection pre-engine (discover, scry, targeting)
+- ✅ Validar carta en mano y mana disponible antes de ejecutar
 
-**Protección contra cheating:**
-- ✅ Estado del juego solo en servidor (cliente recibe copia read-only)
-- ✅ Validar carta en mano antes de jugar
-- ✅ Validar mana disponible
-- ✅ Validar targets legales
-- ✅ Log completo de acciones para auditoría
-
-**DDoS Protection:**
-- Rate limiting por IP (express-rate-limit)
-- Máximo de conexiones simultáneas por usuario (1)
-- Timeout en matchmaking queue (5 minutos)
+**Pendiente:**
+- Rate limiting en eventos Socket.IO
+- Autenticación JWT en handshake de Socket.IO
+- Log de acciones para replay/auditoría
 
 #### **3.5.2. Políticas de privacidad**
 
@@ -1337,13 +1230,19 @@ refactor: Extraer lógica de bot a hook
 }
 ```
 
-**Dependencias clave:**
+**Dependencias clave frontend:**
 - `react` + `react-dom`: Framework UI
 - `framer-motion`: Animaciones
-- `zustand`: State management
 - `tailwindcss`: Styling utility-first
-- `vitest`: Testing framework
-- `@radix-ui/react-icons`: Iconos accesibles
+- `socket.io-client`: Comunicación real-time
+- `clsx`: Utilidad para clases CSS condicionales
+
+**Dependencias clave backend:**
+- `express` + `cors`: HTTP server
+- `socket.io`: WebSockets con rooms
+- `@prisma/client`: ORM para SQLite
+- `jsonwebtoken` + `bcryptjs`: Auth
+- `nanoid`: IDs únicos para jugadores y rooms
 
 ---
 
@@ -1419,10 +1318,10 @@ describe('Complete Game Flow', () => {
 ```
 
 **Resultados actuales:**
-- ✅ 14/14 tests de engine
-- ✅ 92/92 tests de cartas
-- ✅ 106/106 total (100% passing)
-- ⏱️ Ejecución: <100ms
+- ✅ Tests de engine: `packages/shared/src/engine/turn-system.test.ts`
+- ✅ Tests de cartas: `packages/shared/src/engine/all-cards-smoke.test.ts`
+- ✅ Tests de auth: `packages/server/src/auth-economy-utils.test.ts`
+- Framework: Vitest (shared), Node test runner via tsx (server)
 
 **Tests de integración WebSocket (Futuro):**
 ```typescript
@@ -1557,35 +1456,39 @@ const { state, resolver } = useGameEngine()
 ### **3.11. Conclusiones del desarrollo**
 
 **Logros principales:**
-- ✅ Motor de juego robusto y testeado (106 tests verdes)
-- ✅ 70 cartas balanceadas con mecánicas únicas
-- ✅ 4 clases asimétricas completamente funcionales
-- ✅ UI básica operativa con bucle de juego completo
-- ✅ Documentación exhaustiva (8 archivos .md)
+- ✅ Motor de juego robusto y testeado (combat, turns, effects, Final Stand, specimen)
+- ✅ 70+ cartas balanceadas con mecánicas únicas
+- ✅ 3 clases asimétricas funcionales (Abominación, Caos, Vitalidad)
+- ✅ UI web completa (tablero, targeting, discover, scry, bot local)
+- ✅ Backend con API REST + Socket.IO (auth, mazos, colección, matchmaking)
+- ✅ Base de datos con Prisma/SQLite (usuarios, perfiles, monedas, mazos)
+- ✅ Multijugador online funcional (matchmaking + partidas en tiempo real)
+- ✅ Documentación exhaustiva
 
 **Desafíos superados:**
-- Complejidad del stack LIFO: tests exhaustivos
+- Efectos declarativos con dispatcher: cartas como datos + handlers registrados
 - Balance de cartas: simulaciones + teoría de juegos
-- UI reactiva: Context API + performance optimizations
+- UI reactiva: Context API + GameBoard compartido local/online
 - Bot local: lógica simple pero efectiva
+- Socket.IO: matchmaking, rooms, sincronización de estado
 
 **Trabajo pendiente:**
-- Deckbuilder con validación visual
-- Sistema de usuarios y autenticación
-- Colección y sobres con animaciones
-- Backend con API REST
-- Multijugador con WebSockets
+- Deckbuilder UI (modelo de datos existe, falta interfaz visual)
+- UI de colección y apertura de sobres
+- Autenticación JWT en Socket.IO handshake
 - Testing de usabilidad real
+- Pulido visual y animaciones finales
 
 **Viabilidad TFG:**
 - Scope inicial ambicioso → Priorizado MVP funcional
-- Fases 1-2 completas (Motor + UI básica)
-- Fases 3-6 planificadas y factibles en tiempo restante
+- Fases 1, 2, 4 y 5 completas (Motor + UI + Auth/DB + Multijugador)
+- Fase 3 (Deckbuilder UI) y Fase 6 (Pulido) en progreso
 - Riesgo controlado con planning iterativo
 
 **Aprendizajes clave:**
 - Testing desde día 1 acelera desarrollo a largo plazo
 - TypeScript esencial para sistemas complejos
 - Documentación paralela facilita TFG enormemente
-- Paper prototyping habría ahorrado tiempo en UI
+- Socket.IO simplifica enormemente vs WebSockets nativos (rooms, reconnection, fallback)
+- Separar engine compartido (shared) permitió reutilizar lógica en frontend y backend
 - Balance requiere testing humano, no solo simulaciones

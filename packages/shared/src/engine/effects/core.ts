@@ -77,6 +77,11 @@ export function effectConditionPasses(state: GameState, playerIndex: number, eff
       case 'SPECIMEN_SUMMONED':         return !!p.specimenSummonedThisTurn
       case 'MANA_5_PLUS':               return p.mana >= 5
       case 'MANA_6_PLUS':               return p.mana >= 6
+      case 'CREATURE_COUNT_3_PLUS': {
+        const oppIndex = getOpponentPlayerIndex(state)
+        const totalCreatures = p.board.length + state.players[oppIndex].board.length
+        return totalCreatures >= 3
+      }
       case 'SOLO_ATTACKER':             return (p.attackersDeclaredThisTurn ?? 0) === 1
       case 'ONLY_CREATURE_ON_BOARD':    return p.board.length === 1
       case 'ATTACKING_HERO':            return !!p.lastAttackTargetHero

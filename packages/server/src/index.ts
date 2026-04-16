@@ -1,4 +1,4 @@
-import express from 'express'
+import express, { type NextFunction, type Request, type Response } from 'express'
 import { createServer } from 'http'
 import { Server } from 'socket.io'
 import cors from 'cors'
@@ -8,7 +8,8 @@ import { MatchmakingQueue } from './matchmaking.js'
 import type { ClientToServerEvents, ServerToClientEvents, Player } from './types.js'
 import { prisma } from './db.js'
 import bcrypt from 'bcryptjs'
-import crypto from 'crypto'
+import jwt from 'jsonwebtoken'
+import { extractBearerToken, normalizeRewardPayload } from './auth-economy-utils.js'
 
 const app = express()
 const httpServer = createServer(app)
@@ -32,7 +33,65 @@ app.get('/health', (req, res) => {
 // REST API - Autenticación y Mazos
 // =====================================================
 
-// Registro con username, email y contraseña
+const JWT_SECRET = process.env.JWT_SECRET || 'infradeck_dev_secret_change_me'
+const JWT_EXPIRES_IN = '7d'
+
+type AuthenticatedRequest = Request & {
+  authUserId?: string
+}
+
+type PublicUserPayload = {
+  id: string
+  username: string
+  email: string
+  nickname: string
+  avatarUrl: string | null
+  level: number
+  xp: number
+  gold: number
+  gems: number
+}
+
+const signAccessToken = (userId: string) =>
+  jwt.sign({ sub: userId }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN })
+
+const requireAuth = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  const token = extractBearerToken(req.headers.authorization)
+  if (!token) {
+    return res.status(401).json({ error: 'missing_token' })
+  }
+
+  try {
+    const payload = jwt.verify(token, JWT_SECRET) as { sub?: string }
+    if (!payload.sub) {
+      return res.status(401).json({ error: 'invalid_token' })
+    }
+    req.authUserId = payload.sub
+    next()
+  } catch {
+    return res.status(401).json({ error: 'invalid_token' })
+  }
+}
+
+const buildPublicUser = (user: {
+  id: string
+  username: string
+  email: string
+  profile: { nickname: string; avatarUrl: string | null; level: number; xp: number } | null
+  currency: { gold: number; gems: number } | null
+}): PublicUserPayload => ({
+  id: user.id,
+  username: user.username,
+  email: user.email,
+  nickname: user.profile?.nickname ?? user.username,
+  avatarUrl: user.profile?.avatarUrl ?? null,
+  level: user.profile?.level ?? 1,
+  xp: user.profile?.xp ?? 0,
+  gold: user.currency?.gold ?? 0,
+  gems: user.currency?.gems ?? 0,
+})
+
+// Registro con nickname, email y contraseña
 app.post('/auth/register', async (req, res) => {
   try {
     const { username, email, password } = req.body as {
@@ -52,13 +111,17 @@ app.post('/auth/register', async (req, res) => {
       return res.status(400).json({ error: 'username and email cannot be empty' })
     }
 
+    if (trimmedUsername.length < 3 || trimmedUsername.length > 24) {
+      return res.status(400).json({ error: 'invalid_username_length' })
+    }
+
     if (password.length < 8) {
       return res.status(400).json({ error: 'password_too_short' })
     }
 
     const existing = await prisma.user.findFirst({
       where: {
-        email: trimmedEmail,
+        OR: [{ email: trimmedEmail }, { username: trimmedUsername }],
       },
     })
 
@@ -68,19 +131,37 @@ app.post('/auth/register', async (req, res) => {
 
     const passwordHash = await bcrypt.hash(password, 10)
 
-    // Generar sufijo hex de 8 dígitos para el nombre de usuario visible
-    const tag = crypto.randomBytes(4).toString('hex') // 8 chars hex
-    const finalUsername = `${trimmedUsername}#${tag}`
-
-    const user = await prisma.user.create({
-      data: {
-        username: finalUsername,
-        email: trimmedEmail,
-        passwordHash,
-      },
+    const user = await prisma.$transaction(async (tx) => {
+      const created = await tx.user.create({
+        data: {
+          username: trimmedUsername,
+          email: trimmedEmail,
+          passwordHash,
+          profile: {
+            create: {
+              nickname: trimmedUsername,
+            },
+          },
+          currency: {
+            create: {
+              gold: 1000,
+              gems: 0,
+            },
+          },
+        },
+        include: {
+          profile: true,
+          currency: true,
+        },
+      })
+      return created
     })
 
-    return res.status(201).json({ id: user.id, username: user.username, email: user.email })
+    const accessToken = signAccessToken(user.id)
+    return res.status(201).json({
+      accessToken,
+      user: buildPublicUser(user),
+    })
   } catch (error) {
     console.error('[AUTH] register error', error)
     return res.status(500).json({ error: 'internal_error' })
@@ -100,6 +181,10 @@ app.post('/auth/login', async (req, res) => {
       where: {
         email: trimmed,
       },
+      include: {
+        profile: true,
+        currency: true,
+      },
     })
 
     if (!user) {
@@ -111,19 +196,80 @@ app.post('/auth/login', async (req, res) => {
       return res.status(401).json({ error: 'invalid_credentials' })
     }
 
-    return res.json({ id: user.id, username: user.username, email: user.email })
+    const accessToken = signAccessToken(user.id)
+    return res.json({
+      accessToken,
+      user: buildPublicUser(user),
+    })
   } catch (error) {
     console.error('[AUTH] login error', error)
     return res.status(500).json({ error: 'internal_error' })
   }
 })
 
-// Listar mazos del usuario
-app.get('/decks', async (req, res) => {
+// Datos de perfil del usuario autenticado
+app.get('/me', requireAuth, async (req: AuthenticatedRequest, res) => {
   try {
-    const userId = req.query.userId as string | undefined
+    const userId = req.authUserId
     if (!userId) {
-      return res.status(400).json({ error: 'userId is required' })
+      return res.status(401).json({ error: 'missing_token' })
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        profile: true,
+        currency: true,
+        decks: {
+          include: { cards: true },
+          orderBy: { createdAt: 'desc' },
+        },
+      },
+    })
+
+    if (!user) {
+      return res.status(404).json({ error: 'user_not_found' })
+    }
+
+    return res.json({
+      user: buildPublicUser(user),
+      stats: {
+        deckCount: user.decks.length,
+        cardsOwned: 0,
+      },
+    })
+  } catch (error) {
+    console.error('[ME] profile error', error)
+    return res.status(500).json({ error: 'internal_error' })
+  }
+})
+
+// Colección del usuario autenticado
+app.get('/me/collection', requireAuth, async (req: AuthenticatedRequest, res) => {
+  try {
+    const userId = req.authUserId
+    if (!userId) {
+      return res.status(401).json({ error: 'missing_token' })
+    }
+
+    const collection = await prisma.userCard.findMany({
+      where: { userId },
+      orderBy: [{ owned: 'desc' }, { cardId: 'asc' }],
+    })
+
+    return res.json(collection)
+  } catch (error) {
+    console.error('[ME] collection error', error)
+    return res.status(500).json({ error: 'internal_error' })
+  }
+})
+
+// Listar mazos del usuario autenticado
+app.get('/me/decks', requireAuth, async (req: AuthenticatedRequest, res) => {
+  try {
+    const userId = req.authUserId
+    if (!userId) {
+      return res.status(401).json({ error: 'missing_token' })
     }
 
     const decks = await prisma.deck.findMany({
@@ -140,18 +286,22 @@ app.get('/decks', async (req, res) => {
 })
 
 // Crear / actualizar mazo
-app.post('/decks', async (req, res) => {
+app.post('/me/decks', requireAuth, async (req: AuthenticatedRequest, res) => {
   try {
-    const { id, userId, name, classType, cards } = req.body as {
+    const userId = req.authUserId
+    if (!userId) {
+      return res.status(401).json({ error: 'missing_token' })
+    }
+
+    const { id, name, classType, cards } = req.body as {
       id?: string
-      userId?: string
       name?: string
       classType?: string
       cards?: Array<{ cardId: string; count: number }>
     }
 
-    if (!userId || !name || !classType || !Array.isArray(cards)) {
-      return res.status(400).json({ error: 'userId, name, classType and cards are required' })
+    if (!name || !classType || !Array.isArray(cards)) {
+      return res.status(400).json({ error: 'name, classType and cards are required' })
     }
 
     if (!cards.length) {
@@ -163,6 +313,11 @@ app.post('/decks', async (req, res) => {
     }
 
     if (id) {
+      const existingDeck = await prisma.deck.findUnique({ where: { id } })
+      if (!existingDeck || existingDeck.ownerId !== userId) {
+        return res.status(404).json({ error: 'deck_not_found' })
+      }
+
       // Update existente: borramos cartas y recreamos
       const deck = await prisma.deck.update({
         where: { id },
@@ -205,15 +360,55 @@ app.post('/decks', async (req, res) => {
 })
 
 // Borrar mazo
-app.delete('/decks/:id', async (req, res) => {
+app.delete('/me/decks/:id', requireAuth, async (req: AuthenticatedRequest, res) => {
   try {
     const { id } = req.params
+    const userId = req.authUserId
     if (!id) return res.status(400).json({ error: 'id is required' })
+    if (!userId) return res.status(401).json({ error: 'missing_token' })
+
+    const existingDeck = await prisma.deck.findUnique({ where: { id } })
+    if (!existingDeck || existingDeck.ownerId !== userId) {
+      return res.status(404).json({ error: 'deck_not_found' })
+    }
 
     await prisma.deck.delete({ where: { id } })
     return res.status(204).send()
   } catch (error) {
     console.error('[DECKS] delete error', error)
+    return res.status(500).json({ error: 'internal_error' })
+  }
+})
+
+// Recompensas in-game para economía (sin dinero real)
+app.post('/me/rewards', requireAuth, async (req: AuthenticatedRequest, res) => {
+  try {
+    const userId = req.authUserId
+    if (!userId) {
+      return res.status(401).json({ error: 'missing_token' })
+    }
+
+    const normalized = normalizeRewardPayload(req.body as { gold?: number; gems?: number })
+    if (!normalized.ok) {
+      return res.status(400).json({ error: normalized.error })
+    }
+
+    const currency = await prisma.userCurrency.upsert({
+      where: { userId },
+      create: {
+        userId,
+        gold: normalized.value.gold,
+        gems: normalized.value.gems,
+      },
+      update: {
+        gold: { increment: normalized.value.gold },
+        gems: { increment: normalized.value.gems },
+      },
+    })
+
+    return res.json(currency)
+  } catch (error) {
+    console.error('[ME] rewards error', error)
     return res.status(500).json({ error: 'internal_error' })
   }
 })

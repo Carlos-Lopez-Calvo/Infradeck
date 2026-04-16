@@ -1,0 +1,40 @@
+---
+description: Motor de juego - efectos, combate, turnos
+globs: packages/shared/src/engine/**/*.ts
+alwaysApply: false
+---
+
+# Motor de Juego
+
+## Flujo de un turno
+
+`startTurn` → (jugador juega cartas / ataca) → `endTurn` → `startTurn` del oponente
+
+## Arquitectura de efectos
+
+```
+dispatcher.ts  → applyAction() despacha por EffectActionType al handler correcto
+core.ts        → EffectContext, effectConditionPasses, createEffectContext
+board-effects.ts → triggerBoardEffects (ON_ENTER, START/END_OF_TURN), updateConditionalBuffs
+```
+
+Efectos divididos por clase:
+- `global-effects.ts` — efectos compartidos (DAMAGE, HEAL, DRAW, BUFF, etc.)
+- `caos-effects.ts` — efectos de Caos (entropía)
+- `vitalidad-effects.ts` — efectos de Vitalidad (vida como recurso)
+- `abominacion-effects.ts` — efectos de Abominación (cementerio, especímenes)
+- `transform-effects.ts` — transformaciones y mutaciones
+
+## Combate (combat.ts)
+
+- `declareAttackHero` — ataque a héroe (chequea taunt, IMPACIENTE, Final Stand)
+- `declareAttackCreature` — ataque entre criaturas (shield, veneno, vuelo, doble golpe, life steal)
+- Daño simultáneo, muertes van al cementerio, triggers ON_DEATH
+
+## Reglas para modificar el engine
+
+- Nuevo `EffectActionType` → agregar en enum (`types/cards.ts`), crear handler, registrar en `EFFECT_HANDLERS` del dispatcher
+- Lógica específica de una carta por ID → va en `board-effects.ts`, no en combat ni turns
+- Los hooks (`onPriorityWindow`, `onDiscoverRequest`, `onScryRequest`) son inyectables — no acoplar UI al engine
+- `GameState` es el estado completo: dos `PlayerState`, `TurnState`, stack, pendingTargets
+- `CreatureOnBoard` tiene stats mutables separados de la definición `Card` inmutable

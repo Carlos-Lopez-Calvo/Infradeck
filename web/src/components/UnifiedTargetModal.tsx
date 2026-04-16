@@ -17,6 +17,7 @@ export type TargetType =
   | 'HERO_ENEMY'          // Solo héroe enemigo
   | 'CREATURE_SELF'       // Solo criaturas aliadas
   | 'CREATURE_ENEMY'      // Solo criaturas enemigas
+  | 'CHARACTER_ENEMY'     // Héroe enemigo + criaturas enemigas
   | 'ANY_CREATURE'        // Cualquier criatura (aliada o enemiga)
   | 'ANY_CHARACTER'       // Cualquier objetivo (héroes + criaturas)
   | 'DUAL_CREATURES'      // Dos criaturas (ej: atacante + defensor para ATTACK_SPELL)
@@ -72,9 +73,9 @@ export function UnifiedTargetModal({
   
   // Determinar qué mostrar según el targetType
   const shouldShowSelfHero = ['HERO_SELF', 'ANY_CHARACTER'].includes(targetType)
-  const shouldShowEnemyHero = ['HERO_ENEMY', 'ANY_CHARACTER'].includes(targetType)
+  const shouldShowEnemyHero = ['HERO_ENEMY', 'CHARACTER_ENEMY', 'ANY_CHARACTER'].includes(targetType)
   const shouldShowSelfCreatures = ['CREATURE_SELF', 'ANY_CREATURE', 'ANY_CHARACTER', 'DUAL_CREATURES'].includes(targetType)
-  const shouldShowEnemyCreatures = ['CREATURE_ENEMY', 'ANY_CREATURE', 'ANY_CHARACTER', 'DUAL_CREATURES'].includes(targetType)
+  const shouldShowEnemyCreatures = ['CREATURE_ENEMY', 'CHARACTER_ENEMY', 'ANY_CREATURE', 'ANY_CHARACTER', 'DUAL_CREATURES'].includes(targetType)
   
   // Para DUAL_CREATURES (como ATTACK_SPELL)
   const isDualSelection = targetType === 'DUAL_CREATURES'

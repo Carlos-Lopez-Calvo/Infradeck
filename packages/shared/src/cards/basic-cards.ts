@@ -335,7 +335,7 @@ export const DUELISTA_FRENETICO: Card = {
       }
     }
   ],
-  description: '1/2 con Impaciente. Mientras sea tu única criatura, tiene +2/+1. Al atacar solo, gana +2/+1 adicional hasta fin de turno',
+  description: 'Mientras sea tu única criatura, tiene +2/+1. Al atacar solo, gana +2/+1 adicional hasta fin de turno',
   flavorText: 'El honor exige un combate justo.'
 }
 
@@ -348,25 +348,8 @@ export const COMERCIANTE_SAGAZ: Card = {
   attack: 1,
   health: 3,
   abilities: [],
-  effects: [
-    {
-      id: 'Comerciante_Hand_Size_Taunt',
-      description: 'Al inicio de tu turno: Si tienes 6+ cartas en mano, gana Taunt hasta final del turno',
-      timing: EffectTiming.START_OF_TURN,
-      condition: {
-        type: 'HAND_SIZE',
-        value: 6,
-        comparison: 'GREATER_EQUAL'
-      },
-      action: {
-        type: EffectActionType.GAIN_ABILITY,
-        target: EffectTarget.SELF,
-        value: Ability.TAUNT,
-        duration: 'END_OF_TURN'
-      }
-    }
-  ],
-  description: '1/3. Al inicio de tu turno: Si tienes 6+ cartas en mano, gana Taunt hasta final del turno',
+  effects: [],
+  description: 'Mientras tengas 6 o más cartas en mano, tiene Taunt',
   flavorText: 'Los recursos son poder, el poder es protección.'
 }
 
@@ -456,11 +439,11 @@ export const ASCENDER: Card = {
   effects: [
     {
       id: 'Ascender_Buff_Stats',
-      description: 'Una criatura objetivo gana +2/+2',
+      description: 'Una criatura aliada gana +2/+2',
       timing: EffectTiming.ON_PLAY,
       action: {
         type: EffectActionType.BUFF_STATS,
-        target: EffectTarget.TARGET_CREATURE,
+        target: EffectTarget.TARGET_FRIENDLY_CREATURE,
         value: '+2/+2',
         duration: 'PERMANENT'
       }
@@ -471,13 +454,13 @@ export const ASCENDER: Card = {
       timing: EffectTiming.ON_PLAY,
       action: {
         type: EffectActionType.GAIN_ABILITY,
-        target: EffectTarget.TARGET_CREATURE,
+        target: EffectTarget.TARGET_FRIENDLY_CREATURE,
         value: Ability.TAUNT,
         duration: 'PERMANENT'
       }
     }
   ],
-  description: 'Una criatura objetivo gana +2/+2 y Taunt',
+  description: 'Una criatura aliada gana +2/+2 y Taunt',
   flavorText: 'El tiempo es lo que hace al maestro.'
 }
 
@@ -493,7 +476,7 @@ export const SOLDADO_VETERANO: Card = {
   effects: [
     {
       id: 'Soldado_Board_Presence_Buff',
-      description: 'Al entrar: Si controlas otra criatura, gana Escudo y +1/+0',
+      description: 'Al entrar: Si controlas otra criatura, una criatura aliada gana Escudo',
       timing: EffectTiming.ON_ENTER,
       condition: {
         type: 'BOARD_STATE',
@@ -502,13 +485,29 @@ export const SOLDADO_VETERANO: Card = {
       },
       action: {
         type: EffectActionType.GAIN_ABILITY,
-        target: EffectTarget.SELF,
+        target: EffectTarget.TARGET_FRIENDLY_CREATURE,
         value: Ability.ESCUDO,
+        duration: 'PERMANENT'
+      }
+    },
+    {
+      id: 'Soldado_Board_Presence_Attack',
+      description: 'Al entrar: Si controlas otra criatura, una criatura aliada gana +1/+0',
+      timing: EffectTiming.ON_ENTER,
+      condition: {
+        type: 'BOARD_STATE',
+        value: 'HAS_OTHER_CREATURES',
+        comparison: 'EQUAL'
+      },
+      action: {
+        type: EffectActionType.BUFF_STATS,
+        target: EffectTarget.TARGET_FRIENDLY_CREATURE,
+        value: '+1/+0',
         duration: 'PERMANENT'
       }
     }
   ],
-  description: '2/3. Al entrar: Si controlas otra criatura, gana Escudo y +1/+0',
+  description: '2/3. Al entrar: Si controlas otra criatura, elige una criatura aliada: gana Escudo y +1/+0',
   flavorText: 'La experiencia enseña el valor de los aliados.'
 }
 
@@ -523,28 +522,28 @@ export const CAPA_DELAROSSA: Card = {
   effects: [
     {
       id: 'Capa_Delarossa_Sigilo_And_Buff',
-      description: 'Una criatura gana Sigilo',
+      description: 'Una criatura aliada gana Sigilo',
       timing: EffectTiming.ON_PLAY,
       action: {
         type: EffectActionType.GAIN_ABILITY,
-        target: EffectTarget.TARGET_CREATURE,
+        target: EffectTarget.TARGET_FRIENDLY_CREATURE,
         value: Ability.SIGILO,
         duration: 'PERMANENT'
       }
     },
     {
       id: 'Capa_Delarossa_Buff',
-      description: 'Una criatura gana +2/+0',
+      description: 'Una criatura aliada gana +2/+0',
       timing: EffectTiming.ON_PLAY,
       action: {
         type: EffectActionType.BUFF_STATS,
-        target: EffectTarget.TARGET_CREATURE,
+        target: EffectTarget.TARGET_FRIENDLY_CREATURE,
         value: '+2/+0',
         duration: 'PERMANENT'
       }
     }
   ],
-  description: 'Una criatura gana Sigilo y +2/+0',
+  description: 'Una criatura aliada gana Sigilo y +2/+0',
   flavorText: 'Proteger tiene recompensas.'
 }
 
@@ -623,6 +622,7 @@ export const LLAMA_IMPURA: Card = {
         type: EffectActionType.DAMAGE,
         target: EffectTarget.ALL_CREATURES,
         amount: 2,
+        value: 'FACE_PER_KILL',
         duration: 'PERMANENT'
       }
     }
@@ -647,7 +647,7 @@ export const MAESTRO_DE_ARMAS: Card = {
       timing: EffectTiming.ON_ENTER,
       action: {
         type: EffectActionType.GAIN_ABILITY,
-        target: EffectTarget.TARGET_CREATURE,
+        target: EffectTarget.TARGET_FRIENDLY_CREATURE,
         value: Ability.PRISA,
         duration: 'END_OF_TURN'
       }
@@ -700,15 +700,11 @@ export const PALABRA_DE_PODER: Card = {
       id: 'Palabra_Conditional_Removal',
       description: 'Destruye una criatura con 3 o menos de vida. Si destruyes una criatura sin daño, tu próxima carta cuesta 2 menos',
       timing: EffectTiming.ON_PLAY,
-      condition: {
-        type: 'HEALTH_THRESHOLD',
-        value: 3,
-        comparison: 'LESS_EQUAL'
-      },
       action: {
         type: EffectActionType.DAMAGE,
         target: EffectTarget.TARGET_CREATURE,
         amount: 999,
+        value: 'EXECUTE_3_OR_LESS_REDUCE_IF_UNDAMAGED',
         duration: 'PERMANENT'
       }
     }
@@ -760,6 +756,22 @@ export const COLOSO_DE_HIERRO: Card = {
   health: 4,
   abilities: [],
   effects: [
+    {
+      id: 'Coloso_Awakening_On_Enter',
+      description: 'Al entrar: Si hay 3+ criaturas en el tablero, gana Prisa',
+      timing: EffectTiming.ON_ENTER,
+      condition: {
+        type: 'BOARD_STATE',
+        value: 'CREATURE_COUNT_3_PLUS',
+        comparison: 'EQUAL'
+      },
+      action: {
+        type: EffectActionType.GAIN_ABILITY,
+        target: EffectTarget.SELF,
+        value: Ability.PRISA,
+        duration: 'UNTIL_DEATH'
+      }
+    },
     {
       id: 'Coloso_Awakening',
       description: 'No puede atacar el turno que entra. Al inicio de tu turno: Si hay 3+ criaturas en el tablero, gana Prisa',
@@ -847,6 +859,7 @@ export const GOLPE_DEVASTADOR: Card = {
         type: EffectActionType.DAMAGE,
         target: EffectTarget.TARGET_CREATURE,
         amount: 7,
+        value: 'FACE_3_IF_KILL',
         duration: 'PERMANENT'
       }
     }
@@ -919,17 +932,18 @@ export const RITUAL_DE_RENOVACION: Card = {
   effects: [
     {
       id: 'Ritual_Board_Reset',
-      description: 'Destruye todas las criaturas. El oponente roba 1 carta',
+      description: 'Destruye todas las criaturas. Haz daño al héroe enemigo igual a las criaturas destruidas',
       timing: EffectTiming.ON_PLAY,
       action: {
         type: EffectActionType.DAMAGE,
         target: EffectTarget.ALL_CREATURES,
         amount: 999,
+        value: 'FACE_PER_KILL',
         duration: 'PERMANENT'
       }
     }
   ],
-  description: 'Destruye todas las criaturas. El oponente roba 1 carta',
+  description: 'Destruye todas las criaturas. Haz daño al héroe enemigo igual a las criaturas destruidas',
   flavorText: 'La destrucción siempre enseña algo.'
 }
 
@@ -977,6 +991,7 @@ export const APOCALIPSIS: Card = {
         type: EffectActionType.DAMAGE,
         target: EffectTarget.ALL_CREATURES,
         amount: 6,
+        value: 'FACE_PER_KILL_MIN5',
         duration: 'PERMANENT'
       }
     }

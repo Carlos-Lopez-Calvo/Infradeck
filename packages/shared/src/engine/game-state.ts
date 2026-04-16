@@ -34,11 +34,14 @@ export interface CreatureOnBoard extends CardInZone {
   health: number
   exhausted: boolean
   abilities: string[]
+  impatientHeroLockThisTurn?: boolean
   damagedThisTurn?: boolean
   effects: EffectActionType[]
   programmedEffects?: (EffectActionType | string)[]
   tempDrawOnKill?: number  // Temporal: roba N cartas al matar (limpiado al final del turno)
   conditionalBuff?: string  // Marca de buff condicional activo (para Duelista Frenetico, etc)
+  conditionalTauntFromHand?: boolean
+  deathScalingBonusApplied?: number
 }
 
 export interface PlayerState {
@@ -60,6 +63,7 @@ export interface PlayerState {
   specimenSummons?: number
   specimenFreeThisTurn?: boolean
   allyDiedThisTurn?: boolean
+  alliesDiedThisTurnCount?: number
   specimenSummonedThisTurn?: boolean
   attackersDeclaredThisTurn?: number
   lastAttackTargetHero?: boolean
@@ -136,6 +140,7 @@ export function createGame(
     specimenSummons: 0,
     specimenFreeThisTurn: false,
     allyDiedThisTurn: false,
+    alliesDiedThisTurnCount: 0,
     specimenSummonedThisTurn: false,
     attackersDeclaredThisTurn: 0,
     lastAttackTargetHero: false,
@@ -260,6 +265,17 @@ export function playCard(
   const card = getCardById(cardId)
   if (!card) return { ok: false, error: 'Carta no encontrada' }
 
+  // "Última Oportunidad": no puede jugarse si no cumple su condición de vida.
+  if (card.type === CardType.SPELL && card.id === 'Ultima_Oportunidad') {
+    const onPlayEffects = card.effects?.filter(e => e.timing === EffectTiming.ON_PLAY) ?? []
+    const hasOnPlay = onPlayEffects.length > 0
+    const allConditional = hasOnPlay && onPlayEffects.every(e => !!e.condition)
+    const anyConditionPasses = onPlayEffects.some(e => effectConditionPasses(state, playerIndex, e))
+    if (hasOnPlay && allConditional && !anyConditionPasses) {
+      return { ok: false, error: 'No cumples las condiciones para jugar esta carta' }
+    }
+  }
+
      // Verifica coste de maná (aplica reducción global de coste de carta si existe)
     // Verifica coste de maná (aplica reducción global de coste de carta si existe)
     let effectiveCost = card.mana ?? 0
@@ -278,6 +294,7 @@ export function playCard(
 
   // Elimina la carta de la mano
   player.hand.splice(handIndex, 1)
+  updateConditionalBuffs(state, playerIndex)
 
   // Entropía base: +1 por cada carta jugada si tu clase usa ENTROPIA
   gainEntropyOnPlay(player)
@@ -287,13 +304,22 @@ export function playCard(
 
   // Si es criatura, invócala al campo
   if (card.type === CardType.CREATURE) {
+    // Permite que la UI pase objetivos para efectos ON_ENTER (p.ej. TARGET_FRIENDLY_CREATURE)
+    if (options?.targets && options.targets.length) {
+      state.pendingTargets = [...options.targets]
+    }
+    const hasPrisa = card.abilities?.includes(Ability.PRISA) ?? false
+    const hasImpaciente = card.abilities?.includes(Ability.IMPACIENTE) ?? false
     const entity: CreatureOnBoard = {
       id: `creature-${Date.now()}`,
       cardId: card.id,
       ownerId: player.id,
       attack: card.attack ?? 0,
       health: card.health ?? 1,
-      exhausted: !(card.abilities?.includes(Ability.PRISA)),
+      // IMPACIENTE funciona como PRISA para poder atacar al entrar.
+      exhausted: !(hasPrisa || hasImpaciente),
+      // Pero en ese primer turno no puede atacar al héroe.
+      impatientHeroLockThisTurn: hasImpaciente,
       abilities: card.abilities ? [...card.abilities] : [],
       effects: [],
     }
@@ -344,6 +370,7 @@ export function playCard(
       console.log('[COST] use consumed', red)
     }
   }
+  updateConditionalBuffs(state, playerIndex)
   return { ok: true }
 }
 
@@ -395,7 +422,7 @@ import { triggerPriority, addToStack, getStack, passPriority, resolveStack, noti
 import { applyAction } from './effects/dispatcher'
 import { effectConditionPasses } from './effects/core'
 import { consumeEntropy, gainEntropyOnPlay } from './effects/caos-effects'
-import { applyOnEnterEffects, getRandomHintsForAction } from './effects/board-effects'
+import { applyOnEnterEffects, getRandomHintsForAction, updateConditionalBuffs } from './effects/board-effects'
 
 // Re-exportar funciones que todavía se usan en otros módulos
 export { effectConditionPasses, consumeEntropy, gainEntropyOnPlay }

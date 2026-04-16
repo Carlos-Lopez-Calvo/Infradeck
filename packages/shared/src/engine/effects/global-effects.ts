@@ -18,6 +18,7 @@ import { notifyLeaveBattlefield, notifyEffectTriggered, notifyEnterBattlefield }
 import { hasAbility } from '../combat'
 import { BASIC_CARDS } from '../../cards/basic-cards'
 import { CLASS_CARDS } from '../../cards/class-cards'
+import { updateConditionalBuffs } from './board-effects'
 
 // ===== FUNCIONES AUXILIARES =====
 
@@ -89,6 +90,7 @@ export function handleDrawCards(ctx: EffectContext): void {
       state.players[pIdx].hand.shift()
     }
   }
+  updateConditionalBuffs(state, pIdx)
 }
 
 export function handleDiscardCards(ctx: EffectContext): void {
@@ -104,6 +106,7 @@ export function handleDiscardCards(ctx: EffectContext): void {
     // Cantidad negativa = robar cartas
     draw(state, pIdx, -amount)
   }
+  updateConditionalBuffs(state, pIdx)
 }
 
 export function handleHeal(ctx: EffectContext): void {
@@ -115,7 +118,7 @@ export function handleHeal(ctx: EffectContext): void {
 
   if (t.kind === 'HERO') {
     const tgt = state.players[t.playerIndex]
-    tgt.life = Math.min(tgt.maxLife, tgt.life + amount)
+    tgt.life += amount
   } else if (t.kind === 'CREATURE') {
     const owner = state.players[t.playerIndex]
     const cr = owner.board[t.index]
@@ -186,19 +189,8 @@ export function handleAdvancedSelection(ctx: EffectContext): void {
     cards: topCards
   })
   
-  // Temporalmente tomar la primera carta del grupo revelado
-  if (topCards.length > 0) {
-    const chosenId = topCards[0]
-      const chosenIdx = p.deck.indexOf(chosenId)
-      if (chosenIdx !== -1) {
-        const [chosen] = p.deck.splice(chosenIdx, 1)
-        p.hand.push(chosen)
-      }
-      const rest = topCards.filter(id => id !== chosenId)
-      p.deck = p.deck.filter(id => !rest.includes(id))
-      p.deck.push(...rest)
-    console.log('[ADVANCED_SELECTION] resolved (auto-selected first)', { hand: p.hand.length, deck: p.deck.length })
-    }
+  // La resolución queda en manos del handler de UI/bot (onAdvancedSelectionRequest).
+  // No auto-resolvemos aquí para evitar pisar la elección del usuario.
 }
 
 // ===== EFECTOS DE BUFF =====
@@ -405,6 +397,55 @@ export function handleGrantTempDrawOnKill(ctx: EffectContext): void {
 
 export function handleDamage(ctx: EffectContext): void {
   const { state, playerIndex, oppIndex, me, opp, action } = ctx
+  // Golpe Devastador: 7 a criatura, si muere => 3 al héroe enemigo.
+  if (String(action.value) === 'FACE_3_IF_KILL') {
+    const damage = action.amount ?? 0
+    const t = resolveSingleTarget(state, playerIndex, action.target, ctx.targetHints?.[0])
+    if (!t || t.kind !== 'CREATURE') return
+    const owner = state.players[t.playerIndex]
+    const cr = owner.board[t.index]
+    if (!cr) return
+    const willDie = cr.health <= damage
+    cr.health -= damage
+    cr.damagedThisTurn = true
+    if (cr.health <= 0) {
+      const [dead] = owner.board.splice(t.index, 1)
+      owner.graveyard.unshift(dead.cardId)
+      notifyLeaveBattlefield(state, t.playerIndex, dead.id)
+      notifyEffectTriggered(state, t.playerIndex, dead.cardId, 'ON_DEATH')
+      if (willDie && !hasFinalStandImmunity(state, oppIndex)) {
+        const old = opp.life
+        opp.life = Math.max(0, opp.life - 3)
+        if (opp.life <= 0 && old > 0) {
+          checkAndActivateFinalStand(state, oppIndex, playerIndex)
+        }
+      }
+    }
+    return
+  }
+  // Palabra de Poder: destruye una criatura con 3 o menos de vida.
+  // Si estaba sin daño, la próxima carta cuesta 2 menos.
+  if (String(action.value) === 'EXECUTE_3_OR_LESS_REDUCE_IF_UNDAMAGED') {
+    const t = resolveSingleTarget(state, playerIndex, action.target, ctx.targetHints?.[0])
+    if (!t || t.kind !== 'CREATURE') return
+    const owner = state.players[t.playerIndex]
+    const cr = owner.board[t.index]
+    if (!cr) return
+    if (cr.health > 3) return
+
+    const targetWasUndamaged = !cr.damagedThisTurn
+    const [dead] = owner.board.splice(t.index, 1)
+    owner.graveyard.unshift(dead.cardId)
+    notifyLeaveBattlefield(state, t.playerIndex, dead.id)
+    notifyEffectTriggered(state, t.playerIndex, dead.cardId, 'ON_DEATH')
+
+    if (targetWasUndamaged) {
+      me.cardCostReduction = { amount: 2, remaining: 1 }
+      // Evita consumir la reducción en la misma carta que la genera.
+      me.cardCostReductionSkipOnce = true
+    }
+    return
+  }
   
   // Caso especial: SUM_FRIENDLY_ATTACK
   if (String(action.value) === 'SUM_FRIENDLY_ATTACK') {
@@ -434,6 +475,7 @@ export function handleDamage(ctx: EffectContext): void {
 
   // ALL_CREATURES (ambos tableros)
   if (action.target === EffectTarget.ALL_CREATURES) {
+    let killedByThisEffect = 0
     const doBoard = (ownerIdx: number) => {
       const owner = state.players[ownerIdx]
       for (const c of owner.board) {
@@ -445,6 +487,7 @@ export function handleDamage(ctx: EffectContext): void {
         if (c.health > 0) {
           kept.push(c)
         } else {
+          killedByThisEffect += 1
           owner.graveyard.unshift(c.cardId)
           notifyLeaveBattlefield(state, ownerIdx, c.id)
           notifyEffectTriggered(state, ownerIdx, c.cardId, 'ON_DEATH')
@@ -454,6 +497,28 @@ export function handleDamage(ctx: EffectContext): void {
     }
     doBoard(playerIndex)
     doBoard(oppIndex)
+
+    // Llama Impura: por cada criatura muerta de esta resolución, 1 daño al héroe enemigo.
+    if (String(action.value) === 'FACE_PER_KILL' && killedByThisEffect > 0) {
+      if (!hasFinalStandImmunity(state, oppIndex)) {
+        const old = opp.life
+        opp.life = Math.max(0, opp.life - killedByThisEffect)
+        if (opp.life <= 0 && old > 0) {
+          checkAndActivateFinalStand(state, oppIndex, playerIndex)
+        }
+      }
+    }
+    // Apocalipsis: solo si mueren 5+ criaturas, daño al héroe enemigo
+    // igual al número total de criaturas destruidas.
+    if (String(action.value) === 'FACE_PER_KILL_MIN5' && killedByThisEffect >= 5) {
+      if (!hasFinalStandImmunity(state, oppIndex)) {
+        const old = opp.life
+        opp.life = Math.max(0, opp.life - killedByThisEffect)
+        if (opp.life <= 0 && old > 0) {
+          checkAndActivateFinalStand(state, oppIndex, playerIndex)
+        }
+      }
+    }
     return
   }
 

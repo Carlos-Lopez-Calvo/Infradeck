@@ -1,0 +1,48 @@
+---
+description: Cómo definir y modificar cartas en Infradeck
+globs: packages/shared/src/cards/**/*.ts
+alwaysApply: false
+---
+
+# Sistema de Cartas
+
+## Archivos
+
+- `packages/shared/src/cards/basic-cards.ts` — cartas neutrales
+- `packages/shared/src/cards/class-cards.ts` — cartas de clase (Abominación, Caos, Vitalidad)
+- `packages/shared/src/types/cards.ts` — tipos, enums, GAME_CONSTANTS
+
+## Patrón para definir una carta
+
+```typescript
+export const NOMBRE_CARTA: Card = {
+  id: 'Nombre_Carta',
+  name: 'Nombre Carta',
+  manaCost: 3,
+  type: CardType.CREATURE,
+  rarity: CardRarity.RARE,
+  attack: 2,
+  health: 4,
+  abilities: [Ability.TAUNT],
+  effects: [{
+    id: 'nombre_carta_effect',
+    description: 'Descripción del efecto',
+    timing: EffectTiming.ON_ENTER,
+    action: {
+      type: EffectActionType.DAMAGE,
+      target: EffectTarget.ENEMY_CREATURE,
+      value: 2
+    }
+  }],
+  lpimagePath: '/cards/nombre_carta.webp'
+};
+```
+
+## Reglas
+
+- Nombres de constantes: `UPPER_SNAKE_CASE`
+- IDs de carta: `PascalCase_Con_Underscores` (ej: `'Ultima_Oportunidad'`)
+- Toda carta debe agregarse al array agregado (`BASIC_CARDS` o `CLASS_CARDS`) y al mapa `*_BY_ID`
+- Las cartas de clase llevan `classType` y opcionalmente `classResource: ClassResourceCost`
+- Los efectos usan combinaciones de `EffectActionType` + `EffectTarget` + `EffectTiming`
+- Si un efecto necesita lógica especial, el branch por card ID va en `board-effects.ts`, NO en la definición de la carta

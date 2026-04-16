@@ -12,11 +12,18 @@ import {
 import { Card as UICard } from '../components/Card'
 import { UnifiedTargetModal, TargetType, TargetSelection } from '../components/UnifiedTargetModal'
 
-import { sampleDecks } from '../utils/sample-decks'
+import { sampleDecks, botVitalidadCreatureDeck } from '../utils/sample-decks'
 
 const delay = (ms: number) => new Promise(r => setTimeout(r, ms))
 const BOT_ENABLED = true
 const processedTurnRefInit = null as string | null
+
+const shuffleArray = <T,>(arr: T[]) => {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[arr[i], arr[j]] = [arr[j], arr[i]]
+  }
+}
 
 type Ctx = {
   gameState: GameState
@@ -66,7 +73,7 @@ export function GameEngineProvider({ children }: { children: React.ReactNode }) 
     const p2Class = 'VITALIDAD' as const
     const state = createGame(
       { id: 'player1', name: 'Player 1', classType: p1Class, deck: [...sampleDecks[p1Class]], programmedSpecimenEffects: [] },
-      { id: 'player2', name: 'Player 2', classType: p2Class, deck: [...sampleDecks[p2Class]], programmedSpecimenEffects: [] },
+      { id: 'player2', name: 'Player 2', classType: p2Class, deck: [...botVitalidadCreatureDeck], programmedSpecimenEffects: [] },
     )
     startGame(state)
     return state
@@ -119,11 +126,16 @@ useLayoutEffect(() => {
   })
 
   setScryRequest((state, { playerIndex, cards }) => {
-    // Mostrar modal y esperar a que el usuario decida
-    // La lógica de mover cartas se hará directamente desde el modal
+    const isLocalPlayer = state.players[playerIndex]?.id === localPlayerId
+
+    // Si es bot/oponente, no abrir modal al usuario local.
+    // Resolvemos automático para evitar filtrar información.
+    if (!isLocalPlayer) {
+      return 'TOP'
+    }
+
+    // Si es el jugador local, mostrar modal y dejar que la UI decida.
     setScryModal({ cards, playerIndex })
-    
-    // No hacemos nada aquí - el modal manejará todo
     return 'TOP'
   })
 
@@ -132,32 +144,20 @@ useLayoutEffect(() => {
     if (playerIndex !== 0) {
       console.log('[ADVANCED_SELECTION BOT] auto-selecting random card', { cards })
       
-      // Seleccionar una carta aleatoria
-      const randomIndex = Math.floor(Math.random() * cards.length)
-      const selectedCardId = cards[randomIndex]
-      
       const player = state.players[playerIndex]
-      const selectedDeckIndex = player.deck.findIndex(c => c === selectedCardId)
-      
-      if (selectedDeckIndex !== -1 && selectedDeckIndex < cards.length) {
-        // Remover la carta seleccionada y ponerla en la mano
-        const [selectedCard] = player.deck.splice(selectedDeckIndex, 1)
-        player.hand.push(selectedCard)
-        console.log('[ADVANCED_SELECTION BOT] drew card', selectedCard)
-        
-        // Mover las cartas restantes al fondo
-        const remainingTopCards: string[] = []
-        for (let i = 0; i < cards.length; i++) {
-          if (player.deck.length > 0 && player.deck[0] !== selectedCard) {
-            const card = player.deck.shift()
-            if (card && card !== selectedCard) {
-              remainingTopCards.push(card)
-            }
-          }
-        }
-        player.deck.push(...remainingTopCards)
-        console.log('[ADVANCED_SELECTION BOT] moved remaining cards to bottom', { remainingCount: remainingTopCards.length })
-      }
+      const revealCount = Math.min(cards.length, player.deck.length)
+      const revealed = player.deck.splice(0, revealCount)
+      if (!revealed.length) return
+
+      const randomIndex = Math.floor(Math.random() * revealed.length)
+      const [selectedCard] = revealed.splice(randomIndex, 1)
+      player.hand.push(selectedCard)
+      player.deck.push(...revealed)
+      shuffleArray(player.deck)
+      console.log('[ADVANCED_SELECTION BOT] resolved', {
+        selectedCard,
+        remainingCount: revealed.length,
+      })
       
       // Forzar actualización del estado
       setGameState(prev => ({ ...prev }))
@@ -311,7 +311,27 @@ lastPlaySigRef.current = sig
   
     if (act?.target === EffectTarget.TARGET_CREATURE || act?.target === EffectTarget.TARGET_FRIENDLY_CREATURE) {
       setDiscoverModal(null)
-      const targetType: TargetType = act?.target === EffectTarget.TARGET_FRIENDLY_CREATURE ? 'CREATURE_SELF' : 'CREATURE_ENEMY'
+      const targetType: TargetType =
+        act?.target === EffectTarget.TARGET_FRIENDLY_CREATURE
+          ? 'CREATURE_SELF'
+          : 'ANY_CREATURE'
+
+      // Targeting opcional: si no hay objetivos válidos, jugar la carta igualmente (el efecto no se aplicará).
+      const meBoard = gameState.players[playerIndex]?.board?.length ?? 0
+      const oppBoard = gameState.players[playerIndex === 0 ? 1 : 0]?.board?.length ?? 0
+      const hasValidTarget =
+        targetType === 'CREATURE_SELF' ? meBoard > 0
+        : targetType === 'ANY_CREATURE' ? (meBoard + oppBoard) > 0
+        : true
+      if (!hasValidTarget) {
+        const next: GameState = JSON.parse(JSON.stringify(gameState))
+        const res = playCard(next, playerIndex, handIndex, getCardById)
+        if (!res.ok) console.warn('playCard failed:', res)
+        setGameState(next)
+        setTimeout(() => { isPlayingRef.current = false }, 0)
+        return
+      }
+
       setUnifiedTargetModal({
         playerIndex,
         handIndex,
@@ -418,7 +438,11 @@ lastPlaySigRef.current = sig
           targetType: 'DUAL_CREATURES',
           step: 1,
           onComplete: (selection: any) => {
-            if (selection.type === 'DUAL') {
+            const hasAttacker = typeof selection?.attacker?.index === 'number'
+            const hasDefender = typeof selection?.defender?.index === 'number'
+
+            // Paso 2 completado: atacante + defensor ya definidos
+            if (selection.type === 'DUAL' && hasAttacker && hasDefender) {
               setUnifiedTargetModal(null)
               setGameState(prev => {
                 const next: GameState = JSON.parse(JSON.stringify(prev))
@@ -431,20 +455,46 @@ lastPlaySigRef.current = sig
                 return next
               })
             } else {
-              // Pasar al paso 2 (seleccionar defensor)
+              // Paso 1: guardar atacante y pasar a seleccionar defensor
+              if (!hasAttacker) {
+                console.warn('[ATTACK_SPELL UI] missing attacker in step 1 selection', selection)
+                return
+              }
               setUnifiedTargetModal({
                 playerIndex: pIdx,
                 handIndex,
                 targetType: 'DUAL_CREATURES',
                 step: 2,
-                previousSelection: selection,
+                previousSelection: { attacker: selection.attacker },
                 onComplete: (selection2: any) => {
+                  const attackerIndex =
+                    typeof selection?.attacker?.index === 'number'
+                      ? selection.attacker.index
+                      : typeof selection2?.attacker?.index === 'number'
+                        ? selection2.attacker.index
+                        : undefined
+                  const defenderIndex =
+                    typeof selection2?.defender?.index === 'number'
+                      ? selection2.defender.index
+                      : typeof selection2?.index === 'number'
+                        ? selection2.index
+                        : undefined
+
+                  if (typeof attackerIndex !== 'number' || typeof defenderIndex !== 'number') {
+                    console.warn('[ATTACK_SPELL UI] invalid dual selection payload', {
+                      selectionStep1: selection,
+                      selectionStep2: selection2,
+                    })
+                    setUnifiedTargetModal(null)
+                    return
+                  }
+
                   setUnifiedTargetModal(null)
                   setGameState(prev => {
                     const next: GameState = JSON.parse(JSON.stringify(prev))
                     const targets: any[] = [
-                      { type: 'CREATURE_SELF', index: selection.attacker?.index ?? selection.index },
-                      { type: 'CREATURE_ENEMY', index: selection2.defender?.index ?? selection2.index }
+                      { type: 'CREATURE_SELF', index: attackerIndex },
+                      { type: 'CREATURE_ENEMY', index: defenderIndex }
                     ]
                     const res = playCard(next, pIdx, handIndex, getCardById, { targets: targets as any })
                     if (!res.ok) console.warn('playCard failed:', res)
@@ -460,14 +510,44 @@ lastPlaySigRef.current = sig
       }
     
       const needsTarget = card.effects?.some(e => {
-        if (e.timing !== EffectTiming.ON_PLAY) return false
+        const needsTiming = e.timing === EffectTiming.ON_PLAY || e.timing === EffectTiming.ON_ENTER
+        if (!needsTiming) return false
         return e.action?.target === EffectTarget.TARGET_CREATURE || e.action?.target === EffectTarget.TARGET_FRIENDLY_CREATURE
       })
    if (needsTarget) {
      const wantsFriendly = card.effects?.some(
-       e => e.timing === EffectTiming.ON_PLAY && e.action?.target === EffectTarget.TARGET_FRIENDLY_CREATURE
+       e =>
+         (e.timing === EffectTiming.ON_PLAY || e.timing === EffectTiming.ON_ENTER) &&
+         e.action?.target === EffectTarget.TARGET_FRIENDLY_CREATURE
      )
-     const targetType: TargetType = wantsFriendly ? 'CREATURE_SELF' : 'CREATURE_ENEMY'
+    const isPetalosCerteros = card.id === 'Petalos_Certeros'
+    const anyCreatureTarget = card.effects?.some(
+      e =>
+        (e.timing === EffectTiming.ON_PLAY || e.timing === EffectTiming.ON_ENTER) &&
+        e.action?.target === EffectTarget.TARGET_CREATURE
+    )
+    const targetType: TargetType = isPetalosCerteros
+      ? 'CHARACTER_ENEMY'
+      : (wantsFriendly ? 'CREATURE_SELF' : (anyCreatureTarget ? 'ANY_CREATURE' : 'CREATURE_ENEMY'))
+
+     // Targeting opcional: si no hay objetivos válidos, permitir jugar y saltar el/los efectos dependientes de target.
+     const meBoard = gameState.players[pIdx]?.board?.length ?? 0
+     const oppBoard = gameState.players[pIdx === 0 ? 1 : 0]?.board?.length ?? 0
+     const hasValidTarget =
+       targetType === 'CREATURE_SELF' ? meBoard > 0
+       : targetType === 'CREATURE_ENEMY' ? oppBoard > 0
+       : targetType === 'ANY_CREATURE' ? (meBoard + oppBoard) > 0
+       : true // HERO_ENEMY / CHARACTER_ENEMY / ANY_CHARACTER etc.
+
+     if (!hasValidTarget) {
+       const next: GameState = JSON.parse(JSON.stringify(gameState))
+       const res = playCard(next, next.turn.currentPlayerIndex, handIndex, getCardById)
+       if (!res.ok) console.warn('playCard failed:', res)
+       setGameState(next)
+       setTimeout(() => { isPlayingRef.current = false }, 0)
+       return
+     }
+
      setUnifiedTargetModal({
        playerIndex: pIdx,
        handIndex,
@@ -824,40 +904,28 @@ summonSpecimen: () => {
       {advancedSelectionModal && (() => {
         const { cards, playerIndex } = advancedSelectionModal
         
-        const onSelectCard = (selectedCardId: string) => {
-          console.log('[ADVANCED_SELECTION UI] player selected', selectedCardId)
+        const onSelectCard = (selectedPosition: number) => {
+          console.log('[ADVANCED_SELECTION UI] player selected position', selectedPosition)
           
           setGameState(prev => {
             const next: GameState = JSON.parse(JSON.stringify(prev))
             const player = next.players[playerIndex]
-            
-            // Encontrar la posición de la carta seleccionada en el deck
-            const selectedIndex = player.deck.findIndex(c => c === selectedCardId)
-            
-            if (selectedIndex !== -1 && selectedIndex < cards.length) {
-              // Remover la carta seleccionada del deck y ponerla en la mano
-              const [selectedCard] = player.deck.splice(selectedIndex, 1)
-              player.hand.push(selectedCard)
-              console.log('[ADVANCED_SELECTION UI] drew selected card', selectedCard)
-              
-              // Mover las cartas restantes (que estaban en el tope) al fondo
-              const remainingTopCards: string[] = []
-              for (let i = 0; i < cards.length; i++) {
-                if (player.deck.length > 0 && player.deck[0] !== selectedCard) {
-                  const card = player.deck.shift()
-                  if (card && card !== selectedCard) {
-                    remainingTopCards.push(card)
-                  }
-                }
-              }
-              
-              // Poner las cartas restantes al fondo del mazo
-              player.deck.push(...remainingTopCards)
-              console.log('[ADVANCED_SELECTION UI] moved remaining cards to bottom', { 
-                remainingCount: remainingTopCards.length,
-                deckSize: player.deck.length 
-              })
-            }
+
+            const revealCount = Math.min(cards.length, player.deck.length)
+            const revealed = player.deck.splice(0, revealCount)
+            if (!revealed.length) return next
+
+            const pickIndex =
+              selectedPosition >= 0 && selectedPosition < revealed.length ? selectedPosition : 0
+            const [selectedCard] = revealed.splice(pickIndex, 1)
+            player.hand.push(selectedCard)
+            player.deck.push(...revealed)
+            shuffleArray(player.deck)
+            console.log('[ADVANCED_SELECTION UI] resolved', {
+              selectedCard,
+              remainingCount: revealed.length,
+              deckSize: player.deck.length,
+            })
             
             return next
           })
@@ -882,7 +950,7 @@ summonSpecimen: () => {
                     <div
                       key={`${cardId}-${idx}`}
                       className="cursor-pointer transform transition hover:scale-110 hover:z-10"
-                      onClick={() => onSelectCard(cardId)}
+                      onClick={() => onSelectCard(idx)}
                     >
                       <div className="relative">
                         <UICard card={card as any} />

@@ -1,8 +1,16 @@
  import { useMemo, useState, useCallback, useEffect, useRef } from 'react'
 import {
-    createGame, startGame, nextTurn, playCard, setCardResolver, setPriorityWindow,
-    type GameState, declareAttackHero, declareAttackCreature, passPriority, getStack
-} from '@infradeck/shared'
+  createGame,
+  startGame,
+  playCard,
+  setCardResolver,
+  setPriorityWindow,
+  type GameState,
+  type GamePhase,
+} from '@infradeck/shared/engine/game-state'
+import { passPriority, getStack } from '@infradeck/shared/engine/priority'
+import { nextTurn } from '@infradeck/shared/engine/turns'
+import { declareAttackHero, declareAttackCreature } from '@infradeck/shared/engine/combat'
 import * as Basic from '@infradeck/shared/cards/basic-cards'
 import * as Class from '@infradeck/shared/cards/class-cards'
 import type { Card } from '@infradeck/shared/types/cards'
@@ -25,8 +33,8 @@ type TargetRef = { type: 'CREATURE_SELF'|'CREATURE_ENEMY'; index: number }
 export function useGameEngine() {
     const [state, setState] = useState<GameState>(() => {
         const s = createGame(
-          { id: 'P1', name: 'P1', classType: 'NEUTRAL' as any, deck: Object.keys(REGISTRY).slice(0, 20) },
-          { id: 'P2', name: 'P2', classType: 'NEUTRAL' as any, deck: Object.keys(REGISTRY).slice(20, 40) }
+          { id: 'P1', name: 'P1', classType: 'NEUTRAL' as any, deck: Object.keys(REGISTRY).slice(0, 20), programmedSpecimenEffects: [] },
+          { id: 'P2', name: 'P2', classType: 'NEUTRAL' as any, deck: Object.keys(REGISTRY).slice(20, 40), programmedSpecimenEffects: [] }
         )
         startGame(s)
         return s
@@ -166,7 +174,7 @@ useEffect(() => {
     let timeoutId: any
     let intervalId: any
   
-    setPriorityWindow((s, info) => {
+    setPriorityWindow((s: GameState, info: { phase: GamePhase; activePlayer: number }) => {
       // badge: tienes prioridad si eres el jugador activo de la ventana
       setHasPriority(info.activePlayer === s.turn.currentPlayerIndex)
   
