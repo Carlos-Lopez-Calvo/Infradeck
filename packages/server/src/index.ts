@@ -13,15 +13,20 @@ import { extractBearerToken, normalizeRewardPayload } from './auth-economy-utils
 
 const app = express()
 const httpServer = createServer(app)
+const corsOrigins = (process.env.CORS_ORIGIN ?? '')
+  .split(',')
+  .map(origin => origin.trim())
+  .filter(Boolean)
+const corsOrigin = corsOrigins.length > 0 ? corsOrigins : true
 
 const io = new Server<ClientToServerEvents, ServerToClientEvents>(httpServer, {
   cors: {
-    origin: 'http://localhost:5173',
+    origin: corsOrigin,
     methods: ['GET', 'POST']
   }
 })
 
-app.use(cors())
+app.use(cors({ origin: corsOrigin }))
 app.use(express.json())
 
 // Health check endpoint
@@ -686,14 +691,15 @@ io.on('connection', (socket) => {
   })
 })
 
-const PORT = process.env.PORT || 3001
+const PORT = Number(process.env.PORT || 3001)
+const HOST = process.env.HOST || '0.0.0.0'
 
-httpServer.listen(PORT, () => {
+httpServer.listen(PORT, HOST, () => {
   console.log('╔════════════════════════════════════════════╗')
   console.log('║     🎮 INFRADECK SERVER                    ║')
   console.log('╚════════════════════════════════════════════╝')
-  console.log(`🚀 Server running on http://localhost:${PORT}`)
+  console.log(`🚀 Server running on http://${HOST}:${PORT}`)
   console.log(`🔌 WebSocket server ready`)
-  console.log(`📊 Health check: http://localhost:${PORT}/health`)
+  console.log(`📊 Health check: http://${HOST}:${PORT}/health`)
   console.log('')
 })

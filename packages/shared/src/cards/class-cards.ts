@@ -344,18 +344,18 @@ export const RITUAL_DE_PERFECCION: Card = {
   abilities: [],
   effects: [
     {
-      id: 'Ritual_Immediate_Specimen',
-      description: 'Invoca inmediatamente tu Espécimen Perfecto. Gana "Al entrar: Por cada habilidad diferente que tenga, gana +1/+1"',
+      id: 'Ritual_Buff_Ally_Per_Abilities_On_Board',
+      description: 'Una criatura aliada gana +1/+1 por cada habilidad que tengan las criaturas en el campo de batalla',
       timing: EffectTiming.ON_PLAY,
       action: {
-        type: EffectActionType.SUMMON_SPECIMEN,
-        target: EffectTarget.FRIENDLY_HERO,
-        value: 'IMMEDIATE_SUMMON_WITH_SCALING',
+        type: EffectActionType.BUFF_STATS,
+        target: EffectTarget.TARGET_FRIENDLY_CREATURE,
+        value: 'TOTAL_ABILITIES_ON_BOARD',
         duration: 'PERMANENT'
       }
     }
   ],
-  description: 'Invoca inmediatamente tu Espécimen Perfecto. Gana "Al entrar: Por cada habilidad diferente que tenga, gana +1/+1"',
+  description: 'Una criatura aliada gana +1/+1 por cada habilidad que tengan las criaturas en el campo de batalla.',
   flavorText: 'La convergencia de toda evolución.'
 }
 

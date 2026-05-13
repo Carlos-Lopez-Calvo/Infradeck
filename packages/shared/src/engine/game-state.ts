@@ -107,6 +107,8 @@ export interface GameState {
   priorityPassed: [boolean, boolean]
   finalStandJustActivated?: number | null
   pendingTargets?: TargetRef[]           // ← objetivos UI pendientes
+  /** Robo con mano llena → cementerio; la UI puede animar y luego poner null */
+  lastHandOverflowDiscard?: { playerIndex: number; cardId: string; at: number } | null
 }
 
 interface FinalStandState {
@@ -155,6 +157,7 @@ export function createGame(
     endOfTurnTasks: [],
     pendingCounters: [0, 0],
     priorityPassed: [false, false],
+    lastHandOverflowDiscard: null,
   }
 }
 

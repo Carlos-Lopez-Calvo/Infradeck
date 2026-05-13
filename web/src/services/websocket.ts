@@ -1,6 +1,13 @@
 import { io, Socket } from 'socket.io-client'
 import type { GameState } from '@infradeck/shared'
 
+const resolveServerUrl = () => {
+  const envUrl = import.meta.env.VITE_WS_URL as string | undefined
+  if (envUrl && envUrl.trim()) return envUrl.trim()
+  if (typeof window !== 'undefined') return `${window.location.protocol}//${window.location.hostname}:3001`
+  return 'http://localhost:3001'
+}
+
 // Tipos de eventos del servidor
 interface ServerToClientEvents {
   'connection:success': (data: { playerId: string }) => void
@@ -37,7 +44,7 @@ export class WebSocketService {
   private socket: TypedSocket | null = null
   private playerId: string | null = null
 
-  connect(serverUrl: string = 'http://localhost:3001'): Promise<string> {
+  connect(serverUrl: string = resolveServerUrl()): Promise<string> {
     return new Promise((resolve, reject) => {
       this.socket = io(serverUrl, {
         transports: ['websocket'],

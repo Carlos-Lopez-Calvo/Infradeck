@@ -1,5 +1,5 @@
 import { GameState, CreatureOnBoard, GamePhase, AttackResult, getCardByIdGlobal } from './game-state'
-import { getCurrentPlayerIndex, getOpponentPlayerIndex } from './turns'
+import { addCardToHandOrGraveyard, getCurrentPlayerIndex, getOpponentPlayerIndex } from './turns'
 import { hasFinalStandImmunity, checkAndActivateFinalStand } from './final-stand'
 import { notifyEffectTriggered, notifyLeaveBattlefield, triggerPriority } from './priority'
 import { applyAction } from './effects/dispatcher'
@@ -146,6 +146,8 @@ export function declareAttackCreature(
   if (!atk) return { ok: false, error: 'Atacante inválido' }
   if (!def) return { ok: false, error: 'Defensor inválido' }
   if (!forcedBySpell && atk.exhausted) return { ok: false, error: 'Esta criatura está exhausta' }
+
+  const attackerEntityId = atk.id
 
   // SIGILO solo bloquea ataques declarados normales, no ataques forzados por hechizo
   if (!forcedBySpell && hasAbility(def, Ability.SIGILO)) {
@@ -310,7 +312,7 @@ export function declareAttackCreature(
         if (me.deck.length > 0) {
           const drawn = me.deck.shift()
           if (drawn) {
-            me.hand.push(drawn)
+            addCardToHandOrGraveyard(state, attackerIndex, drawn)
             console.log('[COMBAT] drew card from tempDrawOnKill', { 
               card: drawn,
               handSize: me.hand.length 
@@ -330,14 +332,16 @@ export function declareAttackCreature(
     })
   }
 
-  // Exhaust solo en ataques normales (no forzados por hechizo)
-  if (!forcedBySpell && me.board[attackerBoardIndex]) {
-    me.board[attackerBoardIndex].exhausted = true
+  // Exhaust solo al atacante que sigue en mesa (índice viejo inválido si murió y hubo splice)
+  if (!forcedBySpell) {
+    const stillIdx = me.board.findIndex((c) => c.id === attackerEntityId)
+    if (stillIdx >= 0) me.board[stillIdx].exhausted = true
   }
 
   // DOBLE_GOLPE: segundo impacto solo del atacante
   if (hasAbility(atk, Ability.DOBLE_GOLPE)) {
-    const atkNow = me.board[attackerBoardIndex]
+    const atkIdx2 = me.board.findIndex((c) => c.id === attackerEntityId)
+    const atkNow = atkIdx2 >= 0 ? me.board[atkIdx2] : undefined
     const defNow = opp.board[defenderBoardIndex]
     if (atkNow && defNow) {
       const dmg = atkNow.attack ?? 0
@@ -381,7 +385,7 @@ export function declareAttackCreature(
           for (let i = 0; i < atkNow.tempDrawOnKill; i++) {
             if (me.deck.length > 0) {
               const drawn = me.deck.shift()
-              if (drawn) me.hand.push(drawn)
+              if (drawn) addCardToHandOrGraveyard(state, attackerIndex, drawn)
             }
           }
         }

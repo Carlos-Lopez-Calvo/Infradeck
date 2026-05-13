@@ -137,7 +137,7 @@ export function OnlineGameProvider({ children }: { children: React.ReactNode }) 
       })
     } catch (error) {
       console.error('[CLIENT] Failed to connect:', error)
-      alert('No se pudo conectar al servidor. Asegúrate de que el servidor esté corriendo en http://localhost:3001')
+      alert('No se pudo conectar al servidor. Verifica que el backend esté corriendo y accesible en el puerto 3001.')
     }
   }
 

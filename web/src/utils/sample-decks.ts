@@ -21,22 +21,20 @@ const fillToThirty = (classCards: string[]) => {
   return deck.slice(0, 30)
 }
 
-const FIRST_30_CARDS = [
-  'Fanatico_Desesperado','Fanatico_Desesperado','Fanatico_Desesperado','Fanatico_Desesperado','Fanatico_Desesperado','Fanatico_Desesperado','Fanatico_Desesperado','Fanatico_Desesperado',
-  'Berserker_Sanguinario',
-  'Cazador_de_Recompensas',
-  'Ritual_Sangriento',
-  'Guerrero_Herido',
-  'Senor_de_la_Sangre',
-  'Pacto_de_Poder',
-  'Pacto_Final',
-  'Frenesi_Final',
-  'Avatar_de_la_Destruccion',
-] as const
+/** 30 cartas repitiendo solo ids del pool (p. ej. mazo de prueba mono-clase). */
+const fillToThirtyFromPool = (pool: readonly string[]) => {
+  const deck: string[] = []
+  let idx = 0
+  while (deck.length < 30) {
+    deck.push(pool[idx % pool.length]!)
+    idx += 1
+  }
+  return deck
+}
 
 export const sampleDecks = {
-  // Mazo de prueba: todas las cartas de clase ABOMINACION + relleno básico
-  ABOMINACION: fillToThirty([
+  // Mazo de prueba: solo cartas de clase ABOMINACION (13 únicas, repetidas hasta 30)
+  ABOMINACION: fillToThirtyFromPool([
     'Especimen_Perfecto',
     'Especimen_Perfecto_Final_Stand',
     'Especimen_Perfecto_Evolucionado',
@@ -66,8 +64,19 @@ export const sampleDecks = {
     'realidad_fracturada',
   ]),
 
-  // Mazo de prueba: solo cartas de clase VITALIDAD
-  VITALIDAD: [...FIRST_30_CARDS],
+  // Mazo de prueba: cartas de clase VITALIDAD + relleno básico general
+  VITALIDAD: fillToThirty([
+    'Fanatico_Desesperado',
+    'Berserker_Sanguinario',
+    'Cazador_de_Recompensas',
+    'Ritual_Sangriento',
+    'Guerrero_Herido',
+    'Senor_de_la_Sangre',
+    'Pacto_de_Poder',
+    'Pacto_Final',
+    'Frenesi_Final',
+    'Avatar_de_la_Destruccion',
+  ]),
 }
 
 // Mazo del bot VITALIDAD: solo criaturas (generales + clase VITALIDAD)

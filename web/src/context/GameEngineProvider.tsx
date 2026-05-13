@@ -1,18 +1,19 @@
 // apps/web/src/store/GameEngineProvider.tsx
-import React, { createContext, useContext, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import React, { createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import {
   GameState, createGame, startGame,
   startTurn as engineStartTurn, endTurn as engineEndTurn,
   setCardResolver, setPriorityWindow, playCard, setDiscoverRequest, setScryRequest, setAdvancedSelectionRequest,
   BASIC_CARDS_BY_ID, CLASS_CARDS_BY_ID, declareAttackHero, declareAttackCreature,
   EffectActionType, EffectTarget, EffectTiming,
-  summonSpecimen
+  summonSpecimen,
+  addCardToHandOrGraveyard,
 } from '@infradeck/shared'
 
 import { Card as UICard } from '../components/Card'
 import { UnifiedTargetModal, TargetType, TargetSelection } from '../components/UnifiedTargetModal'
 
-import { sampleDecks, botVitalidadCreatureDeck } from '../utils/sample-decks'
+import { sampleDecks } from '../utils/sample-decks'
 
 const delay = (ms: number) => new Promise(r => setTimeout(r, ms))
 const BOT_ENABLED = true
@@ -28,6 +29,7 @@ const shuffleArray = <T,>(arr: T[]) => {
 type Ctx = {
   gameState: GameState
   setGameState: React.Dispatch<React.SetStateAction<GameState>>
+  localPlayerIndex: number
   currentPlayer: GameState['players'][number]
   opponentPlayer: GameState['players'][number]
   isMyTurn: boolean
@@ -69,11 +71,11 @@ type DiscoverModalState =
 export function GameEngineProvider({ children }: { children: React.ReactNode }) {
   const [gameState, setGameState] = useState<GameState>(() => {
     // Elige aquí los mazos a probar
-    const p1Class = 'VITALIDAD' as const
+    const p1Class = 'ABOMINACION' as const
     const p2Class = 'VITALIDAD' as const
     const state = createGame(
       { id: 'player1', name: 'Player 1', classType: p1Class, deck: [...sampleDecks[p1Class]], programmedSpecimenEffects: [] },
-      { id: 'player2', name: 'Player 2', classType: p2Class, deck: [...botVitalidadCreatureDeck], programmedSpecimenEffects: [] },
+      { id: 'player2', name: 'Player 2', classType: p2Class, deck: [...sampleDecks[p2Class]], programmedSpecimenEffects: [] },
     )
     startGame(state)
     return state
@@ -151,7 +153,7 @@ useLayoutEffect(() => {
 
       const randomIndex = Math.floor(Math.random() * revealed.length)
       const [selectedCard] = revealed.splice(randomIndex, 1)
-      player.hand.push(selectedCard)
+      addCardToHandOrGraveyard(state, playerIndex, selectedCard)
       player.deck.push(...revealed)
       shuffleArray(player.deck)
       console.log('[ADVANCED_SELECTION BOT] resolved', {
@@ -194,6 +196,20 @@ useLayoutEffect(() => {
   const isMyTurn = gameState.turn.currentPlayerIndex === meIndex
   const processedTurnRef = useRef(processedTurnRefInit)
   const botTurnKey = `${gameState.turn.turnNumber}:${gameState.turn.currentPlayerIndex}`
+
+  useEffect(() => {
+    const d = gameState.lastHandOverflowDiscard
+    if (!d || d.playerIndex !== meIndex) return
+    const at = d.at
+    const t = window.setTimeout(() => {
+      setGameState((prev) => {
+        const cur = prev.lastHandOverflowDiscard
+        if (!cur || cur.at !== at) return prev
+        return { ...prev, lastHandOverflowDiscard: null }
+      })
+    }, 2600)
+    return () => window.clearTimeout(t)
+  }, [gameState.lastHandOverflowDiscard, meIndex, setGameState])
 
   // Helpers UI “discover”
   const cardHasDiscover = (cardId: string | undefined) => {
@@ -724,7 +740,15 @@ summonSpecimen: () => {
     return act?.target === EffectTarget.TARGET_CREATURE || act?.target === EffectTarget.TARGET_FRIENDLY_CREATURE
   }
 
-  const value: Ctx = { gameState, setGameState, currentPlayer, opponentPlayer, isMyTurn, actions }
+  const value: Ctx = {
+    gameState,
+    setGameState,
+    localPlayerIndex: meIndex,
+    currentPlayer,
+    opponentPlayer,
+    isMyTurn,
+    actions,
+  }
   return (
     <>
       <GameEngineContext.Provider value={value}>{children}</GameEngineContext.Provider>
@@ -750,6 +774,35 @@ summonSpecimen: () => {
           </div>
         </div>
       )}
+
+      {/* Popup: mano llena → carta al cementerio */}
+      {(() => {
+        const d = gameState.lastHandOverflowDiscard
+        if (!d || d.playerIndex !== meIndex) return null
+        const card = BASIC_CARDS_BY_ID[d.cardId] ?? CLASS_CARDS_BY_ID[d.cardId]
+        if (!card) return null
+        return (
+          <div
+            className="pointer-events-none fixed inset-0 z-[9990] flex items-center justify-end bg-black/20 pr-3 md:pr-10"
+            aria-modal="true"
+            role="alertdialog"
+            aria-labelledby="hand-overflow-popup-title"
+          >
+            <div className="pointer-events-auto flex max-h-[min(90vh,520px)] max-w-[min(22rem,calc(100vw-1.5rem))] flex-col items-center gap-3 rounded-2xl border border-amber-500/50 bg-zinc-950/96 px-5 py-5 shadow-2xl ring-1 ring-amber-400/25">
+              <div
+                id="hand-overflow-popup-title"
+                className="text-center text-sm font-bold uppercase tracking-wide text-amber-200"
+              >
+                Mano llena
+              </div>
+              <p className="text-center text-xs text-slate-400">La carta robada va al cementerio</p>
+              <div className="hand-overflow-discard-anim origin-center">
+                <UICard card={card as any} />
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
           {/* Overlay Discover (BASE/BUFF) */}
 {discoverModal && !discoverMinimized && (() => {
@@ -918,7 +971,7 @@ summonSpecimen: () => {
             const pickIndex =
               selectedPosition >= 0 && selectedPosition < revealed.length ? selectedPosition : 0
             const [selectedCard] = revealed.splice(pickIndex, 1)
-            player.hand.push(selectedCard)
+            addCardToHandOrGraveyard(next, playerIndex, selectedCard)
             player.deck.push(...revealed)
             shuffleArray(player.deck)
             console.log('[ADVANCED_SELECTION UI] resolved', {

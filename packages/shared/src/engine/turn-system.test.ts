@@ -5,7 +5,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest'
 import { createGame, GameState, GamePhase } from './game-state'
-import { startTurn, endTurn, getCurrentPlayerIndex } from './turns'
+import { startTurn, endTurn, getCurrentPlayerIndex, draw, MAX_HAND_SIZE } from './turns'
 import { playCard } from './game-state'
 import { declareAttackHero, declareAttackCreature } from './combat'
 import { BASIC_CARDS } from '../cards/basic-cards'
@@ -117,6 +117,20 @@ describe('🎮 Hearthstone-style Turn System', () => {
       startTurn(state)
       
       expect(state.players[0].hand.length).toBe(initialHandSize + 1)
+    })
+
+    it('should send drawn card to graveyard when hand is at max size', () => {
+      state.turn.turnNumber = 2
+      state.turn.currentPlayerIndex = 0
+      const p = state.players[0]
+      p.hand = Array(MAX_HAND_SIZE).fill('Soldado_Veterano') as string[]
+      const topOfDeck = p.deck[0]
+      expect(topOfDeck).toBeDefined()
+
+      draw(state, 0, 1)
+
+      expect(p.hand.length).toBe(MAX_HAND_SIZE)
+      expect(p.graveyard[0]).toBe(topOfDeck)
     })
 
     it('should NOT draw on first turn of first player', () => {

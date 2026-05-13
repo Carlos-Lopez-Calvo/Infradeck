@@ -45,7 +45,7 @@ export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
       onAuthenticated()
     } catch (e: any) {
       console.error(e)
-      alert(e?.message || 'Error de autenticación. Asegúrate de que el servidor esté levantado en http://localhost:3001')
+      alert(e?.message || 'Error de autenticación. Verifica que el backend esté corriendo y accesible en el puerto 3001.')
     } finally {
       setSubmitting(false)
     }

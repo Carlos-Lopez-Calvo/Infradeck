@@ -9,7 +9,7 @@
  */
 
 import { EffectContext } from './core'
-import { EffectActionType, DiscoverPayLifeOptions } from '../../types/cards'
+import { EffectActionType, EffectTarget, DiscoverPayLifeOptions } from '../../types/cards'
 import { onDiscoverRequest } from '../game-state'
 import { notifyLeaveBattlefield, notifyEffectTriggered } from '../priority'
 import { declareAttackCreature } from '../combat'
@@ -66,13 +66,16 @@ export function handleDiscoverPayLife(ctx: EffectContext): void {
     }
   }
   
-  // Aplicar efecto correspondiente
+  const selfHints = action.target === EffectTarget.SELF ? targetHints : undefined
+
   if (choice === 'BUFF' && options?.buff) {
     console.log('[DISCOVER_PAY_LIFE] applying BUFF ->', options.buff)
-    dispatchAction(state, playerIndex, options.buff, targetHints)
+    const hints = options.buff.target === EffectTarget.SELF ? selfHints : undefined
+    dispatchAction(state, playerIndex, options.buff, hints)
   } else if (options?.base) {
     console.log('[DISCOVER_PAY_LIFE] applying BASE ->', options.base)
-    dispatchAction(state, playerIndex, options.base, targetHints)
+    const hints = options.base.target === EffectTarget.SELF ? selfHints : undefined
+    dispatchAction(state, playerIndex, options.base, hints)
   }
 
   // Si cambió vida como recurso, refrescar pasivos condicionales (p.ej. Vampiro Ancestral).

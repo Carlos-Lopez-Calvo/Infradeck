@@ -37,6 +37,28 @@ body, html, #root {
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
+
+  @keyframes hand-overflow-discard {
+    0% {
+      opacity: 1;
+      filter: blur(0);
+      transform: scale(1) translateX(0);
+    }
+    12% {
+      opacity: 1;
+      filter: blur(0);
+      transform: scale(1.06) translateX(0);
+    }
+    100% {
+      opacity: 0;
+      filter: blur(14px);
+      transform: scale(0.82) translateX(18px);
+    }
+  }
+
+  .hand-overflow-discard-anim {
+    animation: hand-overflow-discard 2.2s ease-in-out forwards;
+  }
 }
 
 /* CSS custom properties para class colors */

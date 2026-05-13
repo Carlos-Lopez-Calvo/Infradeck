@@ -7,6 +7,19 @@ import { applyFinalStandBonus } from './final-stand'
 // Gestión de turnos
 // =======================
 
+/** Mano máxima; el exceso al robar va al cementerio. */
+export const MAX_HAND_SIZE = 10
+
+export function addCardToHandOrGraveyard(state: GameState, playerIndex: number, cardId: string): void {
+  const p = state.players[playerIndex]
+  if (p.hand.length >= MAX_HAND_SIZE) {
+    p.graveyard.unshift(cardId)
+    state.lastHandOverflowDiscard = { playerIndex, cardId, at: Date.now() }
+  } else {
+    p.hand.push(cardId)
+  }
+}
+
 export function getCurrentPlayerIndex(state: GameState): number {
   return state.turn.currentPlayerIndex
 }
@@ -74,7 +87,7 @@ export function draw(state: GameState, playerIndex: number, count = 1): void {
   for (let i = 0; i < count; i++) {
     const top = p.deck.shift()
     if (!top) break
-    p.hand.push(top)
+    addCardToHandOrGraveyard(state, playerIndex, top)
   }
   updateConditionalBuffs(state, playerIndex)
 }

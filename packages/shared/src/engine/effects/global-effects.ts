@@ -254,6 +254,15 @@ export function handleBuffStats(ctx: EffectContext): void {
     const x = Math.max(0, (me.maxLife ?? 20) - me.life)
     addAtk = x
     addHp = x
+  } else if (val === 'TOTAL_ABILITIES_ON_BOARD') {
+    let n = 0
+    for (const p of state.players) {
+      for (const c of p.board) {
+        if (Array.isArray(c.abilities)) n += c.abilities.length
+      }
+    }
+    addAtk = n
+    addHp = n
   } else {
     const m = val.match(/^\+?(-?\d+)\/\+?(-?\d+)$/)
     addAtk = m ? parseInt(m[1], 10) : 0
