@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { GoogleOAuthProvider } from '@react-oauth/google'
 import { GameBoard } from './components/GameBoard'
 import { OnlineGameBoard } from './components/OnlineGameBoard'
 import { GameEngineProvider } from './context/GameEngineProvider'
@@ -8,8 +9,10 @@ import { AuthProvider, useAuth } from './context/AuthContext'
 import { HomeScreen } from './components/HomeScreen'
 import { Landing } from './components/Landing'
 import { AuthScreen } from './components/AuthScreen'
+import { DeckManagerScreen } from './components/DeckManagerScreen'
+import { CollectionScreen } from './components/CollectionScreen'
 
-type Route = 'landing' | 'auth' | 'menu' | 'local' | 'online'
+type Route = 'landing' | 'auth' | 'menu' | 'local' | 'online' | 'decks' | 'collection'
 
 function AppContent() {
   const { gameState } = useOnlineGame()
@@ -18,7 +21,7 @@ function AppContent() {
 
   // Redirigir a login si se intenta ir a rutas protegidas sin usuario
   useEffect(() => {
-    if (!loading && !user && (route === 'menu' || route === 'local' || route === 'online')) {
+    if (!loading && !user && (route === 'menu' || route === 'local' || route === 'online' || route === 'decks' || route === 'collection')) {
       setRoute('auth')
     }
   }, [user, loading, route])
@@ -43,9 +46,18 @@ function AppContent() {
       <HomeScreen
         onStartLocal={() => setRoute('local')}
         onStartOnline={() => setRoute('online')}
-        onOpenDecks={() => setRoute('local')}
+        onOpenCollection={() => setRoute('collection')}
+        onOpenDecks={() => setRoute('decks')}
       />
     )
+  }
+
+  if (route === 'collection') {
+    return <CollectionScreen onBack={() => setRoute('menu')} />
+  }
+
+  if (route === 'decks') {
+    return <DeckManagerScreen onBack={() => setRoute('menu')} />
   }
 
   if (route === 'online') {
@@ -89,14 +101,22 @@ function AppContent() {
   )
 }
 
+const googleClientId = (import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined)?.trim() ?? ''
+
 function App() {
-  return (
+  const content = (
     <AuthProvider>
       <OnlineGameProvider>
         <AppContent />
       </OnlineGameProvider>
     </AuthProvider>
   )
+
+  if (!googleClientId) {
+    return content
+  }
+
+  return <GoogleOAuthProvider clientId={googleClientId}>{content}</GoogleOAuthProvider>
 }
 
 export default App

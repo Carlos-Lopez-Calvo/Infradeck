@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from 'react'
+import { GoogleLogin, type CredentialResponse } from '@react-oauth/google'
 import { useAuth } from '../context/AuthContext'
+
+const googleClientId = (import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined)?.trim() ?? ''
 
 type AuthScreenProps = {
   onAuthenticated: () => void
@@ -8,7 +11,7 @@ type AuthScreenProps = {
 type Mode = 'login' | 'register'
 
 export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
-  const { user, loading, register, login } = useAuth()
+  const { user, loading, register, login, loginWithGoogle } = useAuth()
   const [mode, setMode] = useState<Mode>('login')
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
@@ -21,6 +24,23 @@ export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
       onAuthenticated()
     }
   }, [user, loading, onAuthenticated])
+
+  const handleGoogleSuccess = async (response: CredentialResponse) => {
+    if (!response.credential) {
+      alert('No se recibió credencial de Google')
+      return
+    }
+    try {
+      setSubmitting(true)
+      await loginWithGoogle(response.credential)
+      onAuthenticated()
+    } catch (e: unknown) {
+      console.error(e)
+      alert(e instanceof Error ? e.message : 'Error al iniciar sesión con Google')
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   const handleSubmit = async () => {
     try {
@@ -66,13 +86,24 @@ export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
             </p>
           </header>
 
-          {/* Placeholder para login con Google - se puede implementar más adelante */}
-          <button
-            disabled
-            className="w-full px-4 py-2.5 rounded-xl bg-slate-800 text-slate-300 border border-slate-600 cursor-not-allowed"
-          >
-            Próximamente: Continuar con Google
-          </button>
+          {googleClientId ? (
+            <div className="flex justify-center">
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={() => alert('No se pudo conectar con Google')}
+                theme="filled_black"
+                size="large"
+                text="continue_with"
+                shape="pill"
+                locale="es"
+                useOneTap={false}
+              />
+            </div>
+          ) : (
+            <p className="text-xs text-slate-500 text-center">
+              Login con Google: define VITE_GOOGLE_CLIENT_ID en web/.env
+            </p>
+          )}
 
           <div className="relative">
             <div className="absolute inset-0 flex items-center" aria-hidden="true">
@@ -165,10 +196,6 @@ export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
             </button>
           </div>
 
-          <p className="text-[11px] text-slate-500 text-left">
-            Este registro usa usuario, correo y contraseña reales a nivel de backend (con hash).
-            Más adelante se puede añadir verificación de correo y login con Google sin cambiar el flujo principal.
-          </p>
         </div>
       </div>
     </div>

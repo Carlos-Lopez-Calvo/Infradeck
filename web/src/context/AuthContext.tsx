@@ -18,6 +18,7 @@ type AuthContextType = {
   loading: boolean
   register: (data: { username: string; email: string; password: string }) => Promise<void>
   login: (data: { email: string; password: string }) => Promise<void>
+  loginWithGoogle: (credential: string) => Promise<void>
   logout: () => void
   authFetch: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
 }
@@ -129,7 +130,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (code === 'invalid_credentials') {
         throw new Error('Credenciales inválidas')
       }
+      if (code === 'use_google_signin') {
+        throw new Error('Esta cuenta usa Google. Pulsa "Continuar con Google".')
+      }
       throw new Error('No se pudo iniciar sesión')
+    }
+
+    const payload = (await res.json()) as { accessToken: string; user: User }
+    persistSession(payload.accessToken, payload.user)
+  }
+
+  const loginWithGoogle = async (credential: string) => {
+    const res = await fetch(`${API_BASE}/auth/google`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ credential }),
+    })
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}))
+      const code = (body as { error?: string })?.error
+      if (code === 'invalid_google_token') {
+        throw new Error('Token de Google inválido o expirado')
+      }
+      if (code === 'google_email_required') {
+        throw new Error('Google no proporcionó un email verificado')
+      }
+      if (code === 'google_account_conflict') {
+        throw new Error('Este email ya está vinculado a otra cuenta de Google')
+      }
+      if (code === 'google_not_configured') {
+        throw new Error('Login con Google no configurado en el servidor')
+      }
+      throw new Error('No se pudo iniciar sesión con Google')
     }
 
     const payload = (await res.json()) as { accessToken: string; user: User }
@@ -154,7 +187,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, register, login, logout, authFetch }}>
+    <AuthContext.Provider value={{ user, token, loading, register, login, loginWithGoogle, logout, authFetch }}>
       {children}
     </AuthContext.Provider>
   )

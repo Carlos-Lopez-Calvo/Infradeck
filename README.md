@@ -1012,6 +1012,7 @@ El servidor está implementado en `packages/server/` con una arquitectura monol�
 // Auth
 POST   /auth/register           // Crear cuenta (username, email, password)
 POST   /auth/login              // Login → JWT token (7d expiry)
+POST   /auth/google             // Login/registro con ID token de Google → JWT
 
 // User
 GET    /me                      // Perfil + stats (requireAuth)
@@ -1024,6 +1025,43 @@ POST   /me/rewards              // Añadir gold/gems (requireAuth)
 // Health
 GET    /health                  // Status check
 ```
+
+#### **Login con Google**
+
+Flujo: el frontend obtiene un ID token con [Google Identity Services](https://developers.google.com/identity) (`@react-oauth/google`) y el backend lo verifica con `google-auth-library`. Mismo JWT y sesión que email/contraseña. Si el email ya existe con contraseña, la cuenta se vincula automáticamente.
+
+**Google Cloud Console** (Credentials → OAuth 2.0 Client ID → Web application):
+
+- **Authorized JavaScript origins** (añade todas las que uses; deben coincidir exactamente con la barra del navegador):
+  - `http://localhost:5173`
+  - `http://127.0.0.1:5173`
+  - Si abres por IP de red (Vite muestra `Network:`): p. ej. `http://192.168.1.134:5173`
+- Tipo de cliente: **Web application** (no Desktop ni Android)
+- No uses el **Client Secret** en esta app; solo el **Client ID**
+- No hace falta Client Secret para este flujo
+
+**Variables de entorno:**
+
+| Variable | Dónde | Descripción |
+|----------|-------|-------------|
+| `GOOGLE_CLIENT_ID` | `packages/server/.env` | Mismo Client ID (verificación del token) |
+| `VITE_GOOGLE_CLIENT_ID` | `web/.env` | Mismo Client ID (botón de Google en el SPA) |
+| `JWT_SECRET` | `packages/server/.env` | Secreto JWT (ya usado por auth email) |
+
+Ejemplo `packages/server/.env`:
+
+```
+JWT_SECRET=tu_secreto
+GOOGLE_CLIENT_ID=123456789-xxxx.apps.googleusercontent.com
+```
+
+Ejemplo `web/.env`:
+
+```
+VITE_GOOGLE_CLIENT_ID=123456789-xxxx.apps.googleusercontent.com
+```
+
+Sin `VITE_GOOGLE_CLIENT_ID`, el login email/contraseña sigue funcionando; el botón de Google no se muestra.
 
 #### **Eventos WebSocket implementados**
 

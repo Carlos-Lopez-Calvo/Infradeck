@@ -4,22 +4,6 @@
  */
 
 // ===== ENUMS BÁSICOS =====
-export function Card({ card, showMana = true }: { card: any; showMana?: boolean }) {
-  // Normalizaciones seguras
-  const abilities = Array.isArray(card.abilities) ? card.abilities : []
-  const effects = Array.isArray(card.effects) ? card.effects : []
-  const attack = typeof card.attack === 'number' ? card.attack : 0
-  const health = typeof card.health === 'number' ? card.health : 0
-
-  // ...resto del componente
-
-  // Donde antes hacías:
-  // {card.abilities.map(...)}  -> usa:
-  // {abilities.map(...)}
-
-  // Si iteras efectos:
-  // {effects.map(...)}
-}
 
 export enum CardType {
   CREATURE = 'CREATURE',
@@ -266,7 +250,13 @@ export interface DeckValidation {
 }
 
 export interface DeckValidationError {
-  type: 'DECK_SIZE' | 'TOO_MANY_COPIES' | 'INVALID_CLASS_CARDS' | 'MISSING_REQUIRED_CARDS'
+  type:
+    | 'DECK_SIZE'
+    | 'TOO_MANY_COPIES'
+    | 'INVALID_CLASS_CARDS'
+    | 'MISSING_REQUIRED_CARDS'
+    | 'INSUFFICIENT_OWNED'
+    | 'UNKNOWN_CARD'
   cardId?: string
   message: string
 }

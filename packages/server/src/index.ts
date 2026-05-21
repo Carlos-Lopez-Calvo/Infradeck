@@ -1,3 +1,4 @@
+import 'dotenv/config'
 import express, { type NextFunction, type Request, type Response } from 'express'
 import { createServer } from 'http'
 import { Server } from 'socket.io'
@@ -10,6 +11,8 @@ import { prisma } from './db.js'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import { extractBearerToken, normalizeRewardPayload } from './auth-economy-utils.js'
+import { upsertUserFromGoogle, verifyGoogleCredential } from './google-auth.js'
+import { getFullCollectionOwned, getFullCollectionRows } from './collection-utils.js'
 
 const app = express()
 const httpServer = createServer(app)
@@ -196,6 +199,10 @@ app.post('/auth/login', async (req, res) => {
       return res.status(401).json({ error: 'invalid_credentials' })
     }
 
+    if (!user.passwordHash) {
+      return res.status(401).json({ error: 'use_google_signin' })
+    }
+
     const ok = await bcrypt.compare(password, user.passwordHash)
     if (!ok) {
       return res.status(401).json({ error: 'invalid_credentials' })
@@ -208,6 +215,48 @@ app.post('/auth/login', async (req, res) => {
     })
   } catch (error) {
     console.error('[AUTH] login error', error)
+    return res.status(500).json({ error: 'internal_error' })
+  }
+})
+
+app.post('/auth/google', async (req, res) => {
+  try {
+    const { credential } = req.body as { credential?: string }
+    if (!credential?.trim()) {
+      return res.status(400).json({ error: 'credential_required' })
+    }
+
+    let googlePayload
+    try {
+      googlePayload = await verifyGoogleCredential(credential.trim())
+    } catch (err) {
+      const code = err instanceof Error ? err.message : 'invalid_google_token'
+      if (code === 'google_not_configured') {
+        return res.status(503).json({ error: code })
+      }
+      if (code === 'google_email_required') {
+        return res.status(400).json({ error: code })
+      }
+      return res.status(401).json({ error: 'invalid_google_token' })
+    }
+
+    let user
+    try {
+      user = await upsertUserFromGoogle(prisma, googlePayload)
+    } catch (err) {
+      if (err instanceof Error && err.message === 'google_account_conflict') {
+        return res.status(409).json({ error: 'google_account_conflict' })
+      }
+      throw err
+    }
+
+    const accessToken = signAccessToken(user.id)
+    return res.json({
+      accessToken,
+      user: buildPublicUser(user),
+    })
+  } catch (error) {
+    console.error('[AUTH] google error', error)
     return res.status(500).json({ error: 'internal_error' })
   }
 })
@@ -257,11 +306,7 @@ app.get('/me/collection', requireAuth, async (req: AuthenticatedRequest, res) =>
       return res.status(401).json({ error: 'missing_token' })
     }
 
-    const collection = await prisma.userCard.findMany({
-      where: { userId },
-      orderBy: [{ owned: 'desc' }, { cardId: 'asc' }],
-    })
-
+    const collection = await getFullCollectionRows()
     return res.json(collection)
   } catch (error) {
     console.error('[ME] collection error', error)
@@ -309,12 +354,29 @@ app.post('/me/decks', requireAuth, async (req: AuthenticatedRequest, res) => {
       return res.status(400).json({ error: 'name, classType and cards are required' })
     }
 
-    if (!cards.length) {
-      return res.status(400).json({ error: 'deck must have at least one card' })
+    const allowedClasses = ['ABOMINACION', 'CAOS', 'VITALIDAD'] as const
+    if (!allowedClasses.includes(classType as (typeof allowedClasses)[number])) {
+      return res.status(400).json({ error: 'invalid_class_type' })
     }
 
-    if (classType === 'CICLO') {
-      return res.status(400).json({ error: 'class_not_supported' })
+    const collectionOwned = await getFullCollectionOwned()
+
+    const {
+      validateDeckPayload: validateDeck,
+      BASIC_CARDS_BY_ID,
+      CLASS_CARDS_BY_ID,
+    } = await import('@infradeck/shared')
+
+    const getCard = (cid: string) => BASIC_CARDS_BY_ID[cid] ?? CLASS_CARDS_BY_ID[cid]
+
+    const validation = validateDeck({
+      classType: classType as import('@infradeck/shared').ClassType,
+      lines: cards.map((c) => ({ cardId: c.cardId, count: c.count ?? 1 })),
+      getCard,
+      collectionOwned,
+    })
+    if (!validation.isValid) {
+      return res.status(400).json({ error: 'invalid_deck', details: validation.errors })
     }
 
     if (id) {

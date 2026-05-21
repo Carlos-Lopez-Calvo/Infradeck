@@ -37,6 +37,7 @@ src/types.ts          → Tipos Socket.IO (ClientToServerEvents, ServerToClientE
 | `/health` | GET | No |
 | `/auth/register` | POST | No |
 | `/auth/login` | POST | No |
+| `/auth/google` | POST | No |
 | `/me` | GET | Sí |
 | `/me/collection` | GET | Sí |
 | `/me/decks` | GET/POST | Sí |

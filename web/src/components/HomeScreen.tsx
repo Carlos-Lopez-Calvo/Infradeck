@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext'
 type HomeScreenProps = {
   onStartLocal: () => void
   onStartOnline: () => void
+  onOpenCollection: () => void
   onOpenDecks: () => void
 }
 
@@ -104,7 +105,7 @@ function MenuPlaceholderIcon({ id, active }: { id: SectionId; active: boolean })
   )
 }
 
-export function HomeScreen({ onStartLocal, onStartOnline, onOpenDecks }: HomeScreenProps) {
+export function HomeScreen({ onStartLocal, onStartOnline, onOpenCollection, onOpenDecks }: HomeScreenProps) {
   const { user } = useAuth()
   const [activeSection, setActiveSection] = useState<SectionId>('play')
   const [renderedSection, setRenderedSection] = useState<SectionId>('play')
@@ -223,7 +224,7 @@ export function HomeScreen({ onStartLocal, onStartOnline, onOpenDecks }: HomeScr
               {current.id === 'cards' && (
                 <div className="mt-8 flex flex-wrap gap-3">
                   <button
-                    onClick={onOpenDecks}
+                    onClick={onOpenCollection}
                     className="rounded-xl border border-sky-200/60 bg-sky-300/12 px-6 py-3 text-sm font-semibold tracking-[0.08em] text-sky-100 shadow-[0_8px_26px_rgba(56,189,248,0.26)] transition-all duration-300 hover:scale-[1.03] hover:bg-sky-300/18"
                   >
                     Open Collection

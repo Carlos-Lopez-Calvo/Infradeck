@@ -2,12 +2,14 @@
     "name": "@infradeck/shared",
     "version": "1.0.0",
     "scripts": {
+      "build": "tsc",
       "test": "vitest",
       "test:watch": "vitest --watch",
       "test:cards": "vitest basic-cards.test.ts",
       "test:class-cards": "vitest class-cards.test.ts"
     },
     "devDependencies": {
+      "@types/node": "^20.10.0",
       "vitest": "^1.0.0",
       "typescript": "^5.0.0"
     }

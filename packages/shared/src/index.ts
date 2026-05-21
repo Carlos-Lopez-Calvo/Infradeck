@@ -16,3 +16,7 @@ export * from './engine/utils'
 export * from './cards/basic-cards'    // ✅ Debe exportar basicCards
 export * from './cards/class-cards'    // ✅ Debe exportar classCards
 
+// Deck building
+export * from './deck/deck-catalog'
+export * from './deck/deck-validation'
+
