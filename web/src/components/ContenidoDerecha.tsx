@@ -1,7 +1,7 @@
 import React from 'react'
 import { StackMazo } from './Mazo'
 import { useGameEngine } from '../context/GameEngineProvider'
-import { getSpecimenCost } from '@infradeck/shared'
+import { getSpecimenCost, hasSpecimenOnBoard } from '@infradeck/shared'
 
 export function ContenidoDerecha() {
     const { gameState, currentPlayer, actions, isMyTurn } = useGameEngine()
@@ -15,6 +15,7 @@ export function ContenidoDerecha() {
     const cr = currentPlayer.classResource
     const isAmalgama = currentPlayer.classType === 'ABOMINACION'
     const specimenCost = isAmalgama ? getSpecimenCost(currentPlayer as any) : undefined
+    const specimenOnBoard = isAmalgama ? hasSpecimenOnBoard(currentPlayer as any) : false
   const classResource =
     cr?.type === 'ENTROPIA' || cr?.type === 'CEMENTERIO'
       ? { name: cr.type, value: cr.amount ?? 0 }
@@ -37,9 +38,13 @@ export function ContenidoDerecha() {
               {isAmalgama && (
                 <button
                   className="mt-3 px-3 py-2 rounded-lg border border-white/30 bg-emerald-700 text-white text-sm disabled:opacity-50"
-                  disabled={!isMyTurn || (specimenCost ?? 0) > mana}
+                  disabled={!isMyTurn || specimenOnBoard || (specimenCost ?? 0) > mana}
                   onClick={() => actions.summonSpecimen()}
-                  title={`Invocar G4BR13L (${specimenCost ?? 0} maná)`}
+                  title={
+                    specimenOnBoard
+                      ? 'Ya tienes un espécimen en el campo'
+                      : `Invocar G4BR13L (${specimenCost ?? 0} maná)`
+                  }
                 >
                   Invocar G4BR13L ({specimenCost ?? 0})
                 </button>

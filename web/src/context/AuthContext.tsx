@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react'
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react'
 
 type User = {
   id: string
@@ -169,13 +169,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     persistSession(payload.accessToken, payload.user)
   }
 
-  const authFetch = (input: RequestInfo | URL, init: RequestInit = {}) => {
+  const authFetch = useCallback((input: RequestInfo | URL, init: RequestInit = {}) => {
     const headers = new Headers(init.headers ?? {})
     if (token) {
       headers.set('Authorization', `Bearer ${token}`)
     }
     return fetch(input, { ...init, headers })
-  }
+  }, [token])
 
   const logout = () => {
     setUser(null)

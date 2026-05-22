@@ -8,12 +8,17 @@ import {
   EffectActionType, EffectTarget, EffectTiming,
   summonSpecimen,
   addCardToHandOrGraveyard,
+  getWinnerPlayerIndex,
+  ClassType,
 } from '@infradeck/shared'
 
 import { Card as UICard } from '../components/Card'
+import { GameEndOverlay } from '../components/GameEndOverlay'
+import { GameEndMenuModal } from '../components/GameEndMenuModal'
 import { UnifiedTargetModal, TargetType, TargetSelection } from '../components/UnifiedTargetModal'
 
 import { sampleDecks } from '../utils/sample-decks'
+import type { PlayDeckConfig } from '../utils/play-deck'
 
 const delay = (ms: number) => new Promise(r => setTimeout(r, ms))
 const BOT_ENABLED = true
@@ -33,6 +38,8 @@ type Ctx = {
   currentPlayer: GameState['players'][number]
   opponentPlayer: GameState['players'][number]
   isMyTurn: boolean
+  isGameOver: boolean
+  onMyLifeClick?: () => void
   actions: {
     startTurn: () => void
     endTurn: () => void
@@ -68,22 +75,41 @@ type DiscoverModalState =
       buffLabel: string
     }
 
-export function GameEngineProvider({ children }: { children: React.ReactNode }) {
-  const [gameState, setGameState] = useState<GameState>(() => {
-    // Elige aquí los mazos a probar
-    const p1Class = 'ABOMINACION' as const
-    const p2Class = 'VITALIDAD' as const
-    const state = createGame(
-      { id: 'player1', name: 'Player 1', classType: p1Class, deck: [...sampleDecks[p1Class]], programmedSpecimenEffects: [] },
-      { id: 'player2', name: 'Player 2', classType: p2Class, deck: [...sampleDecks[p2Class]], programmedSpecimenEffects: [] },
-    )
-    startGame(state)
-    return state
-  })
+const BOT_CLASS = ClassType.VITALIDAD
 
-  const localPlayerId = typeof window !== 'undefined'
-    ? (localStorage.getItem('playerId') || 'player1')
-    : 'player1'
+function buildInitialGameState(playDeck: PlayDeckConfig): GameState {
+  const state = createGame(
+    {
+      id: 'player1',
+      name: playDeck.name,
+      classType: playDeck.classType,
+      deck: [...playDeck.deck],
+      programmedSpecimenEffects: [],
+    },
+    {
+      id: 'player2',
+      name: 'Bot',
+      classType: BOT_CLASS,
+      deck: [...sampleDecks[BOT_CLASS]],
+      programmedSpecimenEffects: [],
+    },
+  )
+  startGame(state)
+  return state
+}
+
+export function GameEngineProvider({
+  children,
+  playDeck,
+  onExitToMenu,
+}: {
+  children: React.ReactNode
+  playDeck: PlayDeckConfig
+  onExitToMenu?: () => void
+}) {
+  const [gameState, setGameState] = useState<GameState>(() => buildInitialGameState(playDeck))
+
+  const localPlayerId = 'player1'
 
     const getCardById = (id: string) => {
       return BASIC_CARDS_BY_ID[id] ?? CLASS_CARDS_BY_ID[id]
@@ -109,6 +135,7 @@ const scryDecisionRef = useRef<'TOP' | 'BOTTOM' | null>(null)
 
 type AdvancedSelectionModalState = null | { cards: string[]; playerIndex: number }
 const [advancedSelectionModal, setAdvancedSelectionModal] = useState<AdvancedSelectionModalState>(null)
+const [pauseMenuOpen, setPauseMenuOpen] = useState(false)
 
 useLayoutEffect(() => {
   setCardResolver(getCardById)
@@ -194,6 +221,9 @@ useLayoutEffect(() => {
   const currentPlayer = gameState.players[meIndex]
   const opponentPlayer = gameState.players[1 - meIndex]
   const isMyTurn = gameState.turn.currentPlayerIndex === meIndex
+  const gameWinner = getWinnerPlayerIndex(gameState)
+  const isGameOver = gameWinner !== null
+
   const processedTurnRef = useRef(processedTurnRefInit)
   const botTurnKey = `${gameState.turn.turnNumber}:${gameState.turn.currentPlayerIndex}`
 
@@ -387,7 +417,7 @@ lastPlaySigRef.current = sig
 
   const actions = useMemo(() => ({
     startTurn: () => {
-      if (!isMyTurn) return
+      if (isGameOver || !isMyTurn) return
       setGameState(prev => {
         const next: GameState = JSON.parse(JSON.stringify(prev))
         engineStartTurn(next)
@@ -395,6 +425,7 @@ lastPlaySigRef.current = sig
       })
     },
     endTurn: () => {
+      if (isGameOver) return
       console.log('[UI] endTurn clicked', { isMyTurn, currentPlayerIndex: gameState.turn.currentPlayerIndex })
       if (!isMyTurn) {
         console.log('[UI] endTurn blocked - not my turn')
@@ -418,7 +449,7 @@ lastPlaySigRef.current = sig
 
       
     playFromHand: (handIndex: number) => {
-      if (!isMyTurn || isPlayingRef.current) return
+      if (isGameOver || !isMyTurn || isPlayingRef.current) return
       isPlayingRef.current = true
       const pIdx = gameState.turn.currentPlayerIndex
       const cardId = gameState.players[pIdx].hand[handIndex]
@@ -596,7 +627,7 @@ lastPlaySigRef.current = sig
 },
 // apps/web/src/context/GameEngineProvider.tsx
 attackHero: (attackerBoardIndex: number) => {
-  if (!isMyTurn) return
+  if (isGameOver || !isMyTurn) return
   setGameState(prev => {
     console.log('[ACTIONS] attackHero start', {
       phase: prev.turn.phase,
@@ -611,7 +642,7 @@ attackHero: (attackerBoardIndex: number) => {
   })
 },
 attackCreature: (attackerBoardIndex: number, defenderBoardIndex: number) => {
-  if (!isMyTurn) return
+  if (isGameOver || !isMyTurn) return
   setGameState(prev => {
     console.log('[ACTIONS] attackCreature start', {
       phase: prev.turn.phase,
@@ -626,7 +657,7 @@ attackCreature: (attackerBoardIndex: number, defenderBoardIndex: number) => {
   })
 },
 summonSpecimen: () => {
-  if (!isMyTurn || isPlayingRef.current) return
+  if (isGameOver || !isMyTurn || isPlayingRef.current) return
   isPlayingRef.current = true
   const pIdx = gameState.turn.currentPlayerIndex
   const p = gameState.players[pIdx]
@@ -663,11 +694,11 @@ summonSpecimen: () => {
   })
   setTimeout(() => { isPlayingRef.current = false }, 0)
 },
-}), [isMyTurn, gameState.turn.currentPlayerIndex, gameState.players, setGameState])
+}), [isGameOver, isMyTurn, gameState.turn.currentPlayerIndex, gameState.players, setGameState])
 
   // Bot (estilo Hearthstone - sin fases de combate)
   useLayoutEffect(() => {
-    if (!BOT_ENABLED) return
+    if (!BOT_ENABLED || isGameOver) return
     const isBotTurn = !isMyTurn && (gameState.turn.phase === 'PLAYING')
     if (!isBotTurn) return
     if (processedTurnRef.current === botTurnKey) return
@@ -724,7 +755,7 @@ summonSpecimen: () => {
         return next
       })
     })()
-  }, [isMyTurn, gameState.turn.phase, botTurnKey])
+  }, [isGameOver, isMyTurn, gameState.turn.phase, botTurnKey])
 
   const chosenActionNeedsTarget = (playerIndex: number, handIndex: number, choice: 'BASE'|'BUFF') => {
     const p = gameState.players[playerIndex]
@@ -747,6 +778,8 @@ summonSpecimen: () => {
     currentPlayer,
     opponentPlayer,
     isMyTurn,
+    isGameOver,
+    onMyLifeClick: () => setPauseMenuOpen(true),
     actions,
   }
   return (
@@ -1023,6 +1056,23 @@ summonSpecimen: () => {
           </div>
         )
       })()}
+
+      {isGameOver && gameWinner !== null && (
+        <GameEndOverlay
+          isVictory={gameWinner === meIndex}
+          onExitToMenu={onExitToMenu}
+        />
+      )}
+
+      {pauseMenuOpen && (
+        <GameEndMenuModal
+          onExitToMenu={() => {
+            setPauseMenuOpen(false)
+            onExitToMenu?.()
+          }}
+          onResumeGame={() => setPauseMenuOpen(false)}
+        />
+      )}
     </>
   )
 }

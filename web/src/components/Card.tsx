@@ -94,8 +94,8 @@ return (
   </div>
 
       <div
-        className='w-full h-[45%] rounded-lg border-t flex flex-col px-1 bg-gray-900/40'
-        style={{ borderTopColor: classColor, paddingBottom: '1.5rem' }} // <-- Añade espacio inferior
+        className='w-full h-[45%] min-h-0 rounded-lg border-t flex flex-col px-1 bg-gray-900/40 overflow-hidden'
+        style={{ borderTopColor: classColor, paddingBottom: '1.5rem' }}
       >
                 <h1
           className='w-full text-[10px] md:text-xs font-bold text-white text-center rounded-lg border-b'
@@ -122,9 +122,9 @@ return (
   ))}
 </div>
         {/* Descripciones de efectos */}
-        <div className="w-full max-h-16 overflow-y-auto overflow-x-hidden text-start flex flex-col gap-0.5">
+        <div className="w-full min-h-0 flex-1 overflow-hidden text-start flex flex-col gap-0.5">
           {card.effects.length > 0 ? card.effects.map((effect, idx) => (
-            <p key={idx} className='text-white text-[10px] relative'>
+            <p key={idx} className='text-white text-[10px] relative line-clamp-2 leading-tight'>
               <span
                 className="font-bold cursor-pointer"
                 onMouseEnter={() => setHoveredTiming(idx)}
@@ -135,7 +135,7 @@ return (
               {effect.description.replace(/^[^:]+:\s*/i, "")}
             </p>
           )) : (
-            <p className='text-white text-[10px]'>
+            <p className='text-white text-[10px] line-clamp-3 leading-tight'>
               {card.description || 'Sin texto de efecto.'}
             </p>
           )}

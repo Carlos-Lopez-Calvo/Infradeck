@@ -47,46 +47,38 @@ export class GameRoomManager {
     const room = this.rooms.get(roomId)
     if (!room || room.players.length !== 2) return null
 
-    // Crear mazo de ejemplo para VITALIDAD (30 cartas)
-    const defaultDeck = [
-      // Cartas básicas (1 maná) - 10 cartas
+    const fallbackDeck = [
       'Mercenario', 'Mercenario',
       'Asesino_Delarossa', 'Asesino_Delarossa',
       'Guardian_Novato', 'Guardian_Novato',
       'Primera_Oportunidad', 'Primera_Oportunidad',
       'Cuchilla_Envenenada', 'Cuchilla_Envenenada',
-      
-      // Cartas básicas (2-3 maná) - 6 cartas
       'Explorador_Audaz', 'Explorador_Audaz',
       'Soldado_Veterano', 'Soldado_Veterano', 'Soldado_Veterano',
       'Curandero_Sabio',
-      
-      // Cartas de clase VITALIDAD - 14 cartas
       'Fanatico_Desesperado', 'Fanatico_Desesperado',
       'Berserker_Sanguinario', 'Berserker_Sanguinario',
       'Cazador_de_Recompensas', 'Cazador_de_Recompensas',
       'Ritual_Sangriento', 'Ritual_Sangriento',
       'Guerrero_Herido', 'Guerrero_Herido',
       'Senor_de_la_Sangre', 'Senor_de_la_Sangre',
-      'Pacto_de_Poder', 'Pacto_de_Poder'
+      'Pacto_de_Poder', 'Pacto_de_Poder',
     ]
 
-    // Usar las funciones correctas del motor de juego
-    const gameState = await GameEngine.createGame(
-      { 
-        id: room.players[0].id, 
-        name: room.players[0].name, 
-        classType: 'VITALIDAD', 
-        deck: [...defaultDeck],
-        programmedSpecimenEffects: []
-      },
-      { 
-        id: room.players[1].id, 
-        name: room.players[1].name, 
-        classType: 'VITALIDAD', 
-        deck: [...defaultDeck],
-        programmedSpecimenEffects: []
+    const toPlayerConfig = (p: Player) => {
+      const md = p.matchDeck
+      return {
+        id: p.id,
+        name: p.name,
+        classType: md?.classType ?? 'VITALIDAD',
+        deck: [...(md?.deck ?? fallbackDeck)],
+        programmedSpecimenEffects: [] as string[],
       }
+    }
+
+    const gameState = await GameEngine.createGame(
+      toPlayerConfig(room.players[0]),
+      toPlayerConfig(room.players[1]),
     )
 
     // Iniciar el juego (esto roba las cartas iniciales automáticamente)

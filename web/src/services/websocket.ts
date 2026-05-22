@@ -27,8 +27,14 @@ interface ServerToClientEvents {
 }
 
 // Tipos de eventos del cliente
+export type MatchmakingJoinPayload = {
+  playerName: string
+  deckId: string
+  token: string
+}
+
 interface ClientToServerEvents {
-  'matchmaking:join': (playerName: string) => void
+  'matchmaking:join': (payload: MatchmakingJoinPayload) => void
   'matchmaking:leave': () => void
   'game:playCard': (data: { handIndex: number; targets?: any[] }) => void
   'game:attack': (data: { attackerIndex: number; targetType: 'hero' | 'creature'; targetIndex?: number }) => void
@@ -90,9 +96,9 @@ export class WebSocketService {
   // ==========================================
   // MATCHMAKING
   // ==========================================
-  joinMatchmaking(playerName: string) {
+  joinMatchmaking(payload: MatchmakingJoinPayload) {
     if (!this.socket) throw new Error('Not connected')
-    this.socket.emit('matchmaking:join', playerName)
+    this.socket.emit('matchmaking:join', payload)
   }
 
   leaveMatchmaking() {

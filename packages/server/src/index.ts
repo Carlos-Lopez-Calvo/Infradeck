@@ -13,6 +13,9 @@ import jwt from 'jsonwebtoken'
 import { extractBearerToken, normalizeRewardPayload } from './auth-economy-utils.js'
 import { upsertUserFromGoogle, verifyGoogleCredential } from './google-auth.js'
 import { getFullCollectionOwned, getFullCollectionRows } from './collection-utils.js'
+import { finishGameIfNeeded } from './game-end.js'
+import { resolveMatchDeckForUser } from './match-deck.js'
+import type { MatchmakingJoinPayload } from './types.js'
 
 const app = express()
 const httpServer = createServer(app)
@@ -481,6 +484,17 @@ app.post('/me/rewards', requireAuth, async (req: AuthenticatedRequest, res) => {
 })
 
 const gameRoomManager = new GameRoomManager()
+
+async function broadcastStateAndMaybeEnd(roomId: string, gameState: unknown) {
+  io.to(roomId).emit('game:stateUpdate', gameState)
+  const room = gameRoomManager.getRoom(roomId)
+  if (!room) return
+  const end = await finishGameIfNeeded(room)
+  if (end?.newlyFinished) {
+    io.to(roomId).emit('game:end', { winner: end.winner, reason: 'Player defeated' })
+    console.log(`[GAME] Game ended, winner: Player ${end.winner}`)
+  }
+}
 const matchmakingQueue = new MatchmakingQueue()
 
 // Mapa de socketId a playerId y roomId
@@ -498,14 +512,52 @@ io.on('connection', (socket) => {
   // ==========================================
   // MATCHMAKING
   // ==========================================
-  socket.on('matchmaking:join', (playerName) => {
-    console.log(`[MM] Player ${playerName} (${playerId}) joining matchmaking`)
+  socket.on('matchmaking:join', async (payload) => {
+    const joinData: MatchmakingJoinPayload | null =
+      typeof payload === 'string'
+        ? null
+        : payload?.playerName && payload?.deckId && payload?.token
+          ? payload
+          : null
+
+    const playerName = joinData?.playerName ?? (typeof payload === 'string' ? payload : '')
+    if (!playerName.trim()) {
+      socket.emit('game:error', 'Nombre de jugador requerido')
+      return
+    }
+
+    let matchDeck: Player['matchDeck']
+    if (joinData) {
+      let userId: string | null = null
+      try {
+        const decoded = jwt.verify(joinData.token, JWT_SECRET) as { sub?: string }
+        userId = decoded.sub ?? null
+      } catch {
+        socket.emit('game:error', 'Sesión inválida')
+        return
+      }
+      if (!userId) {
+        socket.emit('game:error', 'Sesión inválida')
+        return
+      }
+      const resolved = await resolveMatchDeckForUser(userId, joinData.deckId)
+      if (!resolved) {
+        socket.emit('game:error', 'Mazo no válido o no encontrado')
+        return
+      }
+      matchDeck = resolved
+    }
+
+    console.log(`[MM] Player ${playerName} (${playerId}) joining matchmaking`, {
+      deck: matchDeck ? `${matchDeck.classType} (${matchDeck.deck.length} cards)` : 'fallback',
+    })
 
     const player: Player = {
       id: playerId,
       socketId: socket.id,
-      name: playerName,
-      ready: false
+      name: playerName.trim(),
+      ready: false,
+      matchDeck,
     }
 
     matchmakingQueue.addPlayer(player)
@@ -580,12 +632,8 @@ io.on('connection', (socket) => {
     )
 
     if (result.success && result.gameState) {
-      // Broadcast a toda la sala
-      io.to(playerData.roomId).emit('game:stateUpdate', result.gameState)
-      
-      // Notificar al oponente
+      await broadcastStateAndMaybeEnd(playerData.roomId, result.gameState)
       socket.to(playerData.roomId).emit('opponent:playCard', { cardId: 'card_played' })
-      
       console.log(`[GAME] Card played successfully`)
     } else if (result.needsDiscover) {
       // La carta necesita discover (elegir entre opciones)
@@ -633,7 +681,7 @@ io.on('connection', (socket) => {
     )
 
     if (result.success && result.gameState) {
-      io.to(playerData.roomId).emit('game:stateUpdate', result.gameState)
+      await broadcastStateAndMaybeEnd(playerData.roomId, result.gameState)
       socket.to(playerData.roomId).emit('opponent:playCard', { cardId: 'card_played' })
     } else {
       socket.emit('game:error', result.error || 'Unknown error')
@@ -661,7 +709,7 @@ io.on('connection', (socket) => {
     )
 
     if (result.success && result.gameState) {
-      io.to(playerData.roomId).emit('game:stateUpdate', result.gameState)
+      await broadcastStateAndMaybeEnd(playerData.roomId, result.gameState)
       socket.to(playerData.roomId).emit('opponent:playCard', { cardId: 'card_played' })
     } else {
       socket.emit('game:error', result.error || 'Unknown error')
@@ -681,9 +729,8 @@ io.on('connection', (socket) => {
     const result = await gameRoomManager.handleEndTurn(playerData.roomId, playerData.playerId)
 
     if (result.success && result.gameState) {
-      io.to(playerData.roomId).emit('game:stateUpdate', result.gameState)
+      await broadcastStateAndMaybeEnd(playerData.roomId, result.gameState)
       socket.to(playerData.roomId).emit('opponent:endTurn')
-      
       console.log(`[GAME] Turn ended, now player ${result.gameState.turn.currentPlayerIndex}'s turn`)
     } else {
       socket.emit('game:error', result.error || 'Unknown error')
@@ -709,19 +756,8 @@ io.on('connection', (socket) => {
     )
 
     if (result.success && result.gameState) {
-      io.to(playerData.roomId).emit('game:stateUpdate', result.gameState)
+      await broadcastStateAndMaybeEnd(playerData.roomId, result.gameState)
       console.log(`[GAME] Attack successful`)
-      
-      // Verificar si el juego terminó
-      const room = gameRoomManager.getRoom(playerData.roomId)
-      if (room?.status === 'finished') {
-        const winnerIndex = result.gameState.players[0].life > 0 ? 0 : 1
-        io.to(playerData.roomId).emit('game:end', { 
-          winner: winnerIndex, 
-          reason: 'Player defeated' 
-        })
-        console.log(`[GAME] Game ended, winner: Player ${winnerIndex}`)
-      }
     } else {
       socket.emit('game:error', result.error || 'Unknown error')
       console.error(`[GAME] Error attacking: ${result.error}`)

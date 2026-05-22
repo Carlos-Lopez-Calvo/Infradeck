@@ -1,8 +1,14 @@
+export type PlayerMatchDeck = {
+  classType: string
+  deck: string[]
+}
+
 export interface Player {
   id: string
   socketId: string
   name: string
   ready: boolean
+  matchDeck?: PlayerMatchDeck
 }
 
 export interface GameRoom {
@@ -13,9 +19,15 @@ export interface GameRoom {
   createdAt: number
 }
 
+export type MatchmakingJoinPayload = {
+  playerName: string
+  deckId: string
+  token: string
+}
+
 export interface ClientToServerEvents {
   // Matchmaking
-  'matchmaking:join': (playerName: string) => void
+  'matchmaking:join': (payload: MatchmakingJoinPayload | string) => void
   'matchmaking:leave': () => void
   
   // Game

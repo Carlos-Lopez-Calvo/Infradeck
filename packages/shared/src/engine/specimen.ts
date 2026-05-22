@@ -63,6 +63,8 @@ export function summonSpecimenToken(state: GameState, playerIndex: number, evolv
 // =======================
 export function summonSpecimen(state: GameState, playerIndex: number): boolean {
   const player = state.players[playerIndex]
+  if (hasSpecimenOnBoard(player)) return false
+
   const specimenCard = ESPECIMEN_PERFECTO
   const specimenSummons = player.specimenSummons ?? 0
 

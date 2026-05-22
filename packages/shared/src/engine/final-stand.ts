@@ -73,11 +73,8 @@ export function applyFinalStandBonus(state: GameState, playerIndex: number): voi
   
   switch (player.classType) {
     case 'ABOMINACION': {
-      // Invocar FS-specimen solo si NO hay Especimen_Perfecto ni Especimen_Perfecto_Evolucionado en tu mesa
-      const hasBaseOrEvolved = player.board.some(ent =>
-        ent.cardId === 'Especimen_Perfecto' || ent.cardId === 'Especimen_Perfecto_Evolucionado'
-      )
-      if (hasBaseOrEvolved) break
+      // No invocar Amalgama si ya hay cualquier espécimen en mesa (G4BR13L, Amalgama o T3RM1NU5)
+      if (hasSpecimenOnBoard(player)) break
 
       const uniqueAbilities = new Set<string>()
       for (const cardId of player.graveyard) {

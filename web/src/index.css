@@ -165,17 +165,3 @@ body, html, #root {
   animation-iteration-count: infinite;
   animation-timing-function: ease-in-out;
 }
-
-.card .w-full::-webkit-scrollbar {
-  width: 1px;
-  background: transparent;
-}
-
-.card .w-full::-webkit-scrollbar-thumb {
-  background: #333;
-  border-radius: 1px;
-}
-
-.card .w-full::-webkit-scrollbar-track {
-  background: transparent;
-}

@@ -1,8 +1,23 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
+import { PlayDeckSelector } from './PlayDeckSelector'
+import {
+  SELECTED_DECK_STORAGE_KEY,
+  toPlayDeckConfig,
+  type PlayDeckConfig,
+  type SavedDeck,
+} from '../utils/play-deck'
+
+const API_BASE = (() => {
+  const envUrl = import.meta.env.VITE_API_URL as string | undefined
+  if (envUrl && envUrl.trim()) return envUrl.trim()
+  if (typeof window !== 'undefined') return `${window.location.protocol}//${window.location.hostname}:3001`
+  return 'http://localhost:3001'
+})()
 
 type HomeScreenProps = {
-  onStartLocal: () => void
+  onPlayDeckChange?: (deck: PlayDeckConfig | null) => void
+  onStartLocal: (deck: PlayDeckConfig) => void
   onStartOnline: () => void
   onOpenCollection: () => void
   onOpenDecks: () => void
@@ -20,13 +35,13 @@ type MenuSection = {
 }
 
 const sections: MenuSection[] = [
-  {
-    id: 'extras',
-    title: 'Extras',
-    subtitle: 'Modes and social',
-    description: 'Extra features and side activities are under development.',
-    accent: 'blue',
-  },
+  // {
+  //   id: 'extras',
+  //   title: 'Extras',
+  //   subtitle: 'Modes and social',
+  //   description: 'Extra features and side activities are under development.',
+  //   accent: 'blue',
+  // },
   {
     id: 'cards',
     title: 'Colecction',
@@ -41,20 +56,20 @@ const sections: MenuSection[] = [
     description: 'Enter the arena and challenge rivals in tactical duels.',
     accent: 'gold',
   },
-  {
-    id: 'shop',
-    title: 'Shop',
-    subtitle: 'Bundles and cosmetics',
-    description: 'Limited offers and premium customization are coming soon.',
-    accent: 'blue',
-  },
-  {
-    id: 'missions',
-    title: 'Missions',
-    subtitle: 'Daily progression',
-    description: 'Track tasks, rewards, and event milestones.',
-    accent: 'blue',
-  },
+  // {
+  //   id: 'shop',
+  //   title: 'Shop',
+  //   subtitle: 'Bundles and cosmetics',
+  //   description: 'Limited offers and premium customization are coming soon.',
+  //   accent: 'blue',
+  // },
+  // {
+  //   id: 'missions',
+  //   title: 'Missions',
+  //   subtitle: 'Daily progression',
+  //   description: 'Track tasks, rewards, and event milestones.',
+  //   accent: 'blue',
+  // },
 ]
 
 function MenuPlaceholderIcon({ id, active }: { id: SectionId; active: boolean }) {
@@ -105,11 +120,80 @@ function MenuPlaceholderIcon({ id, active }: { id: SectionId; active: boolean })
   )
 }
 
-export function HomeScreen({ onStartLocal, onStartOnline, onOpenCollection, onOpenDecks }: HomeScreenProps) {
-  const { user } = useAuth()
+export function HomeScreen({
+  onPlayDeckChange,
+  onStartLocal,
+  onStartOnline,
+  onOpenCollection,
+  onOpenDecks,
+}: HomeScreenProps) {
+  const { user, token, authFetch } = useAuth()
   const [activeSection, setActiveSection] = useState<SectionId>('play')
   const [renderedSection, setRenderedSection] = useState<SectionId>('play')
   const [panelVisible, setPanelVisible] = useState(true)
+  const [decks, setDecks] = useState<SavedDeck[]>([])
+  const [decksLoading, setDecksLoading] = useState(false)
+  const onPlayDeckChangeRef = useRef(onPlayDeckChange)
+  onPlayDeckChangeRef.current = onPlayDeckChange
+  const [selectedDeckId, setSelectedDeckId] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null
+    return localStorage.getItem(SELECTED_DECK_STORAGE_KEY)
+  })
+
+  useEffect(() => {
+    if (!token) {
+      setDecks([])
+      setDecksLoading(false)
+      return
+    }
+
+    let cancelled = false
+    setDecksLoading(true)
+
+    ;(async () => {
+      try {
+        const res = await authFetch(`${API_BASE}/me/decks`)
+        if (!res.ok) throw new Error('fetch failed')
+        const json = (await res.json()) as SavedDeck[]
+        const list = Array.isArray(json) ? json : []
+        if (cancelled) return
+        setDecks(list)
+        setSelectedDeckId((prev) => {
+          if (prev && list.some((d) => d.id === prev)) return prev
+          return list[0]?.id ?? null
+        })
+      } catch {
+        if (!cancelled) setDecks([])
+      } finally {
+        if (!cancelled) setDecksLoading(false)
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [token, authFetch])
+
+  useEffect(() => {
+    if (!selectedDeckId) return
+    localStorage.setItem(SELECTED_DECK_STORAGE_KEY, selectedDeckId)
+  }, [selectedDeckId])
+
+  const selectedPlayDeck = useMemo(() => {
+    const row = decks.find((d) => d.id === selectedDeckId) ?? decks[0]
+    if (!row) return null
+    return toPlayDeckConfig(row)
+  }, [decks, selectedDeckId])
+
+  const canStartWithDeck = Boolean(selectedPlayDeck)
+
+  const lastNotifiedDeckIdRef = useRef<string | null>(null)
+  useEffect(() => {
+    const id = selectedPlayDeck?.id ?? null
+    if (lastNotifiedDeckIdRef.current === id) return
+    lastNotifiedDeckIdRef.current = id
+    onPlayDeckChangeRef.current?.(selectedPlayDeck)
+  }, [selectedPlayDeck])
 
   const particles = useMemo(
     () =>
@@ -199,22 +283,39 @@ export function HomeScreen({ onStartLocal, onStartOnline, onOpenCollection, onOp
               <p className="max-w-2xl text-base text-slate-200/95 md:text-lg">{current.description}</p>
 
               {current.id === 'play' && (
+                <PlayDeckSelector
+                  decks={decks}
+                  selectedId={selectedDeckId}
+                  onSelect={setSelectedDeckId}
+                  loading={decksLoading}
+                />
+              )}
+
+              {current.id === 'play' && (
                 <div className="mt-auto flex flex-wrap justify-center gap-3 pb-2 pt-8">
                   <button
-                    onClick={onStartOnline}
-                    className="min-w-[180px] rounded-xl border border-slate-700/75 bg-slate-900/52 px-7 py-4 text-base font-semibold tracking-[0.08em] text-slate-100 shadow-[0_8px_24px_rgba(15,23,42,0.32)] transition-all duration-300 hover:scale-[1.03] hover:border-sky-300/45 hover:bg-slate-800/58"
+                    type="button"
+                    disabled={!canStartWithDeck}
+                    onClick={() => canStartWithDeck && onStartOnline()}
+                    className="min-w-[180px] rounded-xl border border-slate-700/75 bg-slate-900/52 px-7 py-4 text-base font-semibold tracking-[0.08em] text-slate-100 shadow-[0_8px_24px_rgba(15,23,42,0.32)] transition-all duration-300 hover:scale-[1.03] hover:border-sky-300/45 hover:bg-slate-800/58 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:scale-100"
                   >
                     Friendly
                   </button>
                   <button
-                    onClick={onStartOnline}
-                    className="min-w-[200px] rounded-xl border border-amber-200/80 bg-gradient-to-r from-amber-300/30 via-amber-100/22 to-yellow-300/34 px-8 py-4 text-base font-semibold tracking-[0.08em] text-amber-50 shadow-[0_0_36px_rgba(251,191,36,0.45)] transition-all duration-300 hover:scale-[1.04] hover:shadow-[0_0_44px_rgba(251,191,36,0.55)]"
+                    type="button"
+                    disabled={!canStartWithDeck}
+                    onClick={() => canStartWithDeck && onStartOnline()}
+                    className="min-w-[200px] rounded-xl border border-amber-200/80 bg-gradient-to-r from-amber-300/30 via-amber-100/22 to-yellow-300/34 px-8 py-4 text-base font-semibold tracking-[0.08em] text-amber-50 shadow-[0_0_36px_rgba(251,191,36,0.45)] transition-all duration-300 hover:scale-[1.04] hover:shadow-[0_0_44px_rgba(251,191,36,0.55)] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:scale-100"
                   >
                     Ranked
                   </button>
                   <button
-                    onClick={onStartLocal}
-                    className="min-w-[180px] rounded-xl border border-slate-700/75 bg-slate-900/52 px-7 py-4 text-base font-semibold tracking-[0.08em] text-slate-100 shadow-[0_8px_24px_rgba(15,23,42,0.32)] transition-all duration-300 hover:scale-[1.03] hover:border-sky-300/45 hover:bg-slate-800/58"
+                    type="button"
+                    disabled={!canStartWithDeck}
+                    onClick={() => {
+                      if (selectedPlayDeck) onStartLocal(selectedPlayDeck)
+                    }}
+                    className="min-w-[180px] rounded-xl border border-slate-700/75 bg-slate-900/52 px-7 py-4 text-base font-semibold tracking-[0.08em] text-slate-100 shadow-[0_8px_24px_rgba(15,23,42,0.32)] transition-all duration-300 hover:scale-[1.03] hover:border-sky-300/45 hover:bg-slate-800/58 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:scale-100"
                   >
                     Bots
                   </button>
@@ -238,6 +339,7 @@ export function HomeScreen({ onStartLocal, onStartOnline, onOpenCollection, onOp
                 </div>
               )}
 
+              {/* shop / missions / extras — desactivados por ahora
               {(current.id === 'shop' || current.id === 'missions' || current.id === 'extras') && (
                 <div className="mt-8">
                   <button
@@ -248,11 +350,12 @@ export function HomeScreen({ onStartLocal, onStartOnline, onOpenCollection, onOp
                   </button>
                 </div>
               )}
+              */}
             </div>
           </section>
 
           <section className="mt-auto h-auto rounded-3xl p-3 backdrop-blur-xl md:p-4">
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-5 md:gap-3">
+            <div className="grid grid-cols-2 gap-2 md:max-w-md md:mx-auto md:gap-4">
               {sections.map((section) => {
                 const selected = section.id === activeSection
                 const activeAccent =

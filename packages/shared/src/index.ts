@@ -20,3 +20,6 @@ export * from './cards/class-cards'    // ✅ Debe exportar classCards
 export * from './deck/deck-catalog'
 export * from './deck/deck-validation'
 
+// Game outcome
+export * from './game/game-outcome'
+
