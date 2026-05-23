@@ -33,16 +33,27 @@ function AppContent({ selectedPlayDeck, onSelectedPlayDeckChange }: AppContentPr
   }
 
   useEffect(() => {
-    if (!loading && !user && (route === 'menu' || route === 'local' || route === 'online' || route === 'decks' || route === 'collection' || route === 'profile')) {
-      setRoute('auth')
-    }
-  }, [user, loading, route])
+    if (loading) return
 
-  useEffect(() => {
-    if (!loading && user && route === 'landing') {
+    if (!user) {
+      resetGame()
+      if (route !== 'auth') {
+        setRoute('landing')
+      }
+      return
+    }
+
+    if (route === 'landing') {
       setRoute('menu')
     }
-  }, [user, loading, route])
+  }, [user, loading, route, resetGame])
+
+  useEffect(() => {
+    if (route !== 'online' && route !== 'local') return
+    return () => {
+      resetGame()
+    }
+  }, [route, resetGame])
 
   useEffect(() => {
     if (route === 'local' && !localPlayDeck) {
@@ -64,6 +75,14 @@ function AppContent({ selectedPlayDeck, onSelectedPlayDeckChange }: AppContentPr
       return <AuthScreen onAuthenticated={() => setRoute('menu')} />
     }
     return <Landing onPrimaryAction={() => setRoute('auth')} />
+  }
+
+  if (route === 'landing') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-black text-slate-200">
+        Cargando...
+      </div>
+    )
   }
 
   if (route === 'menu') {
@@ -133,23 +152,11 @@ function AppContent({ selectedPlayDeck, onSelectedPlayDeckChange }: AppContentPr
     )
   }
 
-  if (user) {
-    return (
-      <HomeScreen
-        onPlayDeckChange={onSelectedPlayDeckChange}
-        onStartLocal={(deck) => {
-          setLocalPlayDeck(deck)
-          setRoute('local')
-        }}
-        onStartOnline={goOnline}
-        onOpenCollection={() => setRoute('collection')}
-        onOpenDecks={() => setRoute('decks')}
-        onOpenProfile={() => setRoute('profile')}
-      />
-    )
-  }
-
-  return <Landing onPrimaryAction={() => setRoute('auth')} />
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-black text-slate-200">
+      Cargando...
+    </div>
+  )
 }
 
 const googleClientId = (import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined)?.trim() ?? ''

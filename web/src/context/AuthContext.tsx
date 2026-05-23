@@ -46,16 +46,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return
     }
 
-    try {
-      setUser(JSON.parse(rawUser))
-      setToken(rawToken)
-    } catch {
-      localStorage.removeItem('infradeck:user')
-      localStorage.removeItem('infradeck:token')
-      setLoading(false)
-      return
-    }
-
     ;(async () => {
       try {
         const res = await fetch(`${API_BASE}/me`, {
@@ -68,6 +58,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         const body = (await res.json()) as { user: User }
         setUser(body.user)
+        setToken(rawToken)
         localStorage.setItem('infradeck:user', JSON.stringify(body.user))
       } catch {
         setUser(null)

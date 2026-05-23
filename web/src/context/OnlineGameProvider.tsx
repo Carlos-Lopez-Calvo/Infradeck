@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react'
+import React, { createContext, useCallback, useContext, useState, useEffect } from 'react'
 import { wsService } from '../services/websocket'
 import type { GameState } from '@infradeck/shared'
 import { getWinnerPlayerIndex } from '@infradeck/shared'
@@ -224,7 +224,7 @@ export function OnlineGameProvider({
     setPendingScryDecision(null)
   }
 
-  const resetGame = () => {
+  const resetGame = useCallback(() => {
     setIsSearching(false)
     setMatchFound(false)
     setOpponentName(null)
@@ -235,7 +235,7 @@ export function OnlineGameProvider({
     setPendingTargetSelection(null)
     setPendingDiscoverSelection(null)
     setPendingScryDecision(null)
-  }
+  }, [])
 
   const isMyTurn = gameState && playerId
     ? gameState.players[gameState.turn.currentPlayerIndex].id === playerId
