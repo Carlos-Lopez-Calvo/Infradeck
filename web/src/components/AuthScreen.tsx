@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
-import { GoogleLogin, type CredentialResponse } from '@react-oauth/google'
+import type { CredentialResponse } from '@react-oauth/google'
 import { useAuth } from '../context/AuthContext'
+import { GoogleSignInButton } from './GoogleSignInButton'
 
 const googleClientId = (import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined)?.trim() ?? ''
 
@@ -30,6 +31,7 @@ export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
       alert('No se recibió credencial de Google')
       return
     }
+    if (submitting) return
     try {
       setSubmitting(true)
       await loginWithGoogle(response.credential)
@@ -87,18 +89,11 @@ export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
           </header>
 
           {googleClientId ? (
-            <div className="flex justify-center">
-              <GoogleLogin
-                onSuccess={handleGoogleSuccess}
-                onError={() => alert('No se pudo conectar con Google')}
-                theme="filled_black"
-                size="large"
-                text="continue_with"
-                shape="pill"
-                locale="es"
-                useOneTap={false}
-              />
-            </div>
+            <GoogleSignInButton
+              disabled={submitting}
+              onSuccess={handleGoogleSuccess}
+              onError={(msg) => alert(msg)}
+            />
           ) : (
             <p className="text-xs text-slate-500 text-center">
               Login con Google: define VITE_GOOGLE_CLIENT_ID en web/.env

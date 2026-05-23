@@ -33,7 +33,7 @@ interface OnlineGameContextType {
   // Actions
   connectToServer: () => Promise<void>
   disconnectFromServer: () => void
-  startMatchmaking: (playerName: string) => void
+  startMatchmaking: () => void
   cancelMatchmaking: () => void
   playCard: (handIndex: number, targets?: any[]) => void
   attack: (attackerIndex: number, targetType: 'hero' | 'creature', targetIndex?: number) => void
@@ -41,6 +41,7 @@ interface OnlineGameContextType {
   surrender: () => void
   sendDiscoverChoice: (handIndex: number, choice: string) => void
   sendScryDecision: (handIndex: number, decision: 'TOP' | 'BOTTOM') => void
+  summonSpecimen: (targets?: any[]) => void
   resetGame: () => void
 }
 
@@ -53,7 +54,7 @@ export function OnlineGameProvider({
   children: React.ReactNode
   matchDeck?: PlayDeckConfig | null
 }) {
-  const { token } = useAuth()
+  const { token, user } = useAuth()
   const [isConnected, setIsConnected] = useState(false)
   const [playerId, setPlayerId] = useState<string | null>(null)
   const [isSearching, setIsSearching] = useState(false)
@@ -163,7 +164,12 @@ export function OnlineGameProvider({
     resetGame()
   }
 
-  const startMatchmaking = (playerName: string) => {
+  const startMatchmaking = () => {
+    const playerName = user?.username?.trim()
+    if (!playerName) {
+      alert('Tu cuenta no tiene nombre de usuario')
+      return
+    }
     if (!isConnected) {
       alert('No estás conectado al servidor')
       return
@@ -224,6 +230,11 @@ export function OnlineGameProvider({
     setPendingScryDecision(null)
   }
 
+  const summonSpecimen = (targets?: any[]) => {
+    if (!gameState || gameEnded) return
+    wsService.summonSpecimen(targets)
+  }
+
   const resetGame = useCallback(() => {
     setIsSearching(false)
     setMatchFound(false)
@@ -274,6 +285,7 @@ export function OnlineGameProvider({
     surrender,
     sendDiscoverChoice,
     sendScryDecision,
+    summonSpecimen,
     resetGame
   }
 

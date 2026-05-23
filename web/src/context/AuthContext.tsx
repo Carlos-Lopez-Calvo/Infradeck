@@ -128,11 +128,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const loginWithGoogle = async (credential: string) => {
-    const res = await fetch(`${API_BASE}/auth/google`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ credential }),
-    })
+    let res: Response
+    try {
+      res = await fetch(`${API_BASE}/auth/google`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ credential }),
+      })
+    } catch {
+      throw new Error(
+        'No se pudo contactar con el servidor. Revisa VITE_API_URL y que el backend en Render esté activo.',
+      )
+    }
 
     if (!res.ok) {
       const body = await res.json().catch(() => ({}))
@@ -147,7 +154,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error('Este email ya está vinculado a otra cuenta de Google')
       }
       if (code === 'google_not_configured') {
-        throw new Error('Login con Google no configurado en el servidor')
+        throw new Error('Login con Google no configurado en el servidor (GOOGLE_CLIENT_ID en Render)')
       }
       throw new Error('No se pudo iniciar sesión con Google')
     }

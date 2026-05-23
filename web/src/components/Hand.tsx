@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react'
 import { Card, ReversoCard } from './Card'
 import { useGameEngine } from '../context/GameEngineProvider'
-import { getCardByIdGlobal } from '@infradeck/shared'
+import { getCardById } from '../utils/card-resolver'
 import { HAND_CARD_DRAG_MIME } from '../constants/game-drag'
 
 export function Hand() {
@@ -11,7 +11,7 @@ export function Hand() {
   const suppressClickRef = useRef(false)
 
   const resolveViewCard = (cardId: string) => {
-    const base: any = getCardByIdGlobal(cardId)
+    const base: any = getCardById(cardId)
     if (!base) return null
     return {
       ...base,

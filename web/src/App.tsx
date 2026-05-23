@@ -125,7 +125,7 @@ function AppContent({ selectedPlayDeck, onSelectedPlayDeckChange }: AppContentPr
         >
           ← Volver al menú
         </button>
-        <OnlineMatchmaking />
+        <OnlineMatchmaking onLeave={() => { resetGame(); setRoute('menu') }} />
       </>
     )
   }

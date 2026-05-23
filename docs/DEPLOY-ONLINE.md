@@ -74,15 +74,21 @@ Debe responder `{"status":"ok",...}`.
 
 ## 4. Google OAuth
 
-En [Google Cloud Console](https://console.cloud.google.com/) → APIs & Services → Credentials → tu OAuth client:
+En [Google Cloud Console](https://console.cloud.google.com/) → APIs & Services → Credentials → tu OAuth client (tipo **Web**):
 
-**Authorized JavaScript origins:**
-- `https://infradeck.vercel.app` (tu dominio Vercel)
-- `http://localhost:5173` (desarrollo local)
+**Authorized JavaScript origins** (obligatorio):
+- `https://infradeck.vercel.app`
+- `http://localhost:5173`
 
-**Authorized redirect URIs:** (si usas redirect flow; el login actual usa credential popup, origins suelen bastar)
+El **Client ID** debe ser el mismo en:
+- Vercel → `VITE_GOOGLE_CLIENT_ID`
+- Render → `GOOGLE_CLIENT_ID`
 
-Guarda cambios (pueden tardar unos minutos).
+**Render → `CORS_ORIGIN`:** `https://infradeck.vercel.app` (sin barra final)
+
+Si Firefox bloquea popups, la app usa FedCM; si falla, prueba Chrome o permite ventanas emergentes para `infradeck.vercel.app`.
+
+Guarda cambios en Google (pueden tardar 5–10 minutos).
 
 ## 5. Probar con 2 ordenadores
 
