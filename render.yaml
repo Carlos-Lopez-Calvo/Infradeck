@@ -1,0 +1,21 @@
+# Blueprint Render: backend API + WebSocket
+# https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: infradeck-api
+    runtime: node
+    rootDir: packages/server
+    buildCommand: npm install
+    startCommand: npm run start:prod
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGIN
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
