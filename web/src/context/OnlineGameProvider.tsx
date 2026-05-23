@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useState, useEffect } from 'react'
+import React, { createContext, useCallback, useContext, useState, useEffect, useRef } from 'react'
 import { wsService } from '../services/websocket'
 import type { GameState } from '@infradeck/shared'
 import { getWinnerPlayerIndex } from '@infradeck/shared'
@@ -31,8 +31,9 @@ interface OnlineGameContextType {
   setPendingScryDecision: (data: { handIndex: number; cards: string[] } | null) => void
   
   // Actions
-  connectToServer: () => Promise<void>
+  connectToServer: () => Promise<string>
   disconnectFromServer: () => void
+  beginOnlineMatch: () => Promise<void>
   startMatchmaking: () => void
   cancelMatchmaking: () => void
   playCard: (handIndex: number, targets?: any[]) => void
@@ -67,110 +68,108 @@ export function OnlineGameProvider({
   const [pendingTargetSelection, setPendingTargetSelection] = useState<{ handIndex: number; targetType: string } | null>(null)
   const [pendingDiscoverSelection, setPendingDiscoverSelection] = useState<{ handIndex: number; options: Array<{ id: string; label: string; preview?: any }> } | null>(null)
   const [pendingScryDecision, setPendingScryDecision] = useState<{ handIndex: number; cards: string[] } | null>(null)
+  const listenersAttachedRef = useRef(false)
 
-  const connectToServer = async () => {
-    try {
-      console.log('[CLIENT] Connecting to server...')
-      const id = await wsService.connect()
-      setPlayerId(id)
-      setIsConnected(true)
-      console.log('[CLIENT] Connected successfully')
+  const resetGame = useCallback(() => {
+    setIsSearching(false)
+    setMatchFound(false)
+    setOpponentName(null)
+    setRoomId(null)
+    setGameState(null)
+    setGameEnded(false)
+    setWinner(null)
+    setPendingTargetSelection(null)
+    setPendingDiscoverSelection(null)
+    setPendingScryDecision(null)
+  }, [])
 
-      // Setup listeners
-      wsService.onMatchmakingWaiting(() => {
-        console.log('[CLIENT] Waiting for opponent...')
-        setIsSearching(true)
-      })
+  const attachSocketListeners = useCallback(() => {
+    if (listenersAttachedRef.current) return
+    listenersAttachedRef.current = true
 
-      wsService.onMatchFound(({ roomId: matchRoomId, opponentName: matchOpponentName }) => {
-        console.log('[CLIENT] Match found!', { matchRoomId, matchOpponentName })
-        setIsSearching(false)
-        setMatchFound(true)
-        setOpponentName(matchOpponentName)
-        setRoomId(matchRoomId)
-      })
+    wsService.onMatchmakingWaiting(() => {
+      setIsSearching(true)
+    })
 
-      wsService.onGameStart((state) => {
-        console.log('[CLIENT] Game started!', state)
-        setGameState(state)
-        setGameEnded(false)
-        setWinner(null)
-      })
+    wsService.onMatchFound(({ roomId: matchRoomId, opponentName: matchOpponentName }) => {
+      setIsSearching(false)
+      setMatchFound(true)
+      setOpponentName(matchOpponentName)
+      setRoomId(matchRoomId)
+    })
 
-      wsService.onGameStateUpdate((state) => {
-        console.log('[CLIENT] State updated')
-        setGameState(state)
-        const w = getWinnerPlayerIndex(state)
-        if (w !== null) {
-          setGameEnded(true)
-          setWinner(w)
-        }
-      })
+    wsService.onGameStart((state) => {
+      const id = wsService.getPlayerId()
+      if (id) setPlayerId(id)
+      setGameState(state)
+      setGameEnded(false)
+      setWinner(null)
+    })
 
-      wsService.onGameEnd((data) => {
-        console.log('[CLIENT] Game ended', data)
+    wsService.onGameStateUpdate((state) => {
+      setGameState(state)
+      const w = getWinnerPlayerIndex(state)
+      if (w !== null) {
         setGameEnded(true)
-        setWinner(data.winner)
-      })
+        setWinner(w)
+      }
+    })
 
-      wsService.onGameError((error) => {
-        console.error('[CLIENT] Game error:', error)
-        // Solo mostrar alerta si no es un error de necesitar targets
-        if (!error.includes('needs target')) {
-          alert(`Error: ${error}`)
-        }
-      })
+    wsService.onGameEnd((data) => {
+      setGameEnded(true)
+      setWinner(data.winner)
+    })
 
-      wsService.onNeedsTarget((data) => {
-        console.log('[CLIENT] Card needs target selection:', data)
-        setPendingTargetSelection(data)
-      })
+    wsService.onGameError((error) => {
+      if (!error.includes('needs target')) {
+        alert(`Error: ${error}`)
+      }
+    })
 
-      wsService.onNeedsDiscover((data) => {
-        console.log('[CLIENT] Card needs discover selection:', data)
-        setPendingDiscoverSelection(data)
-      })
+    wsService.onNeedsTarget((data) => {
+      setPendingTargetSelection(data)
+    })
 
-      wsService.onNeedsScry((data) => {
-        console.log('[CLIENT] Card needs scry decision:', data)
-        setPendingScryDecision(data)
-      })
+    wsService.onNeedsDiscover((data) => {
+      setPendingDiscoverSelection(data)
+    })
 
-      wsService.onPlayerLeft(() => {
-        console.log('[CLIENT] Opponent disconnected')
-        alert('El oponente se desconectó')
-        resetGame()
-      })
+    wsService.onNeedsScry((data) => {
+      setPendingScryDecision(data)
+    })
 
-      wsService.onOpponentPlayCard((data) => {
-        console.log('[CLIENT] Opponent played card:', data)
-        // Aquí podrías agregar animaciones
-      })
+    wsService.onPlayerLeft(() => {
+      alert('El oponente se desconectó')
+      resetGame()
+    })
 
-      wsService.onOpponentEndTurn(() => {
-        console.log('[CLIENT] Opponent ended turn')
-        // Aquí podrías agregar efectos visuales
-      })
-    } catch (error) {
-      console.error('[CLIENT] Failed to connect:', error)
-      alert('No se pudo conectar al servidor. Verifica que el backend esté corriendo y accesible en el puerto 3001.')
-    }
-  }
+    wsService.onOpponentPlayCard(() => {})
+    wsService.onOpponentEndTurn(() => {})
+  }, [resetGame])
 
-  const disconnectFromServer = () => {
+  const connectToServer = useCallback(async (): Promise<string> => {
+    const id = await wsService.connect()
+    setPlayerId(id)
+    setIsConnected(true)
+    attachSocketListeners()
+    return id
+  }, [attachSocketListeners])
+
+  const disconnectFromServer = useCallback(() => {
     wsService.disconnect()
+    listenersAttachedRef.current = false
     setIsConnected(false)
     setPlayerId(null)
     resetGame()
-  }
+  }, [resetGame])
 
-  const startMatchmaking = () => {
+  const startMatchmaking = useCallback(() => {
     const playerName = user?.username?.trim()
     if (!playerName) {
       alert('Tu cuenta no tiene nombre de usuario')
       return
     }
-    if (!isConnected) {
+    if (!wsService.isConnected()) {
       alert('No estás conectado al servidor')
       return
     }
@@ -182,19 +181,27 @@ export function OnlineGameProvider({
       alert('Sesión no válida. Vuelve a iniciar sesión.')
       return
     }
-    console.log('[CLIENT] Starting matchmaking as:', playerName, 'deck:', matchDeck.name)
+    const id = wsService.getPlayerId()
+    if (id) setPlayerId(id)
     wsService.joinMatchmaking({
       playerName,
       deckId: matchDeck.id,
       token,
     })
-  }
+    setIsSearching(true)
+  }, [user?.username, matchDeck, token])
 
-  const cancelMatchmaking = () => {
-    console.log('[CLIENT] Cancelling matchmaking')
-    wsService.leaveMatchmaking()
+  const beginOnlineMatch = useCallback(async () => {
+    await connectToServer()
+    startMatchmaking()
+  }, [connectToServer, startMatchmaking])
+
+  const cancelMatchmaking = useCallback(() => {
+    if (wsService.isConnected()) {
+      wsService.leaveMatchmaking()
+    }
     setIsSearching(false)
-  }
+  }, [])
 
   const playCard = (handIndex: number, targets?: any[]) => {
     if (!gameState || gameEnded) return
@@ -235,21 +242,10 @@ export function OnlineGameProvider({
     wsService.summonSpecimen(targets)
   }
 
-  const resetGame = useCallback(() => {
-    setIsSearching(false)
-    setMatchFound(false)
-    setOpponentName(null)
-    setRoomId(null)
-    setGameState(null)
-    setGameEnded(false)
-    setWinner(null)
-    setPendingTargetSelection(null)
-    setPendingDiscoverSelection(null)
-    setPendingScryDecision(null)
-  }, [])
+  const effectivePlayerId = playerId ?? wsService.getPlayerId()
 
-  const isMyTurn = gameState && playerId
-    ? gameState.players[gameState.turn.currentPlayerIndex].id === playerId
+  const isMyTurn = gameState && effectivePlayerId
+    ? gameState.players[gameState.turn.currentPlayerIndex].id === effectivePlayerId
     : false
 
   useEffect(() => {
@@ -277,6 +273,7 @@ export function OnlineGameProvider({
     setPendingScryDecision,
     connectToServer,
     disconnectFromServer,
+    beginOnlineMatch,
     startMatchmaking,
     cancelMatchmaking,
     playCard,

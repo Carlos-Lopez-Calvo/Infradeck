@@ -52,26 +52,39 @@ export class WebSocketService {
   private playerId: string | null = null
 
   connect(serverUrl: string = resolveServerUrl()): Promise<string> {
+    if (this.socket?.connected && this.playerId) {
+      return Promise.resolve(this.playerId)
+    }
+
+    if (this.socket) {
+      this.socket.removeAllListeners()
+      this.socket.disconnect()
+      this.socket = null
+      this.playerId = null
+    }
+
     return new Promise((resolve, reject) => {
-      this.socket = io(serverUrl, {
+      const socket = io(serverUrl, {
         transports: ['websocket'],
         reconnection: true,
         reconnectionDelay: 1000,
-        reconnectionAttempts: 5
+        reconnectionAttempts: 5,
       }) as TypedSocket
 
-      this.socket.on('connection:success', ({ playerId }) => {
+      this.socket = socket
+
+      socket.once('connection:success', ({ playerId }) => {
         console.log('[WS] Connected with player ID:', playerId)
         this.playerId = playerId
         resolve(playerId)
       })
 
-      this.socket.on('connection:error', (error) => {
+      socket.once('connection:error', (error) => {
         console.error('[WS] Connection error:', error)
         reject(error)
       })
 
-      this.socket.on('connect_error', (error) => {
+      socket.once('connect_error', (error) => {
         console.error('[WS] Socket connection error:', error)
         reject(error)
       })

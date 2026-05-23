@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { GameBoard } from './GameBoard'
 import { GameEngineContext } from '../context/GameEngineProvider'
 import { useOnlineGame } from '../context/OnlineGameProvider'
+import { wsService } from '../services/websocket'
 import { UnifiedTargetModal, TargetType } from './UnifiedTargetModal'
 import { DiscoverModal } from './DiscoverModal'
 import { ScryModal } from './ScryModal'
@@ -47,7 +48,8 @@ export function OnlineGameBoard({ onExitToMenu }: OnlineGameBoardProps) {
   }
 
   // Determinar qué jugador soy yo
-  const myPlayerIndex = gameState.players.findIndex(p => p.id === playerId)
+  const resolvedPlayerId = playerId ?? wsService.getPlayerId()
+  const myPlayerIndex = gameState.players.findIndex(p => p.id === resolvedPlayerId)
   const opponentIndex = 1 - myPlayerIndex
 
   if (myPlayerIndex === -1) {

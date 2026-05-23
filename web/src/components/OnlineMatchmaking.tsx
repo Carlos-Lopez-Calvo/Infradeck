@@ -13,8 +13,7 @@ export function OnlineMatchmaking({ onLeave }: OnlineMatchmakingProps) {
     matchFound,
     opponentName,
     gameState,
-    connectToServer,
-    startMatchmaking,
+    beginOnlineMatch,
     cancelMatchmaking,
   } = useOnlineGame()
 
@@ -37,9 +36,7 @@ export function OnlineMatchmaking({ onLeave }: OnlineMatchmakingProps) {
       setConnecting(true)
       setError(null)
       try {
-        await connectToServer()
-        if (cancelled) return
-        startMatchmaking()
+        await beginOnlineMatch()
       } catch {
         if (!cancelled) setError('No se pudo conectar al servidor')
       } finally {
@@ -51,7 +48,7 @@ export function OnlineMatchmaking({ onLeave }: OnlineMatchmakingProps) {
       cancelled = true
       cancelMatchmaking()
     }
-  }, [gameState, user?.username, retryKey, connectToServer, startMatchmaking, cancelMatchmaking])
+  }, [gameState, user?.username, retryKey, beginOnlineMatch, cancelMatchmaking])
 
   if (gameState) {
     return null
