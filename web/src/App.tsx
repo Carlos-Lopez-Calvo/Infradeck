@@ -11,9 +11,10 @@ import { Landing } from './components/Landing'
 import { AuthScreen } from './components/AuthScreen'
 import { DeckManagerScreen } from './components/DeckManagerScreen'
 import { CollectionScreen } from './components/CollectionScreen'
+import { ProfileScreen } from './components/ProfileScreen'
 import type { PlayDeckConfig } from './utils/play-deck'
 
-type Route = 'landing' | 'auth' | 'menu' | 'local' | 'online' | 'decks' | 'collection'
+type Route = 'landing' | 'auth' | 'menu' | 'local' | 'online' | 'decks' | 'collection' | 'profile'
 
 type AppContentProps = {
   selectedPlayDeck: PlayDeckConfig | null
@@ -32,7 +33,7 @@ function AppContent({ selectedPlayDeck, onSelectedPlayDeckChange }: AppContentPr
   }
 
   useEffect(() => {
-    if (!loading && !user && (route === 'menu' || route === 'local' || route === 'online' || route === 'decks' || route === 'collection')) {
+    if (!loading && !user && (route === 'menu' || route === 'local' || route === 'online' || route === 'decks' || route === 'collection' || route === 'profile')) {
       setRoute('auth')
     }
   }, [user, loading, route])
@@ -76,8 +77,13 @@ function AppContent({ selectedPlayDeck, onSelectedPlayDeckChange }: AppContentPr
         onStartOnline={goOnline}
         onOpenCollection={() => setRoute('collection')}
         onOpenDecks={() => setRoute('decks')}
+        onOpenProfile={() => setRoute('profile')}
       />
     )
+  }
+
+  if (route === 'profile') {
+    return <ProfileScreen onBack={() => setRoute('menu')} />
   }
 
   if (route === 'collection') {
@@ -138,6 +144,7 @@ function AppContent({ selectedPlayDeck, onSelectedPlayDeckChange }: AppContentPr
         onStartOnline={goOnline}
         onOpenCollection={() => setRoute('collection')}
         onOpenDecks={() => setRoute('decks')}
+        onOpenProfile={() => setRoute('profile')}
       />
     )
   }

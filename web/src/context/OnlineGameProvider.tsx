@@ -38,6 +38,7 @@ interface OnlineGameContextType {
   playCard: (handIndex: number, targets?: any[]) => void
   attack: (attackerIndex: number, targetType: 'hero' | 'creature', targetIndex?: number) => void
   endTurn: () => void
+  surrender: () => void
   sendDiscoverChoice: (handIndex: number, choice: string) => void
   sendScryDecision: (handIndex: number, decision: 'TOP' | 'BOTTOM') => void
   resetGame: () => void
@@ -204,6 +205,11 @@ export function OnlineGameProvider({
     wsService.endTurn()
   }
 
+  const surrender = () => {
+    if (!gameState || gameEnded) return
+    wsService.surrender()
+  }
+
   const sendDiscoverChoice = (handIndex: number, choice: string) => {
     if (!gameState || gameEnded) return
     console.log('[CLIENT] Sending discover choice:', { handIndex, choice })
@@ -265,6 +271,7 @@ export function OnlineGameProvider({
     playCard,
     attack,
     endTurn,
+    surrender,
     sendDiscoverChoice,
     sendScryDecision,
     resetGame

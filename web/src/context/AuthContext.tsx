@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react'
+import { API_BASE } from '../config/api'
 
-type User = {
+export type User = {
   id: string
   username: string
   email: string
@@ -10,6 +11,7 @@ type User = {
   xp: number
   gold: number
   gems: number
+  createdAt?: string
 }
 
 type AuthContextType = {
@@ -20,17 +22,11 @@ type AuthContextType = {
   login: (data: { email: string; password: string }) => Promise<void>
   loginWithGoogle: (credential: string) => Promise<void>
   logout: () => void
+  updateUser: (next: User) => void
   authFetch: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
 }
 
 const AuthContext = createContext<AuthContextType | null>(null)
-
-const API_BASE = (() => {
-  const envUrl = import.meta.env.VITE_API_URL as string | undefined
-  if (envUrl && envUrl.trim()) return envUrl.trim()
-  if (typeof window !== 'undefined') return `${window.location.protocol}//${window.location.hostname}:3001`
-  return 'http://localhost:3001'
-})()
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
@@ -186,8 +182,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const updateUser = useCallback((next: User) => {
+    setUser(next)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('infradeck:user', JSON.stringify(next))
+    }
+  }, [])
+
   return (
-    <AuthContext.Provider value={{ user, token, loading, register, login, loginWithGoogle, logout, authFetch }}>
+    <AuthContext.Provider value={{ user, token, loading, register, login, loginWithGoogle, logout, updateUser, authFetch }}>
       {children}
     </AuthContext.Provider>
   )

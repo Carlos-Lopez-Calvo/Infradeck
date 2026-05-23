@@ -8,6 +8,7 @@ import {
   EffectActionType, EffectTarget, EffectTiming,
   summonSpecimen,
   addCardToHandOrGraveyard,
+  applySurrender,
   getWinnerPlayerIndex,
   ClassType,
 } from '@infradeck/shared'
@@ -1064,11 +1065,11 @@ summonSpecimen: () => {
         />
       )}
 
-      {pauseMenuOpen && (
+      {pauseMenuOpen && !isGameOver && (
         <GameEndMenuModal
-          onExitToMenu={() => {
+          onSurrender={() => {
             setPauseMenuOpen(false)
-            onExitToMenu?.()
+            setGameState((prev) => applySurrender(prev, meIndex))
           }}
           onResumeGame={() => setPauseMenuOpen(false)}
         />

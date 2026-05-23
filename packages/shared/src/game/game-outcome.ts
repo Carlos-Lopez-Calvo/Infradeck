@@ -14,3 +14,13 @@ export function getWinnerPlayerIndex(state: GameState): number | null {
 export function isGameOver(state: GameState): boolean {
   return getWinnerPlayerIndex(state) !== null
 }
+
+/** Rendición: el jugador indicado pierde (vida a 0). */
+export function applySurrender(state: GameState, surrenderingPlayerIndex: number): GameState {
+  return {
+    ...state,
+    players: state.players.map((p, i) =>
+      i === surrenderingPlayerIndex ? { ...p, life: 0 } : p
+    ),
+  }
+}

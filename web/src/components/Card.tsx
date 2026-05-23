@@ -103,8 +103,9 @@ return (
         >
           {card.name}
         </h1>
+        <div className="w-full min-h-0 flex-1 overflow-y-auto scrollbar-none text-start flex flex-col gap-0.5 overscroll-contain">
         {/* Habilidades */}
-        <div className="flex flex-row flex-wrap items-center gap-1">
+        <div className="flex flex-row flex-wrap items-center gap-1 shrink-0">
   {card.abilities.map((ability) => (
     <div
       key={ability}
@@ -122,9 +123,8 @@ return (
   ))}
 </div>
         {/* Descripciones de efectos */}
-        <div className="w-full min-h-0 flex-1 overflow-hidden text-start flex flex-col gap-0.5">
           {card.effects.length > 0 ? card.effects.map((effect, idx) => (
-            <p key={idx} className='text-white text-[10px] relative line-clamp-2 leading-tight'>
+            <p key={idx} className='text-white text-[10px] relative leading-tight shrink-0'>
               <span
                 className="font-bold cursor-pointer"
                 onMouseEnter={() => setHoveredTiming(idx)}
@@ -135,7 +135,7 @@ return (
               {effect.description.replace(/^[^:]+:\s*/i, "")}
             </p>
           )) : (
-            <p className='text-white text-[10px] line-clamp-3 leading-tight'>
+            <p className='text-white text-[10px] leading-tight shrink-0'>
               {card.description || 'Sin texto de efecto.'}
             </p>
           )}

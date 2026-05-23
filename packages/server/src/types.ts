@@ -8,6 +8,7 @@ export interface Player {
   socketId: string
   name: string
   ready: boolean
+  userId?: string
   matchDeck?: PlayerMatchDeck
 }
 
@@ -35,6 +36,7 @@ export interface ClientToServerEvents {
   'game:playCard': (data: { handIndex: number; targets?: any[] }) => void
   'game:attack': (data: { attackerIndex: number; targetType: 'hero' | 'creature'; targetIndex?: number }) => void
   'game:endTurn': () => void
+  'game:surrender': () => void
   'game:summonSpecimen': () => void
   
   // Advanced interactions

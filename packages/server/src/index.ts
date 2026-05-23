@@ -15,6 +15,7 @@ import { upsertUserFromGoogle, verifyGoogleCredential } from './google-auth.js'
 import { getFullCollectionOwned, getFullCollectionRows } from './collection-utils.js'
 import { finishGameIfNeeded } from './game-end.js'
 import { resolveMatchDeckForUser } from './match-deck.js'
+import { recordMatchResults } from './match-history.js'
 import type { MatchmakingJoinPayload } from './types.js'
 
 const app = express()
@@ -61,6 +62,7 @@ type PublicUserPayload = {
   xp: number
   gold: number
   gems: number
+  createdAt: string
 }
 
 const signAccessToken = (userId: string) =>
@@ -88,6 +90,7 @@ const buildPublicUser = (user: {
   id: string
   username: string
   email: string
+  createdAt: Date
   profile: { nickname: string; avatarUrl: string | null; level: number; xp: number } | null
   currency: { gold: number; gems: number } | null
 }): PublicUserPayload => ({
@@ -100,7 +103,14 @@ const buildPublicUser = (user: {
   xp: user.profile?.xp ?? 0,
   gold: user.currency?.gold ?? 0,
   gems: user.currency?.gems ?? 0,
+  createdAt: user.createdAt.toISOString(),
 })
+
+const validateUsername = (raw: string): string | null => {
+  const trimmed = raw.trim()
+  if (!trimmed || trimmed.length < 3 || trimmed.length > 24) return null
+  return trimmed
+}
 
 // Registro con nickname, email y contraseña
 app.post('/auth/register', async (req, res) => {
@@ -301,6 +311,92 @@ app.get('/me', requireAuth, async (req: AuthenticatedRequest, res) => {
   }
 })
 
+app.patch('/me/username', requireAuth, async (req: AuthenticatedRequest, res) => {
+  try {
+    const userId = req.authUserId
+    if (!userId) {
+      return res.status(401).json({ error: 'missing_token' })
+    }
+
+    const { username } = req.body as { username?: string }
+    if (!username) {
+      return res.status(400).json({ error: 'username_required' })
+    }
+
+    const trimmedUsername = validateUsername(username)
+    if (!trimmedUsername) {
+      return res.status(400).json({ error: 'invalid_username_length' })
+    }
+
+    const taken = await prisma.user.findFirst({
+      where: { username: trimmedUsername, NOT: { id: userId } },
+    })
+    if (taken) {
+      return res.status(409).json({ error: 'username_taken' })
+    }
+
+    const user = await prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: userId },
+        data: { username: trimmedUsername },
+      })
+      await tx.userProfile.upsert({
+        where: { userId },
+        create: { userId, nickname: trimmedUsername },
+        update: { nickname: trimmedUsername },
+      })
+      return tx.user.findUnique({
+        where: { id: userId },
+        include: { profile: true, currency: true },
+      })
+    })
+
+    if (!user) {
+      return res.status(404).json({ error: 'user_not_found' })
+    }
+
+    return res.json({ user: buildPublicUser(user) })
+  } catch (error) {
+    console.error('[ME] username update error', error)
+    return res.status(500).json({ error: 'internal_error' })
+  }
+})
+
+app.get('/me/matches', requireAuth, async (req: AuthenticatedRequest, res) => {
+  try {
+    const userId = req.authUserId
+    if (!userId) {
+      return res.status(401).json({ error: 'missing_token' })
+    }
+
+    const matches = await prisma.matchRecord.findMany({
+      where: { userId },
+      orderBy: { finishedAt: 'desc' },
+      take: 50,
+    })
+
+    let wins = 0
+    let losses = 0
+    for (const m of matches) {
+      if (m.result === 'win') wins++
+      else losses++
+    }
+
+    return res.json({
+      summary: { wins, losses },
+      matches: matches.map((m) => ({
+        id: m.id,
+        result: m.result,
+        opponentName: m.opponentName,
+        finishedAt: m.finishedAt.toISOString(),
+      })),
+    })
+  } catch (error) {
+    console.error('[ME] matches error', error)
+    return res.status(500).json({ error: 'internal_error' })
+  }
+})
+
 // Colección del usuario autenticado
 app.get('/me/collection', requireAuth, async (req: AuthenticatedRequest, res) => {
   try {
@@ -491,6 +587,11 @@ async function broadcastStateAndMaybeEnd(roomId: string, gameState: unknown) {
   if (!room) return
   const end = await finishGameIfNeeded(room)
   if (end?.newlyFinished) {
+    try {
+      await recordMatchResults(room, end.winner)
+    } catch (err) {
+      console.error('[GAME] match history error', err)
+    }
     io.to(roomId).emit('game:end', { winner: end.winner, reason: 'Player defeated' })
     console.log(`[GAME] Game ended, winner: Player ${end.winner}`)
   }
@@ -527,6 +628,7 @@ io.on('connection', (socket) => {
     }
 
     let matchDeck: Player['matchDeck']
+    let authUserId: string | undefined
     if (joinData) {
       let userId: string | null = null
       try {
@@ -546,6 +648,7 @@ io.on('connection', (socket) => {
         return
       }
       matchDeck = resolved
+      authUserId = userId
     }
 
     console.log(`[MM] Player ${playerName} (${playerId}) joining matchmaking`, {
@@ -557,6 +660,7 @@ io.on('connection', (socket) => {
       socketId: socket.id,
       name: playerName.trim(),
       ready: false,
+      userId: authUserId,
       matchDeck,
     }
 
@@ -714,6 +818,25 @@ io.on('connection', (socket) => {
     } else {
       socket.emit('game:error', result.error || 'Unknown error')
       console.error(`[GAME] Error after scry: ${result.error}`)
+    }
+  })
+
+  socket.on('game:surrender', async () => {
+    const playerData = socketToPlayer.get(socket.id)
+    if (!playerData?.roomId) {
+      socket.emit('game:error', 'Not in a game room')
+      return
+    }
+
+    console.log(`[GAME] Player ${playerId} surrendered`)
+
+    const result = await gameRoomManager.handleSurrender(playerData.roomId, playerData.playerId)
+
+    if (result.success && result.gameState) {
+      await broadcastStateAndMaybeEnd(playerData.roomId, result.gameState)
+      console.log('[GAME] Surrender processed')
+    } else {
+      socket.emit('game:error', result.error || 'Unknown error')
     }
   })
 

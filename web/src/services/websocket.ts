@@ -39,6 +39,7 @@ interface ClientToServerEvents {
   'game:playCard': (data: { handIndex: number; targets?: any[] }) => void
   'game:attack': (data: { attackerIndex: number; targetType: 'hero' | 'creature'; targetIndex?: number }) => void
   'game:endTurn': () => void
+  'game:surrender': () => void
   'game:summonSpecimen': () => void
   'game:discoverResponse': (data: { handIndex: number; choice: string }) => void
   'game:scryResponse': (data: { handIndex: number; decision: 'TOP' | 'BOTTOM' }) => void
@@ -140,6 +141,12 @@ export class WebSocketService {
     if (!this.socket) throw new Error('Not connected')
     console.log('[WS] Sending endTurn')
     this.socket.emit('game:endTurn')
+  }
+
+  surrender() {
+    if (!this.socket) throw new Error('Not connected')
+    console.log('[WS] Sending surrender')
+    this.socket.emit('game:surrender')
   }
 
   onGameStart(callback: (gameState: GameState) => void) {

@@ -20,6 +20,18 @@ model User {
   currency   UserCurrency?
   collection UserCard[]
   decks      Deck[]
+  matches    MatchRecord[]
+}
+
+model MatchRecord {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  result       String
+  opponentName String
+  finishedAt   DateTime @default(now())
+
+  @@index([userId, finishedAt])
 }
 
 model UserProfile {

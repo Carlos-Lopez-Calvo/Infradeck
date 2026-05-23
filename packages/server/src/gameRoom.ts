@@ -256,6 +256,28 @@ export class GameRoomManager {
     }
   }
 
+  async handleSurrender(
+    roomId: string,
+    playerId: string
+  ): Promise<{ success: boolean; gameState?: any; error?: string }> {
+    const room = this.rooms.get(roomId)
+    if (!room || !room.gameState) {
+      return { success: false, error: 'Room or game not found' }
+    }
+    if (room.status === 'finished') {
+      return { success: false, error: 'Game already finished' }
+    }
+
+    const playerIndex = room.players.findIndex((p) => p.id === playerId)
+    if (playerIndex === -1) {
+      return { success: false, error: 'Player not in room' }
+    }
+
+    const { applySurrender } = await import('@infradeck/shared')
+    room.gameState = applySurrender(room.gameState, playerIndex)
+    return { success: true, gameState: room.gameState }
+  }
+
   deleteRoom(roomId: string): void {
     this.rooms.delete(roomId)
   }

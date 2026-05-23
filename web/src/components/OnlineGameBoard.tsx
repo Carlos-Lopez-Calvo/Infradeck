@@ -32,6 +32,7 @@ export function OnlineGameBoard({ onExitToMenu }: OnlineGameBoardProps) {
     gameEnded,
     winner,
     resetGame,
+    surrender,
   } = useOnlineGame()
 
   const [pauseMenuOpen, setPauseMenuOpen] = useState(false)
@@ -188,12 +189,11 @@ export function OnlineGameBoard({ onExitToMenu }: OnlineGameBoardProps) {
         />
       )}
 
-      {pauseMenuOpen && (
+      {pauseMenuOpen && !gameEnded && (
         <GameEndMenuModal
-          onExitToMenu={() => {
+          onSurrender={() => {
             setPauseMenuOpen(false)
-            resetGame()
-            onExitToMenu?.()
+            surrender()
           }}
           onResumeGame={() => setPauseMenuOpen(false)}
         />

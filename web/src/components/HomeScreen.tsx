@@ -7,15 +7,10 @@ import {
   type PlayDeckConfig,
   type SavedDeck,
 } from '../utils/play-deck'
-
-const API_BASE = (() => {
-  const envUrl = import.meta.env.VITE_API_URL as string | undefined
-  if (envUrl && envUrl.trim()) return envUrl.trim()
-  if (typeof window !== 'undefined') return `${window.location.protocol}//${window.location.hostname}:3001`
-  return 'http://localhost:3001'
-})()
+import { API_BASE } from '../config/api'
 
 type HomeScreenProps = {
+  onOpenProfile?: () => void
   onPlayDeckChange?: (deck: PlayDeckConfig | null) => void
   onStartLocal: (deck: PlayDeckConfig) => void
   onStartOnline: () => void
@@ -126,6 +121,7 @@ export function HomeScreen({
   onStartOnline,
   onOpenCollection,
   onOpenDecks,
+  onOpenProfile,
 }: HomeScreenProps) {
   const { user, token, authFetch } = useAuth()
   const [activeSection, setActiveSection] = useState<SectionId>('play')
@@ -256,10 +252,14 @@ export function HomeScreen({
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h1 className="text-2xl tracking-wide text-slate-100 md:text-3xl">Infradeck</h1>
 
-            <div className="flex items-center gap-3 rounded-xl bg-slate-900/55 px-3 py-2 text-slate-200">
+            <button
+              type="button"
+              onClick={onOpenProfile}
+              className="flex items-center gap-3 rounded-xl bg-slate-900/55 px-3 py-2 text-slate-200 transition hover:bg-slate-800/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+            >
               <div className="h-9 w-9 rounded-full bg-gradient-to-br from-slate-700 to-slate-900" />
               <div className="text-sm font-semibold text-sky-100">{user?.username ?? 'Guest'}</div>
-            </div>
+            </button>
           </div>
         </header>
 

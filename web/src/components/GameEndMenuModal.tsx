@@ -2,11 +2,11 @@ import React from 'react'
 import { motion } from 'framer-motion'
 
 type GameEndMenuModalProps = {
-  onExitToMenu: () => void
+  onSurrender: () => void
   onResumeGame: () => void
 }
 
-export function GameEndMenuModal({ onExitToMenu, onResumeGame }: GameEndMenuModalProps) {
+export function GameEndMenuModal({ onSurrender, onResumeGame }: GameEndMenuModalProps) {
   return (
     <div className="fixed inset-0 z-[21000] flex items-center justify-center bg-black/60 px-6">
       <motion.div
@@ -17,7 +17,7 @@ export function GameEndMenuModal({ onExitToMenu, onResumeGame }: GameEndMenuModa
       >
         <button
           type="button"
-          onClick={onExitToMenu}
+          onClick={onSurrender}
           className="rounded-xl border-2 border-red-600/80 bg-red-950/60 px-6 py-4 text-center text-lg font-bold tracking-wide text-red-300 transition hover:bg-red-900/70 hover:text-red-100"
         >
           Rendirse

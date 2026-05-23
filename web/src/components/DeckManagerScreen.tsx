@@ -12,13 +12,7 @@ import {
 import { useAuth } from '../context/AuthContext'
 import { Card as CardPreview } from './Card'
 import { ClassSelectOverlay } from './ClassSelectOverlay'
-
-const API_BASE = (() => {
-  const envUrl = import.meta.env.VITE_API_URL as string | undefined
-  if (envUrl && envUrl.trim()) return envUrl.trim()
-  if (typeof window !== 'undefined') return `${window.location.protocol}//${window.location.hostname}:3001`
-  return 'http://localhost:3001'
-})()
+import { API_BASE } from '../config/api'
 
 const DRAG_CARD_MIME = 'application/x-infradeck-card-id'
 
@@ -36,10 +30,13 @@ type DeckRow = {
 type View = 'list' | 'classOverlay' | 'editor'
 
 type ManaFilterKey = number | '7+'
+type OriginFilterKey = 'basic' | 'class'
 
 const MANA_FILTER_BUCKETS: ManaFilterKey[] = [0, 1, 2, 3, 4, 5, 6, '7+']
+const ORIGIN_FILTER_BUCKETS: OriginFilterKey[] = ['basic', 'class']
 
 const manaBucketLabel = (key: ManaFilterKey) => (key === '7+' ? '7+' : String(key))
+const originBucketLabel = (key: OriginFilterKey) => (key === 'basic' ? 'Básicas' : 'Clase')
 
 const cardMana = (card: Card) => Math.max(0, card.mana ?? 0)
 
@@ -47,6 +44,9 @@ const cardManaBucket = (card: Card): ManaFilterKey => {
   const m = cardMana(card)
   return m >= 7 ? '7+' : m
 }
+
+const cardOriginBucket = (card: Card): OriginFilterKey =>
+  BASIC_CARDS_BY_ID[card.id] ? 'basic' : 'class'
 
 function getCard(id: string): Card | undefined {
   return BASIC_CARDS_BY_ID[id] ?? CLASS_CARDS_BY_ID[id]
@@ -72,7 +72,11 @@ export function DeckManagerScreen({ onBack }: DeckManagerScreenProps) {
   const [activeManaFilters, setActiveManaFilters] = useState<Set<ManaFilterKey>>(
     () => new Set(MANA_FILTER_BUCKETS),
   )
+  const [activeOriginFilters, setActiveOriginFilters] = useState<Set<OriginFilterKey>>(
+    () => new Set(ORIGIN_FILTER_BUCKETS),
+  )
   const [deckDropActive, setDeckDropActive] = useState(false)
+  const [enlargedCard, setEnlargedCard] = useState<Card | null>(null)
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -98,6 +102,10 @@ export function DeckManagerScreen({ onBack }: DeckManagerScreenProps) {
   useEffect(() => {
     void loadData()
   }, [loadData])
+
+  useEffect(() => {
+    if (view !== 'editor') setEnlargedCard(null)
+  }, [view])
 
   const collectionOwned = useMemo(() => {
     const m: Record<string, number> = {}
@@ -125,6 +133,7 @@ export function DeckManagerScreen({ onBack }: DeckManagerScreenProps) {
     setLines({})
     setFilterText('')
     setActiveManaFilters(new Set(MANA_FILTER_BUCKETS))
+    setActiveOriginFilters(new Set(ORIGIN_FILTER_BUCKETS))
     setView('list')
   }
 
@@ -135,6 +144,7 @@ export function DeckManagerScreen({ onBack }: DeckManagerScreenProps) {
     setLines({})
     setFilterText('')
     setActiveManaFilters(new Set(MANA_FILTER_BUCKETS))
+    setActiveOriginFilters(new Set(ORIGIN_FILTER_BUCKETS))
     setView('classOverlay')
   }
 
@@ -147,11 +157,31 @@ export function DeckManagerScreen({ onBack }: DeckManagerScreenProps) {
     setLines(next)
     setFilterText('')
     setActiveManaFilters(new Set(MANA_FILTER_BUCKETS))
+    setActiveOriginFilters(new Set(ORIGIN_FILTER_BUCKETS))
     setView('editor')
   }
 
   const toggleManaFilter = (key: ManaFilterKey) => {
     setActiveManaFilters((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) {
+        if (next.size <= 1) return prev
+        next.delete(key)
+      } else {
+        next.add(key)
+      }
+      return next
+    })
+  }
+
+  const openCardPreview = (card: Card, e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setEnlargedCard(card)
+  }
+
+  const toggleOriginFilter = (key: OriginFilterKey) => {
+    setActiveOriginFilters((prev) => {
       const next = new Set(prev)
       if (next.has(key)) {
         if (next.size <= 1) return prev
@@ -223,8 +253,9 @@ export function DeckManagerScreen({ onBack }: DeckManagerScreenProps) {
       ? out.filter((c) => c.name.toLowerCase().includes(q) || c.id.toLowerCase().includes(q))
       : out
     filtered = filtered.filter((c) => activeManaFilters.has(cardManaBucket(c)))
+    filtered = filtered.filter((c) => activeOriginFilters.has(cardOriginBucket(c)))
     return filtered.sort((a, b) => cardMana(a) - cardMana(b) || a.name.localeCompare(b.name))
-  }, [selectedClass, legalIds, collectionOwned, filterText, activeManaFilters])
+  }, [selectedClass, legalIds, collectionOwned, filterText, activeManaFilters, activeOriginFilters])
 
   const canAddCard = (cardId: string) => {
     const card = getCard(cardId)
@@ -420,6 +451,26 @@ export function DeckManagerScreen({ onBack }: DeckManagerScreenProps) {
                     )
                   })}
                 </div>
+                <div className="mb-2 flex shrink-0 flex-wrap items-center gap-1.5">
+                  <span className="mr-1 text-[10px] uppercase tracking-wide text-slate-500">Tipo</span>
+                  {ORIGIN_FILTER_BUCKETS.map((bucket) => {
+                    const on = activeOriginFilters.has(bucket)
+                    return (
+                      <button
+                        key={bucket}
+                        type="button"
+                        onClick={() => toggleOriginFilter(bucket)}
+                        className={`rounded-lg border px-2.5 py-1 text-xs font-bold transition ${
+                          on
+                            ? 'border-violet-400/70 bg-violet-500/20 text-violet-100 shadow-[0_0_10px_rgba(167,139,250,0.25)]'
+                            : 'border-slate-600 bg-slate-900/60 text-slate-500 hover:border-slate-500'
+                        }`}
+                      >
+                        {originBucketLabel(bucket)}
+                      </button>
+                    )
+                  })}
+                </div>
                 <p className="mb-2 shrink-0 text-[10px] text-slate-500">
                   Clic o arrastra al mazo (máx. {GAME_CONSTANTS.DECK_SIZE})
                 </p>
@@ -441,6 +492,7 @@ export function DeckManagerScreen({ onBack }: DeckManagerScreenProps) {
                             draggable={canAdd}
                             onDragStart={(e) => handleDragStart(e, c.id)}
                             onClick={() => addOne(c.id)}
+                            onContextMenu={(e) => openCardPreview(c, e)}
                             className={`relative cursor-pointer rounded-lg transition ${
                               canAdd ? 'hover:ring-2 hover:ring-amber-400/50' : 'cursor-not-allowed opacity-50'
                             }`}
@@ -484,6 +536,7 @@ export function DeckManagerScreen({ onBack }: DeckManagerScreenProps) {
                       return (
                         <div
                           key={cardId}
+                          onContextMenu={(e) => openCardPreview(c, e)}
                           className="flex items-center justify-between gap-2 rounded border border-amber-900/30 bg-black/30 px-2 py-1.5 text-xs"
                         >
                           <span className="min-w-0 flex-1 truncate font-medium">{c.name}</span>
@@ -524,6 +577,22 @@ export function DeckManagerScreen({ onBack }: DeckManagerScreenProps) {
           </div>
         )}
       </div>
+
+      {enlargedCard && view === 'editor' && (
+        <div
+          className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/75 p-6 backdrop-blur-sm"
+          onClick={() => setEnlargedCard(null)}
+          role="presentation"
+        >
+          <div
+            className="pointer-events-auto origin-center scale-[2.25] sm:scale-[2.75]"
+            onClick={(e) => e.stopPropagation()}
+            onContextMenu={(e) => e.preventDefault()}
+          >
+            <CardPreview card={enlargedCard} />
+          </div>
+        </div>
+      )}
     </div>
   )
 }
