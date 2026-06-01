@@ -13,7 +13,7 @@ import { DeckManagerScreen } from './components/DeckManagerScreen'
 import { CollectionScreen } from './components/CollectionScreen'
 import { ProfileScreen } from './components/ProfileScreen'
 import type { PlayDeckConfig } from './utils/play-deck'
-import { clearGoogleAuthQuery, hasPendingGoogleAuth } from './constants/google-auth'
+import { clearGoogleAuthReturn, hasPendingGoogleAuth } from './constants/google-auth'
 
 type Route = 'landing' | 'auth' | 'menu' | 'local' | 'online' | 'decks' | 'collection' | 'profile'
 
@@ -44,7 +44,7 @@ function AppContent({ selectedPlayDeck, onSelectedPlayDeckChange }: AppContentPr
       return
     }
 
-    clearGoogleAuthQuery()
+    clearGoogleAuthReturn()
 
     if (route === 'landing' || route === 'auth') {
       setRoute('menu')

@@ -44,8 +44,6 @@ function getFrontendUrl(): string {
   return 'http://localhost:5173'
 }
 
-const GOOGLE_CREDENTIAL_STORAGE_KEY = 'infradeck_google_credential'
-
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: Date.now() })
@@ -249,23 +247,17 @@ app.post('/auth/google/callback', express.urlencoded({ extended: true }), (req, 
     return
   }
 
-  const target = `${getFrontendUrl()}/?auth=google`
-  const safeCredential = JSON.stringify(credential)
+  const frontend = getFrontendUrl()
+  const target = `${frontend}/?auth=google#infradeck_google=${encodeURIComponent(credential)}`
   const safeTarget = JSON.stringify(target)
-  const safeKey = JSON.stringify(GOOGLE_CREDENTIAL_STORAGE_KEY)
 
   res.type('html').send(`<!DOCTYPE html>
 <html lang="es">
 <head><meta charset="utf-8"><title>Iniciando sesión…</title></head>
 <body>
-<p>Iniciando sesión con Google…</p>
+<p>Redirigiendo a Infradeck…</p>
 <script>
-try {
-  sessionStorage.setItem(${safeKey}, ${safeCredential});
-  window.location.replace(${safeTarget});
-} catch (e) {
-  document.body.textContent = 'No se pudo completar el inicio de sesión.';
-}
+window.location.replace(${safeTarget});
 </script>
 </body>
 </html>`)

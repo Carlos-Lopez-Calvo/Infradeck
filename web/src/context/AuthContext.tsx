@@ -1,6 +1,10 @@
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react'
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { API_BASE } from '../config/api'
-import { GOOGLE_CREDENTIAL_STORAGE_KEY } from '../constants/google-auth'
+import {
+  GOOGLE_CREDENTIAL_STORAGE_KEY,
+  clearGoogleAuthReturn,
+  peekGoogleCredentialFromHash,
+} from '../constants/google-auth'
 
 export type User = {
   id: string
@@ -33,44 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [token, setToken] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    const rawUser = typeof window !== 'undefined' ? localStorage.getItem('infradeck:user') : null
-    const rawToken = typeof window !== 'undefined' ? localStorage.getItem('infradeck:token') : null
-
-    if (!rawUser || !rawToken) {
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('infradeck:user')
-        localStorage.removeItem('infradeck:token')
-      }
-      setLoading(false)
-      return
-    }
-
-    ;(async () => {
-      try {
-        const res = await fetch(`${API_BASE}/me`, {
-          headers: {
-            Authorization: `Bearer ${rawToken}`,
-          },
-        })
-        if (!res.ok) {
-          throw new Error('session_invalid')
-        }
-        const body = (await res.json()) as { user: User }
-        setUser(body.user)
-        setToken(rawToken)
-        localStorage.setItem('infradeck:user', JSON.stringify(body.user))
-      } catch {
-        setUser(null)
-        setToken(null)
-        localStorage.removeItem('infradeck:user')
-        localStorage.removeItem('infradeck:token')
-      } finally {
-        setLoading(false)
-      }
-    })()
-  }, [])
+  const googleLoginStartedRef = useRef(false)
 
   const persistSession = (nextToken: string, nextUser: User) => {
     setToken(nextToken)
@@ -78,6 +45,106 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('infradeck:token', nextToken)
     localStorage.setItem('infradeck:user', JSON.stringify(nextUser))
   }
+
+  const loginWithGoogle = useCallback(async (credential: string) => {
+    let res: Response
+    try {
+      res = await fetch(`${API_BASE}/auth/google`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ credential }),
+      })
+    } catch {
+      throw new Error(
+        'No se pudo contactar con el servidor. Revisa VITE_API_URL y que el backend en Render esté activo.',
+      )
+    }
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}))
+      const code = (body as { error?: string })?.error
+      if (code === 'invalid_google_token') {
+        throw new Error('Token de Google inválido o expirado')
+      }
+      if (code === 'google_email_required') {
+        throw new Error('Google no proporcionó un email verificado')
+      }
+      if (code === 'google_account_conflict') {
+        throw new Error('Este email ya está vinculado a otra cuenta de Google')
+      }
+      if (code === 'google_not_configured') {
+        throw new Error('Login con Google no configurado en el servidor (GOOGLE_CLIENT_ID en Render)')
+      }
+      throw new Error('No se pudo iniciar sesión con Google')
+    }
+
+    const payload = (await res.json()) as { accessToken: string; user: User }
+    persistSession(payload.accessToken, payload.user)
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+
+    ;(async () => {
+      if (typeof window !== 'undefined' && !googleLoginStartedRef.current) {
+        const fromHash = peekGoogleCredentialFromHash()
+        const fromStorage = sessionStorage.getItem(GOOGLE_CREDENTIAL_STORAGE_KEY)
+        const googleCredential = fromHash ?? fromStorage
+
+        if (googleCredential) {
+          googleLoginStartedRef.current = true
+          clearGoogleAuthReturn()
+          try {
+            await loginWithGoogle(googleCredential)
+            if (!cancelled) return
+          } catch (e: unknown) {
+            console.error(e)
+            alert(e instanceof Error ? e.message : 'Error al iniciar sesión con Google')
+          }
+        } else if (new URLSearchParams(window.location.search).get('auth') === 'google') {
+          clearGoogleAuthReturn()
+          alert(
+            'No se pudo completar el inicio de sesión con Google. El servidor debe estar actualizado (redeploy en Render).',
+          )
+        }
+      }
+
+      const rawToken = localStorage.getItem('infradeck:token')
+      if (!rawToken) {
+        if (!cancelled) {
+          setUser(null)
+          setToken(null)
+        }
+        return
+      }
+
+      try {
+        const res = await fetch(`${API_BASE}/me`, {
+          headers: { Authorization: `Bearer ${rawToken}` },
+        })
+        if (!res.ok) throw new Error('session_invalid')
+        const body = (await res.json()) as { user: User }
+        if (!cancelled) {
+          setUser(body.user)
+          setToken(rawToken)
+          localStorage.setItem('infradeck:user', JSON.stringify(body.user))
+        }
+      } catch {
+        if (!cancelled) {
+          setUser(null)
+          setToken(null)
+          localStorage.removeItem('infradeck:user')
+          localStorage.removeItem('infradeck:token')
+        }
+      }
+    })().finally(() => {
+      if (!cancelled) setLoading(false)
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [loginWithGoogle])
 
   const register = async (data: { username: string; email: string; password: string }) => {
     const res = await fetch(`${API_BASE}/auth/register`, {
@@ -127,63 +194,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const payload = (await res.json()) as { accessToken: string; user: User }
     persistSession(payload.accessToken, payload.user)
   }
-
-  const loginWithGoogle = useCallback(async (credential: string) => {
-    let res: Response
-    try {
-      res = await fetch(`${API_BASE}/auth/google`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ credential }),
-      })
-    } catch {
-      throw new Error(
-        'No se pudo contactar con el servidor. Revisa VITE_API_URL y que el backend en Render esté activo.',
-      )
-    }
-
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}))
-      const code = (body as { error?: string })?.error
-      if (code === 'invalid_google_token') {
-        throw new Error('Token de Google inválido o expirado')
-      }
-      if (code === 'google_email_required') {
-        throw new Error('Google no proporcionó un email verificado')
-      }
-      if (code === 'google_account_conflict') {
-        throw new Error('Este email ya está vinculado a otra cuenta de Google')
-      }
-      if (code === 'google_not_configured') {
-        throw new Error('Login con Google no configurado en el servidor (GOOGLE_CLIENT_ID en Render)')
-      }
-      throw new Error('No se pudo iniciar sesión con Google')
-    }
-
-    const payload = (await res.json()) as { accessToken: string; user: User }
-    persistSession(payload.accessToken, payload.user)
-  }, [])
-
-  useEffect(() => {
-    if (loading || user || typeof window === 'undefined') return
-
-    const pendingCredential = sessionStorage.getItem(GOOGLE_CREDENTIAL_STORAGE_KEY)
-    if (!pendingCredential) return
-
-    sessionStorage.removeItem(GOOGLE_CREDENTIAL_STORAGE_KEY)
-    setLoading(true)
-
-    ;(async () => {
-      try {
-        await loginWithGoogle(pendingCredential)
-      } catch (e: unknown) {
-        console.error(e)
-        alert(e instanceof Error ? e.message : 'Error al iniciar sesión con Google')
-      } finally {
-        setLoading(false)
-      }
-    })()
-  }, [loading, user, loginWithGoogle])
 
   const authFetch = useCallback((input: RequestInfo | URL, init: RequestInit = {}) => {
     const headers = new Headers(init.headers ?? {})
