@@ -3,7 +3,7 @@ import { Hand, OpponentHand } from './Hand'
 import { ContenidoIzquierda, ContenidoIzquierdaOponente } from './ContenidoIzquierda'
 import { ContenidoDerecha, ContenidoDerechaOponente } from './ContenidoDerecha'
 import { Card } from './Card'
-import { getCardByIdGlobal } from '@infradeck/shared'
+import { getCardById } from '../utils/card-resolver'
 import { useGameEngine } from '../context/GameEngineProvider'
 import { HAND_CARD_DRAG_MIME } from '../constants/game-drag'
 
@@ -70,7 +70,7 @@ export function GameBoard() {
             <div className="flex gap-3">
             {opponentPlayer.board.map((c, idx) => {
                 // Oponente (battlefield superior)
-const base = getCardByIdGlobal(c.cardId)
+const base = getCardById(c.cardId)
 const preview = base
   ? { ...base, attack: c.attack, health: c.health, abilities: c.abilities }
   : { id: c.cardId, name: 'Token', type: 'CREATURE', rarity: 'BASIC', mana: 0, attack: c.attack, health: c.health, abilities: c.abilities, effects: [], description: '', flavorText: '' }
@@ -88,7 +88,7 @@ const preview = base
                     title="Click para atacar a esta criatura (si tienes un atacante seleccionado)"
                     onMouseEnter={() => {
                       // Tú (battlefield inferior)
-const base = getCardByIdGlobal(c.cardId)
+const base = getCardById(c.cardId)
 const preview = base
   ? { ...base, attack: c.attack, health: c.health, abilities: c.abilities }
   : { id: c.cardId, name: 'Token', type: 'CREATURE', rarity: 'BASIC', mana: 0, attack: c.attack, health: c.health, abilities: c.abilities, effects: [], description: '', flavorText: '' }
@@ -151,13 +151,12 @@ const preview = base
             )}
             <div className="flex gap-3">
             {currentPlayer.board.map((c, idx) => {
-                const base = getCardByIdGlobal(c.cardId)
-                if (!base) return null
+                const base = getCardById(c.cardId)
+                const preview = base
+                  ? { ...base, attack: c.attack, health: c.health, abilities: c.abilities }
+                  : { id: c.cardId, name: 'Token', type: 'CREATURE', rarity: 'BASIC', mana: 0, attack: c.attack, health: c.health, abilities: c.abilities, effects: [], description: '', flavorText: '' }
                 const isSelected = selectedAttacker === idx
                 const canSelect = canAct && !c.exhausted && (c.attack ?? 0) > 0 && c.health > 0
-                const preview = base
-  ? { ...base, attack: c.attack, health: c.health, abilities: c.abilities }
-  : { id: c.cardId, name: 'Token', type: 'CREATURE', rarity: 'BASIC', mana: 0, attack: c.attack, health: c.health, abilities: c.abilities, effects: [], description: '', flavorText: '' }
                 return (
                   <button
                     key={c.id ?? `${c.cardId}-${idx}`}
@@ -169,7 +168,7 @@ const preview = base
                     }}
                     title={canSelect ? (isSelected ? 'Atacante seleccionado' : 'Seleccionar atacante') : 'No puede atacar'}
                     onMouseEnter={() => {
-                      const base = getCardByIdGlobal(c.cardId)
+                      const base = getCardById(c.cardId)
                       const preview = base
                         ? { ...base, attack: c.attack, health: c.health, abilities: c.abilities }
                         : { id: c.cardId, name: 'Token', type: 'CREATURE', rarity: 'BASIC', mana: 0, attack: c.attack, health: c.health, abilities: c.abilities, effects: [], description: '', flavorText: '' }

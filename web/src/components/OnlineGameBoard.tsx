@@ -2,10 +2,11 @@ import React, { useState } from 'react'
 import { GameBoard } from './GameBoard'
 import { GameEngineContext } from '../context/GameEngineProvider'
 import { useOnlineGame } from '../context/OnlineGameProvider'
+import { wsService } from '../services/websocket'
 import { UnifiedTargetModal, TargetType } from './UnifiedTargetModal'
 import { DiscoverModal } from './DiscoverModal'
 import { ScryModal } from './ScryModal'
-import { getCardByIdGlobal } from '@infradeck/shared'
+import { getCardById } from '../utils/card-resolver'
 import { GameEndOverlay } from './GameEndOverlay'
 import { GameEndMenuModal } from './GameEndMenuModal'
 
@@ -29,6 +30,7 @@ export function OnlineGameBoard({ onExitToMenu }: OnlineGameBoardProps) {
     setPendingScryDecision,
     sendDiscoverChoice,
     sendScryDecision,
+    summonSpecimen: onlineSummonSpecimen,
     gameEnded,
     winner,
     resetGame,
@@ -46,7 +48,8 @@ export function OnlineGameBoard({ onExitToMenu }: OnlineGameBoardProps) {
   }
 
   // Determinar qué jugador soy yo
-  const myPlayerIndex = gameState.players.findIndex(p => p.id === playerId)
+  const resolvedPlayerId = playerId ?? wsService.getPlayerId()
+  const myPlayerIndex = gameState.players.findIndex(p => p.id === resolvedPlayerId)
   const opponentIndex = 1 - myPlayerIndex
 
   if (myPlayerIndex === -1) {
@@ -77,8 +80,13 @@ export function OnlineGameBoard({ onExitToMenu }: OnlineGameBoardProps) {
       attackCreature: (attackerIndex: number, targetIndex: number) => 
         onlineAttack(attackerIndex, 'creature', targetIndex),
       summonSpecimen: () => {
-        console.log('summonSpecimen not implemented in online mode')
-      }
+        const needsTarget = (currentPlayer.programmedSpecimenEffects ?? []).includes('DAMAGE_3_ON_ENTER')
+        if (needsTarget) {
+          setPendingTargetSelection({ handIndex: -1, targetType: 'CREATURE_ENEMY' })
+          return
+        }
+        onlineSummonSpecimen()
+      },
     }
   }
 
@@ -90,12 +98,22 @@ export function OnlineGameBoard({ onExitToMenu }: OnlineGameBoardProps) {
       case 'CREATURE_FRIENDLY':
         return 'CREATURE_SELF'
       case 'CREATURE_ANY':
-        return 'CREATURE_ENEMY' // Por defecto enemigos
+        return 'ANY_CREATURE'
       case 'HERO_ENEMY':
-        return 'CREATURE_ENEMY' // Reutilizamos el modal con héroes
+        return 'HERO_ENEMY'
       default:
         return 'CREATURE_ENEMY'
     }
+  }
+
+  const toTargetRefs = (selection: { type: string; playerType?: string; index?: number }) => {
+    if (selection.type === 'HERO') {
+      return [{ type: selection.playerType === 'SELF' ? 'HERO_SELF' : 'HERO_ENEMY' }]
+    }
+    return [{
+      type: selection.playerType === 'SELF' ? 'CREATURE_SELF' : 'CREATURE_ENEMY',
+      index: selection.index,
+    }]
   }
 
   return (
@@ -120,22 +138,16 @@ export function OnlineGameBoard({ onExitToMenu }: OnlineGameBoardProps) {
             name: opponentPlayer.name,
             board: opponentPlayer.board
           }}
-          getCardById={getCardByIdGlobal}
+          getCardById={getCardById}
           onSelect={(selection) => {
-            console.log('[ONLINE] Target selected:', selection)
-            
-            // Convertir la selección al formato de TargetRef
-            const targets: any[] = selection.type === 'HERO'
-              ? [{ type: selection.playerType === 'SELF' ? 'HERO_SELF' : 'HERO_ENEMY' }]
-              : [{ 
-                  type: selection.playerType === 'SELF' ? 'CREATURE_SELF' : 'CREATURE_ENEMY', 
-                  index: selection.index 
-                }]
-            
-            // Enviar la carta con los targets al servidor
-            onlinePlayCard(pendingTargetSelection.handIndex, targets)
-            
-            // Limpiar el estado del modal
+            const targets = toTargetRefs(selection)
+
+            if (pendingTargetSelection.handIndex === -1) {
+              onlineSummonSpecimen(targets)
+            } else {
+              onlinePlayCard(pendingTargetSelection.handIndex, targets)
+            }
+
             setPendingTargetSelection(null)
           }}
           onCancel={() => {

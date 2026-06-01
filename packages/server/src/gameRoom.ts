@@ -235,25 +235,73 @@ export class GameRoomManager {
       return { success: false, error: 'Player not in room' }
     }
 
-    // Usar las funciones del motor de juego
     if (targetType === 'hero') {
       const result = await GameEngine.declareAttackHero(room.gameState, playerIndex, attackerIndex)
       if (result.ok) {
         return { success: true, gameState: room.gameState }
-      } else {
-        return { success: false, error: result.error }
       }
-    } else {
-      if (targetIndex === undefined) {
-        return { success: false, error: 'Target index required for creature attack' }
-      }
-      const result = await GameEngine.declareAttackCreature(room.gameState, playerIndex, attackerIndex, targetIndex)
-      if (result.ok) {
-        return { success: true, gameState: room.gameState }
-      } else {
-        return { success: false, error: result.error }
+      return { success: false, error: result.error }
+    }
+
+    if (targetIndex === undefined) {
+      return { success: false, error: 'Target index required for creature attack' }
+    }
+    const result = await GameEngine.declareAttackCreature(room.gameState, playerIndex, attackerIndex, targetIndex)
+    if (result.ok) {
+      return { success: true, gameState: room.gameState }
+    }
+    return { success: false, error: result.error }
+  }
+
+  async handleSummonSpecimen(
+    roomId: string,
+    playerId: string,
+    targets?: any[],
+  ): Promise<{
+    success: boolean
+    gameState?: any
+    error?: string
+    needsTarget?: boolean
+    targetType?: string
+  }> {
+    const room = this.rooms.get(roomId)
+    if (!room || !room.gameState) {
+      return { success: false, error: 'Room or game not found' }
+    }
+
+    const playerIndex = room.players.findIndex(p => p.id === playerId)
+    if (playerIndex === -1) {
+      return { success: false, error: 'Player not in room' }
+    }
+
+    if (room.gameState.turn.currentPlayerIndex !== playerIndex) {
+      return { success: false, error: 'Not your turn' }
+    }
+
+    const player = room.gameState.players[playerIndex]
+    const needsTarget = (player.programmedSpecimenEffects ?? []).includes('DAMAGE_3_ON_ENTER')
+
+    if (needsTarget && (!targets || targets.length === 0)) {
+      return {
+        success: false,
+        needsTarget: true,
+        targetType: 'CREATURE_ENEMY',
+        error: 'Specimen needs target selection',
       }
     }
+
+    if (needsTarget && targets?.length) {
+      room.gameState.pendingTargets = targets
+    }
+
+    const ok = await GameEngine.summonSpecimen(room.gameState, playerIndex)
+    room.gameState.pendingTargets = []
+
+    if (!ok) {
+      return { success: false, error: 'Cannot summon specimen' }
+    }
+
+    return { success: true, gameState: room.gameState }
   }
 
   async handleSurrender(

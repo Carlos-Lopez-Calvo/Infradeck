@@ -37,7 +37,7 @@ export interface ClientToServerEvents {
   'game:attack': (data: { attackerIndex: number; targetType: 'hero' | 'creature'; targetIndex?: number }) => void
   'game:endTurn': () => void
   'game:surrender': () => void
-  'game:summonSpecimen': () => void
+  'game:summonSpecimen': (data?: { targets?: any[] }) => void
   
   // Advanced interactions
   'game:discoverResponse': (data: { handIndex: number; choice: string }) => void
