@@ -13,6 +13,7 @@ import { DeckManagerScreen } from './components/DeckManagerScreen'
 import { CollectionScreen } from './components/CollectionScreen'
 import { ProfileScreen } from './components/ProfileScreen'
 import type { PlayDeckConfig } from './utils/play-deck'
+import { clearGoogleAuthQuery, hasPendingGoogleAuth } from './constants/google-auth'
 
 type Route = 'landing' | 'auth' | 'menu' | 'local' | 'online' | 'decks' | 'collection' | 'profile'
 
@@ -37,13 +38,15 @@ function AppContent({ selectedPlayDeck, onSelectedPlayDeckChange }: AppContentPr
 
     if (!user) {
       resetGame()
-      if (route !== 'auth') {
+      if (route !== 'auth' && !hasPendingGoogleAuth()) {
         setRoute('landing')
       }
       return
     }
 
-    if (route === 'landing') {
+    clearGoogleAuthQuery()
+
+    if (route === 'landing' || route === 'auth') {
       setRoute('menu')
     }
   }, [user, loading, route, resetGame])
@@ -62,7 +65,7 @@ function AppContent({ selectedPlayDeck, onSelectedPlayDeckChange }: AppContentPr
   }, [route, localPlayDeck])
 
 
-  if (loading) {
+  if (loading || (!user && hasPendingGoogleAuth())) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-black text-slate-200">
         Cargando...
