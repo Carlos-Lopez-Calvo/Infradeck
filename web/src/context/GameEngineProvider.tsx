@@ -3,7 +3,7 @@ import React, { createContext, useContext, useEffect, useLayoutEffect, useMemo, 
 import {
   GameState, createGame, startGame,
   startTurn as engineStartTurn, endTurn as engineEndTurn,
-  setCardResolver, setPriorityWindow, playCard, setDiscoverRequest, setScryRequest, setAdvancedSelectionRequest,
+  setPriorityWindow, playCard, setDiscoverRequest, setScryRequest, setAdvancedSelectionRequest,
   BASIC_CARDS_BY_ID, CLASS_CARDS_BY_ID, declareAttackHero, declareAttackCreature,
   EffectActionType, EffectTarget, EffectTiming,
   summonSpecimen,
@@ -20,6 +20,7 @@ import { UnifiedTargetModal, TargetType, TargetSelection } from '../components/U
 
 import { sampleDecks } from '../utils/sample-decks'
 import type { PlayDeckConfig } from '../utils/play-deck'
+import { getCardById, initCardResolver } from '../utils/card-resolver'
 
 const delay = (ms: number) => new Promise(r => setTimeout(r, ms))
 const BOT_ENABLED = true
@@ -112,10 +113,6 @@ export function GameEngineProvider({
 
   const localPlayerId = 'player1'
 
-    const getCardById = (id: string) => {
-      return BASIC_CARDS_BY_ID[id] ?? CLASS_CARDS_BY_ID[id]
-    }
-
   const isPlayingRef = useRef(false)
   // dentro de GameEngineProvider, junto a otros refs
 const lastPlaySigRef = useRef<{ turn: string; key: string; at: number } | null>(null)
@@ -139,7 +136,7 @@ const [advancedSelectionModal, setAdvancedSelectionModal] = useState<AdvancedSel
 const [pauseMenuOpen, setPauseMenuOpen] = useState(false)
 
 useLayoutEffect(() => {
-  setCardResolver(getCardById)
+  initCardResolver()
   setPriorityWindow(() => setGameState(s => ({ ...s })))
 
   setDiscoverRequest((state, { playerIndex }) => {

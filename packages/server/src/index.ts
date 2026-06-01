@@ -581,6 +581,37 @@ app.post('/me/rewards', requireAuth, async (req: AuthenticatedRequest, res) => {
 
 const gameRoomManager = new GameRoomManager()
 
+type PlayCardResult = Awaited<ReturnType<typeof gameRoomManager.handlePlayCard>>
+
+async function emitPlayCardResult(
+  socket: import('socket.io').Socket,
+  roomId: string,
+  handIndex: number,
+  result: PlayCardResult,
+) {
+  if (result.success && result.gameState) {
+    await broadcastStateAndMaybeEnd(roomId, result.gameState)
+    socket.to(roomId).emit('opponent:playCard', { cardId: 'card_played' })
+  } else if (result.needsDiscover) {
+    socket.emit('game:needsDiscover', {
+      handIndex,
+      options: result.discoverOptions || [],
+    })
+  } else if (result.needsScry) {
+    socket.emit('game:needsScry', {
+      handIndex,
+      cards: result.scryCards || [],
+    })
+  } else if (result.needsTarget) {
+    socket.emit('game:needsTarget', {
+      handIndex,
+      targetType: result.targetType ?? 'CREATURE_ANY',
+    })
+  } else {
+    socket.emit('game:error', result.error || 'Unknown error')
+  }
+}
+
 async function broadcastStateAndMaybeEnd(roomId: string, gameState: unknown) {
   io.to(roomId).emit('game:stateUpdate', gameState)
   const room = gameRoomManager.getRoom(roomId)
@@ -736,34 +767,18 @@ io.on('connection', (socket) => {
     )
 
     if (result.success && result.gameState) {
-      await broadcastStateAndMaybeEnd(playerData.roomId, result.gameState)
-      socket.to(playerData.roomId).emit('opponent:playCard', { cardId: 'card_played' })
       console.log(`[GAME] Card played successfully`)
     } else if (result.needsDiscover) {
-      // La carta necesita discover (elegir entre opciones)
-      socket.emit('game:needsDiscover', { 
-        handIndex: data.handIndex,
-        options: result.discoverOptions || []
-      })
       console.log(`[GAME] Card needs discover: ${result.discoverOptions?.length} options`)
     } else if (result.needsScry) {
-      // La carta necesita scry (decidir sobre cartas del mazo)
-      socket.emit('game:needsScry', { 
-        handIndex: data.handIndex,
-        cards: result.scryCards || []
-      })
       console.log(`[GAME] Card needs scry: ${result.scryCards?.length} cards`)
     } else if (result.needsTarget) {
-      // La carta necesita selección de targets
-      socket.emit('game:needsTarget', { 
-        handIndex: data.handIndex,
-        targetType: result.targetType ?? 'CREATURE_ANY'
-      })
       console.log(`[GAME] Card needs target selection: ${result.targetType}`)
     } else {
-      socket.emit('game:error', result.error || 'Unknown error')
       console.error(`[GAME] Error playing card: ${result.error}`)
     }
+
+    await emitPlayCardResult(socket, playerData.roomId, data.handIndex, result)
   })
 
   // Handler para respuesta de discover
@@ -780,17 +795,15 @@ io.on('connection', (socket) => {
       playerData.roomId,
       playerData.playerId,
       data.handIndex,
-      undefined, // no targets
-      data.choice // discover choice
+      undefined,
+      data.choice,
     )
 
-    if (result.success && result.gameState) {
-      await broadcastStateAndMaybeEnd(playerData.roomId, result.gameState)
-      socket.to(playerData.roomId).emit('opponent:playCard', { cardId: 'card_played' })
-    } else {
-      socket.emit('game:error', result.error || 'Unknown error')
+    if (!result.success && !result.needsDiscover && !result.needsScry && !result.needsTarget) {
       console.error(`[GAME] Error after discover: ${result.error}`)
     }
+
+    await emitPlayCardResult(socket, playerData.roomId, data.handIndex, result)
   })
 
   // Handler para respuesta de scry
@@ -807,18 +820,16 @@ io.on('connection', (socket) => {
       playerData.roomId,
       playerData.playerId,
       data.handIndex,
-      undefined, // no targets
-      undefined, // no discover choice
-      data.decision // scry decision
+      undefined,
+      undefined,
+      data.decision,
     )
 
-    if (result.success && result.gameState) {
-      await broadcastStateAndMaybeEnd(playerData.roomId, result.gameState)
-      socket.to(playerData.roomId).emit('opponent:playCard', { cardId: 'card_played' })
-    } else {
-      socket.emit('game:error', result.error || 'Unknown error')
+    if (!result.success && !result.needsDiscover && !result.needsScry && !result.needsTarget) {
       console.error(`[GAME] Error after scry: ${result.error}`)
     }
+
+    await emitPlayCardResult(socket, playerData.roomId, data.handIndex, result)
   })
 
   socket.on('game:surrender', async () => {
@@ -858,6 +869,35 @@ io.on('connection', (socket) => {
     } else {
       socket.emit('game:error', result.error || 'Unknown error')
       console.error(`[GAME] Error ending turn: ${result.error}`)
+    }
+  })
+
+  socket.on('game:summonSpecimen', async (data) => {
+    const playerData = socketToPlayer.get(socket.id)
+    if (!playerData?.roomId) {
+      socket.emit('game:error', 'Not in a game room')
+      return
+    }
+
+    console.log(`[GAME] Player ${playerId} summoning specimen`)
+
+    const result = await gameRoomManager.handleSummonSpecimen(
+      playerData.roomId,
+      playerData.playerId,
+      data?.targets,
+    )
+
+    if (result.success && result.gameState) {
+      await broadcastStateAndMaybeEnd(playerData.roomId, result.gameState)
+      socket.to(playerData.roomId).emit('opponent:playCard', { cardId: 'specimen_summoned' })
+    } else if (result.needsTarget) {
+      socket.emit('game:needsTarget', {
+        handIndex: -1,
+        targetType: result.targetType ?? 'CREATURE_ENEMY',
+      })
+    } else {
+      socket.emit('game:error', result.error || 'Unknown error')
+      console.error(`[GAME] Error summoning specimen: ${result.error}`)
     }
   })
 

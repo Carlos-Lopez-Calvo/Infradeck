@@ -40,7 +40,7 @@ interface ClientToServerEvents {
   'game:attack': (data: { attackerIndex: number; targetType: 'hero' | 'creature'; targetIndex?: number }) => void
   'game:endTurn': () => void
   'game:surrender': () => void
-  'game:summonSpecimen': () => void
+  'game:summonSpecimen': (data?: { targets?: any[] }) => void
   'game:discoverResponse': (data: { handIndex: number; choice: string }) => void
   'game:scryResponse': (data: { handIndex: number; decision: 'TOP' | 'BOTTOM' }) => void
 }
@@ -52,26 +52,39 @@ export class WebSocketService {
   private playerId: string | null = null
 
   connect(serverUrl: string = resolveServerUrl()): Promise<string> {
+    if (this.socket?.connected && this.playerId) {
+      return Promise.resolve(this.playerId)
+    }
+
+    if (this.socket) {
+      this.socket.removeAllListeners()
+      this.socket.disconnect()
+      this.socket = null
+      this.playerId = null
+    }
+
     return new Promise((resolve, reject) => {
-      this.socket = io(serverUrl, {
+      const socket = io(serverUrl, {
         transports: ['websocket'],
         reconnection: true,
         reconnectionDelay: 1000,
-        reconnectionAttempts: 5
+        reconnectionAttempts: 5,
       }) as TypedSocket
 
-      this.socket.on('connection:success', ({ playerId }) => {
+      this.socket = socket
+
+      socket.once('connection:success', ({ playerId }) => {
         console.log('[WS] Connected with player ID:', playerId)
         this.playerId = playerId
         resolve(playerId)
       })
 
-      this.socket.on('connection:error', (error) => {
+      socket.once('connection:error', (error) => {
         console.error('[WS] Connection error:', error)
         reject(error)
       })
 
-      this.socket.on('connect_error', (error) => {
+      socket.once('connect_error', (error) => {
         console.error('[WS] Socket connection error:', error)
         reject(error)
       })
@@ -147,6 +160,12 @@ export class WebSocketService {
     if (!this.socket) throw new Error('Not connected')
     console.log('[WS] Sending surrender')
     this.socket.emit('game:surrender')
+  }
+
+  summonSpecimen(targets?: any[]) {
+    if (!this.socket) throw new Error('Not connected')
+    console.log('[WS] Sending summonSpecimen', { targets })
+    this.socket.emit('game:summonSpecimen', { targets })
   }
 
   onGameStart(callback: (gameState: GameState) => void) {

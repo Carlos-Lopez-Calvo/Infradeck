@@ -54,3 +54,8 @@ export async function declareAttackCreature(
   const engine = await loadGameEngine()
   return engine.declareAttackCreature(gameState, playerIndex, attackerIndex, targetIndex)
 }
+
+export async function summonSpecimen(gameState: any, playerIndex: number): Promise<boolean> {
+  const engine = await loadGameEngine()
+  return engine.summonSpecimen(gameState, playerIndex)
+}
