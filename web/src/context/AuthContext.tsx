@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import { API_BASE } from '../config/api'
+import { GOOGLE_CREDENTIAL_STORAGE_KEY } from '../constants/google-auth'
 
 export type User = {
   id: string
@@ -127,7 +128,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     persistSession(payload.accessToken, payload.user)
   }
 
-  const loginWithGoogle = async (credential: string) => {
+  const loginWithGoogle = useCallback(async (credential: string) => {
     let res: Response
     try {
       res = await fetch(`${API_BASE}/auth/google`, {
@@ -161,7 +162,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const payload = (await res.json()) as { accessToken: string; user: User }
     persistSession(payload.accessToken, payload.user)
-  }
+  }, [])
+
+  useEffect(() => {
+    if (loading || user || typeof window === 'undefined') return
+
+    const pendingCredential = sessionStorage.getItem(GOOGLE_CREDENTIAL_STORAGE_KEY)
+    if (!pendingCredential) return
+
+    sessionStorage.removeItem(GOOGLE_CREDENTIAL_STORAGE_KEY)
+    setLoading(true)
+
+    ;(async () => {
+      try {
+        await loginWithGoogle(pendingCredential)
+      } catch (e: unknown) {
+        console.error(e)
+        alert(e instanceof Error ? e.message : 'Error al iniciar sesión con Google')
+      } finally {
+        setLoading(false)
+      }
+    })()
+  }, [loading, user, loginWithGoogle])
 
   const authFetch = useCallback((input: RequestInfo | URL, init: RequestInit = {}) => {
     const headers = new Headers(init.headers ?? {})

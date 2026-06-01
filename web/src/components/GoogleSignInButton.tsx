@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useGoogleOAuth, type CredentialResponse } from '@react-oauth/google'
+import { API_BASE } from '../config/api'
 
 type GoogleSignInButtonProps = {
   onSuccess: (response: CredentialResponse) => void
@@ -7,13 +8,14 @@ type GoogleSignInButtonProps = {
   disabled?: boolean
 }
 
-let gsiConfigured = false
+const loginUri = `${API_BASE.replace(/\/$/, '')}/auth/google/callback`
 
 export function GoogleSignInButton({ onSuccess, onError, disabled }: GoogleSignInButtonProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const { clientId, scriptLoadedSuccessfully } = useGoogleOAuth()
   const onSuccessRef = useRef(onSuccess)
   const onErrorRef = useRef(onError)
+  const configuredRef = useRef<string | null>(null)
 
   onSuccessRef.current = onSuccess
   onErrorRef.current = onError
@@ -27,12 +29,15 @@ export function GoogleSignInButton({ onSuccess, onError, disabled }: GoogleSignI
       return
     }
 
-    if (!gsiConfigured) {
+    const configKey = `${clientId}:${loginUri}`
+    if (configuredRef.current !== configKey) {
       google.accounts.id.initialize({
         client_id: clientId,
         auto_select: false,
         cancel_on_tap_outside: true,
-        use_fedcm_for_button: true,
+        ux_mode: 'redirect',
+        login_uri: loginUri,
+        use_fedcm_for_button: false,
         use_fedcm_for_prompt: false,
         callback: (credentialResponse) => {
           if (!credentialResponse.credential) {
@@ -46,7 +51,7 @@ export function GoogleSignInButton({ onSuccess, onError, disabled }: GoogleSignI
           })
         },
       })
-      gsiConfigured = true
+      configuredRef.current = configKey
     }
 
     const el = containerRef.current
@@ -58,6 +63,8 @@ export function GoogleSignInButton({ onSuccess, onError, disabled }: GoogleSignI
       text: 'continue_with',
       shape: 'pill',
       locale: 'es',
+      ux_mode: 'redirect',
+      login_uri: loginUri,
     })
   }, [scriptLoadedSuccessfully, clientId, disabled])
 

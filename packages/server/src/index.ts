@@ -36,6 +36,16 @@ const io = new Server<ClientToServerEvents, ServerToClientEvents>(httpServer, {
 app.use(cors({ origin: corsOrigin }))
 app.use(express.json())
 
+function getFrontendUrl(): string {
+  const explicit = process.env.FRONTEND_URL?.trim()
+  if (explicit) return explicit.replace(/\/$/, '')
+  const first = (process.env.CORS_ORIGIN ?? '').split(',')[0]?.trim()
+  if (first) return first.replace(/\/$/, '')
+  return 'http://localhost:5173'
+}
+
+const GOOGLE_CREDENTIAL_STORAGE_KEY = 'infradeck_google_credential'
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: Date.now() })
@@ -230,6 +240,35 @@ app.post('/auth/login', async (req, res) => {
     console.error('[AUTH] login error', error)
     return res.status(500).json({ error: 'internal_error' })
   }
+})
+
+app.post('/auth/google/callback', express.urlencoded({ extended: true }), (req, res) => {
+  const credential = typeof req.body?.credential === 'string' ? req.body.credential.trim() : ''
+  if (!credential) {
+    res.status(400).type('html').send('<p>Falta la credencial de Google.</p>')
+    return
+  }
+
+  const target = `${getFrontendUrl()}/?auth=google`
+  const safeCredential = JSON.stringify(credential)
+  const safeTarget = JSON.stringify(target)
+  const safeKey = JSON.stringify(GOOGLE_CREDENTIAL_STORAGE_KEY)
+
+  res.type('html').send(`<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="utf-8"><title>Iniciando sesión…</title></head>
+<body>
+<p>Iniciando sesión con Google…</p>
+<script>
+try {
+  sessionStorage.setItem(${safeKey}, ${safeCredential});
+  window.location.replace(${safeTarget});
+} catch (e) {
+  document.body.textContent = 'No se pudo completar el inicio de sesión.';
+}
+</script>
+</body>
+</html>`)
 })
 
 app.post('/auth/google', async (req, res) => {

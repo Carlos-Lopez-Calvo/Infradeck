@@ -35,6 +35,7 @@ postgresql://user:pass@ep-xxx.eu-west-2.aws.neon.tech/neondb?sslmode=require
 | `JWT_SECRET` | String largo aleatorio (32+ chars) |
 | `CORS_ORIGIN` | URL del front (paso 3), ej. `https://infradeck.vercel.app` |
 | `GOOGLE_CLIENT_ID` | Mismo client ID de Google OAuth |
+| `FRONTEND_URL` | (opcional) URL de Vercel si difiere de `CORS_ORIGIN`, ej. `https://infradeck.vercel.app` |
 
 5. Deploy. Anota la URL del servicio, ej. `https://infradeck-api.onrender.com`.
 
@@ -80,13 +81,17 @@ En [Google Cloud Console](https://console.cloud.google.com/) → APIs & Services
 - `https://infradeck.vercel.app`
 - `http://localhost:5173`
 
+**Authorized redirect URIs** (obligatorio para login sin popup — Firefox/Brave):
+- `https://TU-API.onrender.com/auth/google/callback`
+- `http://localhost:3001/auth/google/callback`
+
+El login usa **redirect** (misma pestaña), no ventana emergente.
+
 El **Client ID** debe ser el mismo en:
 - Vercel → `VITE_GOOGLE_CLIENT_ID`
 - Render → `GOOGLE_CLIENT_ID`
 
 **Render → `CORS_ORIGIN`:** `https://infradeck.vercel.app` (sin barra final)
-
-Si Firefox bloquea popups, la app usa FedCM; si falla, prueba Chrome o permite ventanas emergentes para `infradeck.vercel.app`.
 
 Guarda cambios en Google (pueden tardar 5–10 minutos).
 
