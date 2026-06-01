@@ -761,6 +761,11 @@ export function handleSummonCreature(ctx: EffectContext): void {
     return
   }
 
+  if (val === 'RANDOM_BY_ENTROPY') {
+    console.warn('[SUMMON_CREATURE] RANDOM_BY_ENTROPY debe ser manejado por caos-effects.ts')
+    return
+  }
+
   // Caso normal: invocar por ID específico
   const ref = getCardByIdGlobal(val)
   if (!ref) {

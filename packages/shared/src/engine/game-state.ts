@@ -356,6 +356,7 @@ export function playCard(
     player.graveyard.unshift(card.id)
   }
 
+  recordChaosEffectsFromCard(state, playerIndex, card)
   notifyCardPlayed(state, playerIndex, card.id)
   const cr = state.players[playerIndex].classResource
   if (cr?.type === 'ENTROPIA') {
@@ -420,7 +421,7 @@ export function setAdvancedSelectionRequest(handler: AdvancedSelectionHandler) {
 // =======================
 // Import helpers de otros módulos
 // =======================
-import { triggerPriority, addToStack, getStack, passPriority, resolveStack, notifyCardPlayed, notifyEffectTriggered, notifyLeaveBattlefield, applyStackItem } from './priority'
+import { triggerPriority, addToStack, getStack, passPriority, resolveStack, notifyCardPlayed, notifyEffectTriggered, notifyLeaveBattlefield, applyStackItem, recordChaosEffectsFromCard } from './priority'
 
 import { applyAction } from './effects/dispatcher'
 import { effectConditionPasses } from './effects/core'

@@ -34,6 +34,7 @@ import {
   handleGainEntropy,
   handleDiscoverPayEntropy,
   handleRandomByEntropy,
+  handleSummonByEntropy,
   handleRepeatNDamage,
   handleReuseRandomPastEffect,
   consumeEntropy
@@ -133,7 +134,15 @@ export function applyAction(
     return
   }
   
-  // CASO 2: REPEAT_N (variante especial de DAMAGE)
+  // CASO 2: Portal Inestable — invocación aleatoria escalada por entropía
+  if (String(action.value) === 'RANDOM_BY_ENTROPY' &&
+      action.type === EffectActionType.SUMMON_CREATURE) {
+    const ctx = createEffectContext(state, playerIndex, action, targetHints)
+    handleSummonByEntropy(ctx)
+    return
+  }
+
+  // CASO 3: REPEAT_N (variante especial de DAMAGE)
   if (typeof action.value === 'string' && 
       action.value.startsWith('REPEAT_N:') &&
       action.target === EffectTarget.RANDOM_ENEMY &&

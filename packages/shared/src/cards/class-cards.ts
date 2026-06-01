@@ -707,9 +707,8 @@ export const SENOR_DEL_CAOS: Card = {
         comparison: 'GREATER_EQUAL'
       },
       action: {
-        type: EffectActionType.GAIN_ENTROPY,
+        type: EffectActionType.REUSE_RANDOM_PAST_CHAOS_EFFECT,
         target: EffectTarget.FRIENDLY_HERO,
-        amount: 1,
         duration: 'PERMANENT'
       }
     }
@@ -761,33 +760,18 @@ export const REALIDAD_FRACTURADA: Card = {
   classResource: { type: 'ENTROPIA', amount: 8 },
   effects: [
     {
-      id: 'realidad_fracturada_8',
-      description: 'Entropía 8+: Juega todas las cartas de tu mano con objetivos aleatorios',
+      id: 'realidad_fracturada',
+      description: 'Entropía 8+: Juega todas las cartas de tu mano con objetivos aleatorios. Entropía 10: se juegan dos veces',
       timing: EffectTiming.ON_PLAY,
       condition: {
         type: 'CLASS_RESOURCE',
         value: 8,
-        comparison: 'GREATER_EQUAL'          // ← añadir
+        comparison: 'GREATER_EQUAL'
       },
       action: {
         type: EffectActionType.TRANSFORM,
         target: EffectTarget.SELF,
-        value: 'PLAY_ALL_HAND_RANDOM_TARGETS'
-      }
-    },
-    {
-      id: 'realidad_fracturada_10',
-      description: 'Entropía 10: Todas las cartas se juegan dos veces',
-      timing: EffectTiming.ON_PLAY,
-      condition: {
-        type: 'CLASS_RESOURCE',
-        value: 10,
-        comparison: 'GREATER_EQUAL'          // ← añadir
-      },
-      action: {
-        type: EffectActionType.TRANSFORM,
-        target: EffectTarget.SELF,
-        value: 'PLAY_ALL_HAND_TWICE_RANDOM_TARGETS'
+        value: 'PLAY_ALL_HAND_BY_ENTROPY'
       }
     }
   ]

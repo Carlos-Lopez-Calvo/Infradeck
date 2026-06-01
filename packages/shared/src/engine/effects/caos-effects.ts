@@ -4,12 +4,16 @@
  * - GAIN_ENTROPY
  * - DISCOVER_PAY_ENTROPY
  * - REUSE_RANDOM_PAST_CHAOS_EFFECT
- * - RANDOM_BY_ENTROPY (variante especial de DAMAGE)
+ * - RANDOM_BY_ENTROPY (variante especial de DAMAGE / SUMMON_CREATURE)
  */
 
 import { EffectContext } from './core'
-import { EffectActionType, EffectTarget, DiscoverPayEntropyOptions } from '../../types/cards'
-import { GameState, PlayerState, onDiscoverRequest } from '../game-state'
+import { EffectActionType, EffectTarget, DiscoverPayEntropyOptions, Ability, CardType } from '../../types/cards'
+import { GameState, PlayerState, getCardByIdGlobal, onDiscoverRequest } from '../game-state'
+import { BASIC_CARDS } from '../../cards/basic-cards'
+import { CLASS_CARDS } from '../../cards/class-cards'
+import { isSpecimenCardId } from '../../deck/deck-catalog'
+import { notifyEnterBattlefield } from '../priority'
 import { checkAndActivateFinalStand, hasFinalStandImmunity } from '../final-stand'
 import { notifyLeaveBattlefield, notifyEffectTriggered } from '../priority'
 import { applyAction as dispatchAction } from './dispatcher'
@@ -128,6 +132,62 @@ export function handleDiscoverPayEntropy(ctx: EffectContext): void {
       dispatchAction(state, playerIndex, options.base, targetHints)
     }
   }
+}
+
+/**
+ * Portal Inestable: invoca criatura aleatoria según entropía actual.
+ * 3+ → coste ≤3, 6+ → ≤6, 9+ → cualquier criatura del catálogo (sin Espécimen).
+ */
+export function handleSummonByEntropy(ctx: EffectContext): void {
+  const { state, playerIndex, me } = ctx
+
+  if (me.classResource?.type !== 'ENTROPIA') {
+    console.warn('[SUMMON_BY_ENTROPY] player has no ENTROPIA resource')
+    return
+  }
+
+  const entropy = me.classResource.amount ?? 0
+  let maxMana = 0
+  if (entropy >= 9) maxMana = 99
+  else if (entropy >= 6) maxMana = 6
+  else if (entropy >= 3) maxMana = 3
+  else {
+    console.log('[SUMMON_BY_ENTROPY] insufficient entropy', { entropy, need: 3 })
+    return
+  }
+
+  const pool = [...BASIC_CARDS, ...CLASS_CARDS]
+    .filter((c) => c.type === CardType.CREATURE && !isSpecimenCardId(c.id))
+    .filter((c) => (c.mana ?? 0) <= maxMana)
+
+  if (!pool.length) {
+    console.warn('[SUMMON_BY_ENTROPY] empty creature pool', { maxMana })
+    return
+  }
+
+  const ref = pool[Math.floor(Math.random() * pool.length)]
+  const refCard = getCardByIdGlobal(ref.id)
+  const hasPrisa = refCard?.abilities?.includes(Ability.PRISA) ?? false
+  const hasImpaciente = refCard?.abilities?.includes(Ability.IMPACIENTE) ?? false
+
+  const entity = {
+    id: `creature-${Date.now()}-${Math.floor(Math.random() * 1e6)}`,
+    cardId: ref.id,
+    ownerId: me.id,
+    attack: refCard?.attack ?? 0,
+    health: refCard?.health ?? 1,
+    exhausted: !(hasPrisa || hasImpaciente),
+    abilities: refCard?.abilities ? refCard.abilities.map((a) => String(a)) : [],
+    effects: [],
+  }
+
+  me.board.push(entity)
+  notifyEnterBattlefield(state, playerIndex, entity.id)
+  console.log('[SUMMON_BY_ENTROPY] summoned', {
+    cardId: ref.id,
+    entropy,
+    maxMana,
+  })
 }
 
 /**

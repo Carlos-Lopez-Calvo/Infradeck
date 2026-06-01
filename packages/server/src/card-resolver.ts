@@ -10,6 +10,8 @@ async function loadCards() {
     const classModule = await import('../../shared/src/cards/class-cards.js')
     basicCards = basicModule.BASIC_CARDS_BY_ID || {}
     classCards = classModule.CLASS_CARDS_BY_ID || {}
+    const { setCardResolver } = await import('../../shared/src/engine/game-state.js')
+    setCardResolver(getCardById)
   }
 }
 

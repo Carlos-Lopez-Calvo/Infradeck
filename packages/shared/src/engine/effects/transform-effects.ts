@@ -7,12 +7,31 @@ import { GameState, getCardByIdGlobal, playCard } from '../game-state'
  * Variantes:
  * - PLAY_ALL_HAND_RANDOM_TARGETS: juega 1 vez
  * - PLAY_ALL_HAND_TWICE_RANDOM_TARGETS: juega 2 veces
+ * - PLAY_ALL_HAND_BY_ENTROPY: Realidad Fracturada (8+ → 1 pasada, 10+ → 2)
  */
 export function handleTransform(ctx: EffectContext): void {
   const { state, playerIndex, me, action } = ctx
 
   const val = String(action.value || '')
-  const passes = val === 'PLAY_ALL_HAND_TWICE_RANDOM_TARGETS' ? 2 : 1
+  let passes = 0
+
+  if (val === 'PLAY_ALL_HAND_BY_ENTROPY') {
+    const entropy =
+      me.classResource?.type === 'ENTROPIA' ? (me.classResource.amount ?? 0) : 0
+    if (entropy >= 10) passes = 2
+    else if (entropy >= 8) passes = 1
+    else {
+      console.log('[TRANSFORM] PLAY_ALL_HAND_BY_ENTROPY skipped', { entropy })
+      return
+    }
+  } else if (val === 'PLAY_ALL_HAND_TWICE_RANDOM_TARGETS') {
+    passes = 2
+  } else if (val === 'PLAY_ALL_HAND_RANDOM_TARGETS') {
+    passes = 1
+  } else {
+    console.warn('[TRANSFORM] unknown value', val)
+    return
+  }
 
   console.log('[TRANSFORM] start', { value: val, passes, handSize: me.hand.length })
 

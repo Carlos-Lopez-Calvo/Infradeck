@@ -1,7 +1,7 @@
 import { GameState, GamePhase, StackItem, getCardByIdGlobal, } from './game-state'
 import { onPriorityWindow } from './game-state'
 import { getCurrentPlayerIndex } from './turns'
-import { EffectAction } from '../types/cards'
+import { EffectAction, EffectActionType, EffectTiming } from '../types/cards'
 import { effectConditionPasses } from './effects/core'
 import { applyAction } from './effects/dispatcher'
 import { triggerTriggeredEffects, updateConditionalBuffs } from './effects/board-effects'
@@ -50,19 +50,34 @@ export function resolveStack(state: GameState): void {
   }
 }
 
-export function notifyCardPlayed(state: GameState, playerIndex: number, cardId: string): void {
-  try {
-    const card = getCardByIdGlobal(cardId)
-    if (card?.classType === 'CAOS' && Array.isArray(card.effects)) {
-      const actions: EffectAction[] = card.effects
-        .filter((e: any) => e?.timing === 'ON_PLAY' && e?.action)
-        .map((e: any) => e.action as EffectAction)
-      if (actions.length) {
-        const arr = state.players[playerIndex].playedChaosEffects ?? (state.players[playerIndex].playedChaosEffects = [] as EffectAction[])
-        actions.forEach((a: EffectAction) => arr.push({ ...a }))
-      }
-    }
-  } catch {}
+const CHAOS_HISTORY_TIMINGS: EffectTiming[] = [
+  EffectTiming.ON_PLAY,
+  EffectTiming.ON_ENTER,
+  EffectTiming.END_OF_TURN,
+]
+
+/** Guarda acciones reutilizables de cartas CAOS jugadas (pool del Señor del Caos). */
+export function recordChaosEffectsFromCard(
+  state: GameState,
+  playerIndex: number,
+  cardOrId: string | { classType?: string; effects?: Array<{ timing: EffectTiming; action?: EffectAction }> },
+): void {
+  const card =
+    typeof cardOrId === 'string' ? getCardByIdGlobal(cardOrId) : cardOrId
+  if (card?.classType !== 'CAOS' || !Array.isArray(card.effects)) return
+
+  const arr =
+    state.players[playerIndex].playedChaosEffects ??
+    (state.players[playerIndex].playedChaosEffects = [] as EffectAction[])
+
+  for (const eff of card.effects) {
+    if (!eff.action || !CHAOS_HISTORY_TIMINGS.includes(eff.timing)) continue
+    if (eff.action.type === EffectActionType.REUSE_RANDOM_PAST_CHAOS_EFFECT) continue
+    arr.push({ ...eff.action })
+  }
+}
+
+export function notifyCardPlayed(state: GameState, playerIndex: number, _cardId: string): void {
   triggerPriority(state, state.turn.phase)
 }
 
