@@ -1,29 +1,46 @@
 // apps/web/src/store/GameEngineProvider.tsx
-import React, { createContext, useContext, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import React, { createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import {
   GameState, createGame, startGame,
   startTurn as engineStartTurn, endTurn as engineEndTurn,
   setCardResolver, setPriorityWindow, playCard, setDiscoverRequest, setScryRequest, setAdvancedSelectionRequest,
   BASIC_CARDS_BY_ID, CLASS_CARDS_BY_ID, declareAttackHero, declareAttackCreature,
   EffectActionType, EffectTarget, EffectTiming,
-  summonSpecimen, isCycleCard, getCurrentForm, CycleState
+  summonSpecimen,
+  addCardToHandOrGraveyard,
+  applySurrender,
+  getWinnerPlayerIndex,
+  ClassType,
 } from '@infradeck/shared'
 
 import { Card as UICard } from '../components/Card'
+import { GameEndOverlay } from '../components/GameEndOverlay'
+import { GameEndMenuModal } from '../components/GameEndMenuModal'
 import { UnifiedTargetModal, TargetType, TargetSelection } from '../components/UnifiedTargetModal'
 
 import { sampleDecks } from '../utils/sample-decks'
+import type { PlayDeckConfig } from '../utils/play-deck'
 
 const delay = (ms: number) => new Promise(r => setTimeout(r, ms))
 const BOT_ENABLED = true
 const processedTurnRefInit = null as string | null
 
+const shuffleArray = <T,>(arr: T[]) => {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[arr[i], arr[j]] = [arr[j], arr[i]]
+  }
+}
+
 type Ctx = {
   gameState: GameState
   setGameState: React.Dispatch<React.SetStateAction<GameState>>
+  localPlayerIndex: number
   currentPlayer: GameState['players'][number]
   opponentPlayer: GameState['players'][number]
   isMyTurn: boolean
+  isGameOver: boolean
+  onMyLifeClick?: () => void
   actions: {
     startTurn: () => void
     endTurn: () => void
@@ -59,39 +76,44 @@ type DiscoverModalState =
       buffLabel: string
     }
 
-export function GameEngineProvider({ children }: { children: React.ReactNode }) {
-  const [gameState, setGameState] = useState<GameState>(() => {
-    // Elige aquí los mazos a probar
-    const p1Class = 'VITALIDAD' as const
-    const p2Class = 'VITALIDAD' as const
-    const state = createGame(
-      { id: 'player1', name: 'Player 1', classType: p1Class, deck: [...sampleDecks[p1Class]], programmedSpecimenEffects: [] },
-      { id: 'player2', name: 'Player 2', classType: p2Class, deck: [...sampleDecks[p2Class]], programmedSpecimenEffects: [] },
-    )
-    startGame(state)
-    return state
-  })
+const BOT_CLASS = ClassType.VITALIDAD
 
-  const localPlayerId = typeof window !== 'undefined'
-    ? (localStorage.getItem('playerId') || 'player1')
-    : 'player1'
+function buildInitialGameState(playDeck: PlayDeckConfig): GameState {
+  const state = createGame(
+    {
+      id: 'player1',
+      name: playDeck.name,
+      classType: playDeck.classType,
+      deck: [...playDeck.deck],
+      programmedSpecimenEffects: [],
+    },
+    {
+      id: 'player2',
+      name: 'Bot',
+      classType: BOT_CLASS,
+      deck: [...sampleDecks[BOT_CLASS]],
+      programmedSpecimenEffects: [],
+    },
+  )
+  startGame(state)
+  return state
+}
+
+export function GameEngineProvider({
+  children,
+  playDeck,
+  onExitToMenu,
+}: {
+  children: React.ReactNode
+  playDeck: PlayDeckConfig
+  onExitToMenu?: () => void
+}) {
+  const [gameState, setGameState] = useState<GameState>(() => buildInitialGameState(playDeck))
+
+  const localPlayerId = 'player1'
 
     const getCardById = (id: string) => {
-      const base = BASIC_CARDS_BY_ID[id] ?? CLASS_CARDS_BY_ID[id]
-      if (!base) return base
-      // Si es de ciclo, devuelve una vista con la forma actual
-      if ((base as any).dayForm && currentPlayer.classResource?.type === 'ESTADO') {
-        const state = (currentPlayer.classResource.state ?? 'DIA') as CycleState
-        const form = getCurrentForm(base as any, state)
-        return {
-          ...base,
-          attack: form.attack ?? base.attack ?? 0,
-          health: form.health ?? base.health ?? 0,
-          abilities: form.abilities ?? [],
-          effects: form.effects ?? [],
-        }
-      }
-      return base
+      return BASIC_CARDS_BY_ID[id] ?? CLASS_CARDS_BY_ID[id]
     }
 
   const isPlayingRef = useRef(false)
@@ -114,6 +136,7 @@ const scryDecisionRef = useRef<'TOP' | 'BOTTOM' | null>(null)
 
 type AdvancedSelectionModalState = null | { cards: string[]; playerIndex: number }
 const [advancedSelectionModal, setAdvancedSelectionModal] = useState<AdvancedSelectionModalState>(null)
+const [pauseMenuOpen, setPauseMenuOpen] = useState(false)
 
 useLayoutEffect(() => {
   setCardResolver(getCardById)
@@ -133,11 +156,16 @@ useLayoutEffect(() => {
   })
 
   setScryRequest((state, { playerIndex, cards }) => {
-    // Mostrar modal y esperar a que el usuario decida
-    // La lógica de mover cartas se hará directamente desde el modal
+    const isLocalPlayer = state.players[playerIndex]?.id === localPlayerId
+
+    // Si es bot/oponente, no abrir modal al usuario local.
+    // Resolvemos automático para evitar filtrar información.
+    if (!isLocalPlayer) {
+      return 'TOP'
+    }
+
+    // Si es el jugador local, mostrar modal y dejar que la UI decida.
     setScryModal({ cards, playerIndex })
-    
-    // No hacemos nada aquí - el modal manejará todo
     return 'TOP'
   })
 
@@ -146,32 +174,20 @@ useLayoutEffect(() => {
     if (playerIndex !== 0) {
       console.log('[ADVANCED_SELECTION BOT] auto-selecting random card', { cards })
       
-      // Seleccionar una carta aleatoria
-      const randomIndex = Math.floor(Math.random() * cards.length)
-      const selectedCardId = cards[randomIndex]
-      
       const player = state.players[playerIndex]
-      const selectedDeckIndex = player.deck.findIndex(c => c === selectedCardId)
-      
-      if (selectedDeckIndex !== -1 && selectedDeckIndex < cards.length) {
-        // Remover la carta seleccionada y ponerla en la mano
-        const [selectedCard] = player.deck.splice(selectedDeckIndex, 1)
-        player.hand.push(selectedCard)
-        console.log('[ADVANCED_SELECTION BOT] drew card', selectedCard)
-        
-        // Mover las cartas restantes al fondo
-        const remainingTopCards: string[] = []
-        for (let i = 0; i < cards.length; i++) {
-          if (player.deck.length > 0 && player.deck[0] !== selectedCard) {
-            const card = player.deck.shift()
-            if (card && card !== selectedCard) {
-              remainingTopCards.push(card)
-            }
-          }
-        }
-        player.deck.push(...remainingTopCards)
-        console.log('[ADVANCED_SELECTION BOT] moved remaining cards to bottom', { remainingCount: remainingTopCards.length })
-      }
+      const revealCount = Math.min(cards.length, player.deck.length)
+      const revealed = player.deck.splice(0, revealCount)
+      if (!revealed.length) return
+
+      const randomIndex = Math.floor(Math.random() * revealed.length)
+      const [selectedCard] = revealed.splice(randomIndex, 1)
+      addCardToHandOrGraveyard(state, playerIndex, selectedCard)
+      player.deck.push(...revealed)
+      shuffleArray(player.deck)
+      console.log('[ADVANCED_SELECTION BOT] resolved', {
+        selectedCard,
+        remainingCount: revealed.length,
+      })
       
       // Forzar actualización del estado
       setGameState(prev => ({ ...prev }))
@@ -206,8 +222,25 @@ useLayoutEffect(() => {
   const currentPlayer = gameState.players[meIndex]
   const opponentPlayer = gameState.players[1 - meIndex]
   const isMyTurn = gameState.turn.currentPlayerIndex === meIndex
+  const gameWinner = getWinnerPlayerIndex(gameState)
+  const isGameOver = gameWinner !== null
+
   const processedTurnRef = useRef(processedTurnRefInit)
   const botTurnKey = `${gameState.turn.turnNumber}:${gameState.turn.currentPlayerIndex}`
+
+  useEffect(() => {
+    const d = gameState.lastHandOverflowDiscard
+    if (!d || d.playerIndex !== meIndex) return
+    const at = d.at
+    const t = window.setTimeout(() => {
+      setGameState((prev) => {
+        const cur = prev.lastHandOverflowDiscard
+        if (!cur || cur.at !== at) return prev
+        return { ...prev, lastHandOverflowDiscard: null }
+      })
+    }, 2600)
+    return () => window.clearTimeout(t)
+  }, [gameState.lastHandOverflowDiscard, meIndex, setGameState])
 
   // Helpers UI “discover”
   const cardHasDiscover = (cardId: string | undefined) => {
@@ -325,7 +358,27 @@ lastPlaySigRef.current = sig
   
     if (act?.target === EffectTarget.TARGET_CREATURE || act?.target === EffectTarget.TARGET_FRIENDLY_CREATURE) {
       setDiscoverModal(null)
-      const targetType: TargetType = act?.target === EffectTarget.TARGET_FRIENDLY_CREATURE ? 'CREATURE_SELF' : 'CREATURE_ENEMY'
+      const targetType: TargetType =
+        act?.target === EffectTarget.TARGET_FRIENDLY_CREATURE
+          ? 'CREATURE_SELF'
+          : 'ANY_CREATURE'
+
+      // Targeting opcional: si no hay objetivos válidos, jugar la carta igualmente (el efecto no se aplicará).
+      const meBoard = gameState.players[playerIndex]?.board?.length ?? 0
+      const oppBoard = gameState.players[playerIndex === 0 ? 1 : 0]?.board?.length ?? 0
+      const hasValidTarget =
+        targetType === 'CREATURE_SELF' ? meBoard > 0
+        : targetType === 'ANY_CREATURE' ? (meBoard + oppBoard) > 0
+        : true
+      if (!hasValidTarget) {
+        const next: GameState = JSON.parse(JSON.stringify(gameState))
+        const res = playCard(next, playerIndex, handIndex, getCardById)
+        if (!res.ok) console.warn('playCard failed:', res)
+        setGameState(next)
+        setTimeout(() => { isPlayingRef.current = false }, 0)
+        return
+      }
+
       setUnifiedTargetModal({
         playerIndex,
         handIndex,
@@ -365,7 +418,7 @@ lastPlaySigRef.current = sig
 
   const actions = useMemo(() => ({
     startTurn: () => {
-      if (!isMyTurn) return
+      if (isGameOver || !isMyTurn) return
       setGameState(prev => {
         const next: GameState = JSON.parse(JSON.stringify(prev))
         engineStartTurn(next)
@@ -373,6 +426,7 @@ lastPlaySigRef.current = sig
       })
     },
     endTurn: () => {
+      if (isGameOver) return
       console.log('[UI] endTurn clicked', { isMyTurn, currentPlayerIndex: gameState.turn.currentPlayerIndex })
       if (!isMyTurn) {
         console.log('[UI] endTurn blocked - not my turn')
@@ -396,7 +450,7 @@ lastPlaySigRef.current = sig
 
       
     playFromHand: (handIndex: number) => {
-      if (!isMyTurn || isPlayingRef.current) return
+      if (isGameOver || !isMyTurn || isPlayingRef.current) return
       isPlayingRef.current = true
       const pIdx = gameState.turn.currentPlayerIndex
       const cardId = gameState.players[pIdx].hand[handIndex]
@@ -432,7 +486,11 @@ lastPlaySigRef.current = sig
           targetType: 'DUAL_CREATURES',
           step: 1,
           onComplete: (selection: any) => {
-            if (selection.type === 'DUAL') {
+            const hasAttacker = typeof selection?.attacker?.index === 'number'
+            const hasDefender = typeof selection?.defender?.index === 'number'
+
+            // Paso 2 completado: atacante + defensor ya definidos
+            if (selection.type === 'DUAL' && hasAttacker && hasDefender) {
               setUnifiedTargetModal(null)
               setGameState(prev => {
                 const next: GameState = JSON.parse(JSON.stringify(prev))
@@ -445,20 +503,46 @@ lastPlaySigRef.current = sig
                 return next
               })
             } else {
-              // Pasar al paso 2 (seleccionar defensor)
+              // Paso 1: guardar atacante y pasar a seleccionar defensor
+              if (!hasAttacker) {
+                console.warn('[ATTACK_SPELL UI] missing attacker in step 1 selection', selection)
+                return
+              }
               setUnifiedTargetModal({
                 playerIndex: pIdx,
                 handIndex,
                 targetType: 'DUAL_CREATURES',
                 step: 2,
-                previousSelection: selection,
+                previousSelection: { attacker: selection.attacker },
                 onComplete: (selection2: any) => {
+                  const attackerIndex =
+                    typeof selection?.attacker?.index === 'number'
+                      ? selection.attacker.index
+                      : typeof selection2?.attacker?.index === 'number'
+                        ? selection2.attacker.index
+                        : undefined
+                  const defenderIndex =
+                    typeof selection2?.defender?.index === 'number'
+                      ? selection2.defender.index
+                      : typeof selection2?.index === 'number'
+                        ? selection2.index
+                        : undefined
+
+                  if (typeof attackerIndex !== 'number' || typeof defenderIndex !== 'number') {
+                    console.warn('[ATTACK_SPELL UI] invalid dual selection payload', {
+                      selectionStep1: selection,
+                      selectionStep2: selection2,
+                    })
+                    setUnifiedTargetModal(null)
+                    return
+                  }
+
                   setUnifiedTargetModal(null)
                   setGameState(prev => {
                     const next: GameState = JSON.parse(JSON.stringify(prev))
                     const targets: any[] = [
-                      { type: 'CREATURE_SELF', index: selection.attacker?.index ?? selection.index },
-                      { type: 'CREATURE_ENEMY', index: selection2.defender?.index ?? selection2.index }
+                      { type: 'CREATURE_SELF', index: attackerIndex },
+                      { type: 'CREATURE_ENEMY', index: defenderIndex }
                     ]
                     const res = playCard(next, pIdx, handIndex, getCardById, { targets: targets as any })
                     if (!res.ok) console.warn('playCard failed:', res)
@@ -474,20 +558,44 @@ lastPlaySigRef.current = sig
       }
     
       const needsTarget = card.effects?.some(e => {
-        if (e.timing !== EffectTiming.ON_PLAY) return false
-        // Si tiene condición de estado, respétala
-        const cond = e.condition
-        if (cond?.type === 'CLASS_RESOURCE' && typeof cond.value === 'string') {
-          const st = gameState.players[pIdx].classResource?.state
-          if (st !== cond.value) return false
-        }
+        const needsTiming = e.timing === EffectTiming.ON_PLAY || e.timing === EffectTiming.ON_ENTER
+        if (!needsTiming) return false
         return e.action?.target === EffectTarget.TARGET_CREATURE || e.action?.target === EffectTarget.TARGET_FRIENDLY_CREATURE
       })
    if (needsTarget) {
      const wantsFriendly = card.effects?.some(
-       e => e.timing === EffectTiming.ON_PLAY && e.action?.target === EffectTarget.TARGET_FRIENDLY_CREATURE
+       e =>
+         (e.timing === EffectTiming.ON_PLAY || e.timing === EffectTiming.ON_ENTER) &&
+         e.action?.target === EffectTarget.TARGET_FRIENDLY_CREATURE
      )
-     const targetType: TargetType = wantsFriendly ? 'CREATURE_SELF' : 'CREATURE_ENEMY'
+    const isPetalosCerteros = card.id === 'Petalos_Certeros'
+    const anyCreatureTarget = card.effects?.some(
+      e =>
+        (e.timing === EffectTiming.ON_PLAY || e.timing === EffectTiming.ON_ENTER) &&
+        e.action?.target === EffectTarget.TARGET_CREATURE
+    )
+    const targetType: TargetType = isPetalosCerteros
+      ? 'CHARACTER_ENEMY'
+      : (wantsFriendly ? 'CREATURE_SELF' : (anyCreatureTarget ? 'ANY_CREATURE' : 'CREATURE_ENEMY'))
+
+     // Targeting opcional: si no hay objetivos válidos, permitir jugar y saltar el/los efectos dependientes de target.
+     const meBoard = gameState.players[pIdx]?.board?.length ?? 0
+     const oppBoard = gameState.players[pIdx === 0 ? 1 : 0]?.board?.length ?? 0
+     const hasValidTarget =
+       targetType === 'CREATURE_SELF' ? meBoard > 0
+       : targetType === 'CREATURE_ENEMY' ? oppBoard > 0
+       : targetType === 'ANY_CREATURE' ? (meBoard + oppBoard) > 0
+       : true // HERO_ENEMY / CHARACTER_ENEMY / ANY_CHARACTER etc.
+
+     if (!hasValidTarget) {
+       const next: GameState = JSON.parse(JSON.stringify(gameState))
+       const res = playCard(next, next.turn.currentPlayerIndex, handIndex, getCardById)
+       if (!res.ok) console.warn('playCard failed:', res)
+       setGameState(next)
+       setTimeout(() => { isPlayingRef.current = false }, 0)
+       return
+     }
+
      setUnifiedTargetModal({
        playerIndex: pIdx,
        handIndex,
@@ -520,7 +628,7 @@ lastPlaySigRef.current = sig
 },
 // apps/web/src/context/GameEngineProvider.tsx
 attackHero: (attackerBoardIndex: number) => {
-  if (!isMyTurn) return
+  if (isGameOver || !isMyTurn) return
   setGameState(prev => {
     console.log('[ACTIONS] attackHero start', {
       phase: prev.turn.phase,
@@ -535,7 +643,7 @@ attackHero: (attackerBoardIndex: number) => {
   })
 },
 attackCreature: (attackerBoardIndex: number, defenderBoardIndex: number) => {
-  if (!isMyTurn) return
+  if (isGameOver || !isMyTurn) return
   setGameState(prev => {
     console.log('[ACTIONS] attackCreature start', {
       phase: prev.turn.phase,
@@ -550,7 +658,7 @@ attackCreature: (attackerBoardIndex: number, defenderBoardIndex: number) => {
   })
 },
 summonSpecimen: () => {
-  if (!isMyTurn || isPlayingRef.current) return
+  if (isGameOver || !isMyTurn || isPlayingRef.current) return
   isPlayingRef.current = true
   const pIdx = gameState.turn.currentPlayerIndex
   const p = gameState.players[pIdx]
@@ -587,11 +695,11 @@ summonSpecimen: () => {
   })
   setTimeout(() => { isPlayingRef.current = false }, 0)
 },
-}), [isMyTurn, gameState.turn.currentPlayerIndex, gameState.players, setGameState])
+}), [isGameOver, isMyTurn, gameState.turn.currentPlayerIndex, gameState.players, setGameState])
 
   // Bot (estilo Hearthstone - sin fases de combate)
   useLayoutEffect(() => {
-    if (!BOT_ENABLED) return
+    if (!BOT_ENABLED || isGameOver) return
     const isBotTurn = !isMyTurn && (gameState.turn.phase === 'PLAYING')
     if (!isBotTurn) return
     if (processedTurnRef.current === botTurnKey) return
@@ -648,7 +756,7 @@ summonSpecimen: () => {
         return next
       })
     })()
-  }, [isMyTurn, gameState.turn.phase, botTurnKey])
+  }, [isGameOver, isMyTurn, gameState.turn.phase, botTurnKey])
 
   const chosenActionNeedsTarget = (playerIndex: number, handIndex: number, choice: 'BASE'|'BUFF') => {
     const p = gameState.players[playerIndex]
@@ -664,7 +772,17 @@ summonSpecimen: () => {
     return act?.target === EffectTarget.TARGET_CREATURE || act?.target === EffectTarget.TARGET_FRIENDLY_CREATURE
   }
 
-  const value: Ctx = { gameState, setGameState, currentPlayer, opponentPlayer, isMyTurn, actions }
+  const value: Ctx = {
+    gameState,
+    setGameState,
+    localPlayerIndex: meIndex,
+    currentPlayer,
+    opponentPlayer,
+    isMyTurn,
+    isGameOver,
+    onMyLifeClick: () => setPauseMenuOpen(true),
+    actions,
+  }
   return (
     <>
       <GameEngineContext.Provider value={value}>{children}</GameEngineContext.Provider>
@@ -690,6 +808,35 @@ summonSpecimen: () => {
           </div>
         </div>
       )}
+
+      {/* Popup: mano llena → carta al cementerio */}
+      {(() => {
+        const d = gameState.lastHandOverflowDiscard
+        if (!d || d.playerIndex !== meIndex) return null
+        const card = BASIC_CARDS_BY_ID[d.cardId] ?? CLASS_CARDS_BY_ID[d.cardId]
+        if (!card) return null
+        return (
+          <div
+            className="pointer-events-none fixed inset-0 z-[9990] flex items-center justify-end bg-black/20 pr-3 md:pr-10"
+            aria-modal="true"
+            role="alertdialog"
+            aria-labelledby="hand-overflow-popup-title"
+          >
+            <div className="pointer-events-auto flex max-h-[min(90vh,520px)] max-w-[min(22rem,calc(100vw-1.5rem))] flex-col items-center gap-3 rounded-2xl border border-amber-500/50 bg-zinc-950/96 px-5 py-5 shadow-2xl ring-1 ring-amber-400/25">
+              <div
+                id="hand-overflow-popup-title"
+                className="text-center text-sm font-bold uppercase tracking-wide text-amber-200"
+              >
+                Mano llena
+              </div>
+              <p className="text-center text-xs text-slate-400">La carta robada va al cementerio</p>
+              <div className="hand-overflow-discard-anim origin-center">
+                <UICard card={card as any} />
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
           {/* Overlay Discover (BASE/BUFF) */}
 {discoverModal && !discoverMinimized && (() => {
@@ -844,40 +991,28 @@ summonSpecimen: () => {
       {advancedSelectionModal && (() => {
         const { cards, playerIndex } = advancedSelectionModal
         
-        const onSelectCard = (selectedCardId: string) => {
-          console.log('[ADVANCED_SELECTION UI] player selected', selectedCardId)
+        const onSelectCard = (selectedPosition: number) => {
+          console.log('[ADVANCED_SELECTION UI] player selected position', selectedPosition)
           
           setGameState(prev => {
             const next: GameState = JSON.parse(JSON.stringify(prev))
             const player = next.players[playerIndex]
-            
-            // Encontrar la posición de la carta seleccionada en el deck
-            const selectedIndex = player.deck.findIndex(c => c === selectedCardId)
-            
-            if (selectedIndex !== -1 && selectedIndex < cards.length) {
-              // Remover la carta seleccionada del deck y ponerla en la mano
-              const [selectedCard] = player.deck.splice(selectedIndex, 1)
-              player.hand.push(selectedCard)
-              console.log('[ADVANCED_SELECTION UI] drew selected card', selectedCard)
-              
-              // Mover las cartas restantes (que estaban en el tope) al fondo
-              const remainingTopCards: string[] = []
-              for (let i = 0; i < cards.length; i++) {
-                if (player.deck.length > 0 && player.deck[0] !== selectedCard) {
-                  const card = player.deck.shift()
-                  if (card && card !== selectedCard) {
-                    remainingTopCards.push(card)
-                  }
-                }
-              }
-              
-              // Poner las cartas restantes al fondo del mazo
-              player.deck.push(...remainingTopCards)
-              console.log('[ADVANCED_SELECTION UI] moved remaining cards to bottom', { 
-                remainingCount: remainingTopCards.length,
-                deckSize: player.deck.length 
-              })
-            }
+
+            const revealCount = Math.min(cards.length, player.deck.length)
+            const revealed = player.deck.splice(0, revealCount)
+            if (!revealed.length) return next
+
+            const pickIndex =
+              selectedPosition >= 0 && selectedPosition < revealed.length ? selectedPosition : 0
+            const [selectedCard] = revealed.splice(pickIndex, 1)
+            addCardToHandOrGraveyard(next, playerIndex, selectedCard)
+            player.deck.push(...revealed)
+            shuffleArray(player.deck)
+            console.log('[ADVANCED_SELECTION UI] resolved', {
+              selectedCard,
+              remainingCount: revealed.length,
+              deckSize: player.deck.length,
+            })
             
             return next
           })
@@ -902,7 +1037,7 @@ summonSpecimen: () => {
                     <div
                       key={`${cardId}-${idx}`}
                       className="cursor-pointer transform transition hover:scale-110 hover:z-10"
-                      onClick={() => onSelectCard(cardId)}
+                      onClick={() => onSelectCard(idx)}
                     >
                       <div className="relative">
                         <UICard card={card as any} />
@@ -922,6 +1057,23 @@ summonSpecimen: () => {
           </div>
         )
       })()}
+
+      {isGameOver && gameWinner !== null && (
+        <GameEndOverlay
+          isVictory={gameWinner === meIndex}
+          onExitToMenu={onExitToMenu}
+        />
+      )}
+
+      {pauseMenuOpen && !isGameOver && (
+        <GameEndMenuModal
+          onSurrender={() => {
+            setPauseMenuOpen(false)
+            setGameState((prev) => applySurrender(prev, meIndex))
+          }}
+          onResumeGame={() => setPauseMenuOpen(false)}
+        />
+      )}
     </>
   )
 }

@@ -37,6 +37,36 @@ body, html, #root {
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
+
+  .scrollbar-none {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
+  @keyframes hand-overflow-discard {
+    0% {
+      opacity: 1;
+      filter: blur(0);
+      transform: scale(1) translateX(0);
+    }
+    12% {
+      opacity: 1;
+      filter: blur(0);
+      transform: scale(1.06) translateX(0);
+    }
+    100% {
+      opacity: 0;
+      filter: blur(14px);
+      transform: scale(0.82) translateX(18px);
+    }
+  }
+
+  .hand-overflow-discard-anim {
+    animation: hand-overflow-discard 2.2s ease-in-out forwards;
+  }
 }
 
 /* CSS custom properties para class colors */
@@ -47,16 +77,99 @@ body, html, #root {
   --green-600: #16a34a;
 }
 
-.card .w-full::-webkit-scrollbar {
-  width: 1px;
-  background: transparent;
+@keyframes ambientShift {
+  0% {
+    transform: scale(1) translate3d(0, 0, 0);
+    filter: saturate(0.95);
+  }
+  50% {
+    transform: scale(1.05) translate3d(-1.2%, 0.8%, 0);
+    filter: saturate(1.08);
+  }
+  100% {
+    transform: scale(1) translate3d(0, 0, 0);
+    filter: saturate(0.95);
+  }
 }
 
-.card .w-full::-webkit-scrollbar-thumb {
-  background: #333;
-  border-radius: 1px;
+@keyframes fogDrift {
+  0% {
+    transform: translateX(-2.5%);
+    opacity: 0.42;
+  }
+  50% {
+    transform: translateX(2.5%);
+    opacity: 0.58;
+  }
+  100% {
+    transform: translateX(-2.5%);
+    opacity: 0.42;
+  }
 }
 
-.card .w-full::-webkit-scrollbar-track {
-  background: transparent;
+@keyframes lightSweep {
+  0% {
+    transform: translateX(-70%) rotate(4deg);
+    opacity: 0;
+  }
+  30% {
+    opacity: 0.24;
+  }
+  60% {
+    opacity: 0.1;
+  }
+  100% {
+    transform: translateX(160%) rotate(4deg);
+    opacity: 0;
+  }
+}
+
+@keyframes particleFloat {
+  0% {
+    transform: translateY(0) scale(0.9);
+    opacity: 0.15;
+  }
+  45% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(-34px) scale(1.05);
+    opacity: 0.1;
+  }
+}
+
+.menu-ambient {
+  background:
+    radial-gradient(circle at 18% 30%, rgba(56, 189, 248, 0.3), transparent 42%),
+    radial-gradient(circle at 78% 26%, rgba(139, 92, 246, 0.32), transparent 42%),
+    radial-gradient(circle at 52% 76%, rgba(30, 41, 59, 0.66), transparent 55%),
+    linear-gradient(140deg, #03050d 0%, #070c1d 52%, #09061a 100%);
+  animation: ambientShift 20s ease-in-out infinite;
+}
+
+.menu-fog {
+  background:
+    radial-gradient(circle at 30% 55%, rgba(125, 211, 252, 0.2), transparent 40%),
+    radial-gradient(circle at 75% 50%, rgba(165, 180, 252, 0.17), transparent 45%);
+  filter: blur(30px);
+  animation: fogDrift 15s ease-in-out infinite;
+}
+
+.menu-sweep::before {
+  content: '';
+  position: absolute;
+  inset: -20%;
+  background: linear-gradient(
+    100deg,
+    rgba(125, 211, 252, 0) 35%,
+    rgba(125, 211, 252, 0.25) 50%,
+    rgba(125, 211, 252, 0) 65%
+  );
+  animation: lightSweep 8.5s ease-in-out infinite;
+}
+
+.menu-particle {
+  animation-name: particleFloat;
+  animation-iteration-count: infinite;
+  animation-timing-function: ease-in-out;
 }

@@ -1,0 +1,59 @@
+---
+description: Backend Express + Socket.IO + Prisma
+globs: packages/server/src/**/*.ts
+alwaysApply: false
+---
+
+# Server
+
+## Stack
+
+Express 4 + Socket.IO 4 + Prisma (SQLite) + JWT + bcryptjs
+
+## Estructura
+
+```
+src/index.ts          → Rutas HTTP + handlers Socket.IO (monolítico)
+src/db.ts             → Singleton PrismaClient
+src/game-engine.ts    → Bridge dinámico al engine de shared
+src/gameRoom.ts       → GameRoomManager (partidas en memoria)
+src/matchmaking.ts    → Cola FIFO de matchmaking
+src/card-resolver.ts  → Lookup de cartas desde shared
+src/target-detector.ts→ Detección de targets antes de ejecutar en engine
+src/game-handlers.ts  → Hooks de discover/scry para server
+src/types.ts          → Tipos Socket.IO (ClientToServerEvents, ServerToClientEvents)
+```
+
+## Auth
+
+- JWT con `Authorization: Bearer <token>`, middleware `requireAuth`
+- Passwords hasheados con bcrypt (salt 10)
+- Socket.IO NO valida JWT — usa `nanoid()` como playerId por conexión
+
+## API REST
+
+| Ruta | Método | Auth |
+|------|--------|------|
+| `/health` | GET | No |
+| `/auth/register` | POST | No |
+| `/auth/login` | POST | No |
+| `/auth/google` | POST | No |
+| `/me` | GET | Sí |
+| `/me/collection` | GET | Sí |
+| `/me/decks` | GET/POST | Sí |
+| `/me/decks/:id` | DELETE | Sí |
+| `/me/rewards` | POST | Sí |
+
+## Prisma Models
+
+User → UserProfile (1:1), UserCurrency (1:1), UserCard (collection), Deck → DeckCard
+
+## Partidas online
+
+In-memory (se pierden al reiniciar). Flujo: `matchmaking:join` → cola → par → room → `game:start` → acciones via socket events → engine de shared ejecuta y emite estado.
+
+## Al modificar server
+
+- Rutas nuevas van en `index.ts` (no hay router separado)
+- Imports del shared son dinámicos: `await import('../../shared/src/index.js')`
+- Nuevos modelos → schema.prisma + `npx prisma migrate dev`

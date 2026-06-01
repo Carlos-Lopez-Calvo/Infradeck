@@ -1,8 +1,15 @@
+export type PlayerMatchDeck = {
+  classType: string
+  deck: string[]
+}
+
 export interface Player {
   id: string
   socketId: string
   name: string
   ready: boolean
+  userId?: string
+  matchDeck?: PlayerMatchDeck
 }
 
 export interface GameRoom {
@@ -13,9 +20,15 @@ export interface GameRoom {
   createdAt: number
 }
 
+export type MatchmakingJoinPayload = {
+  playerName: string
+  deckId: string
+  token: string
+}
+
 export interface ClientToServerEvents {
   // Matchmaking
-  'matchmaking:join': (playerName: string) => void
+  'matchmaking:join': (payload: MatchmakingJoinPayload | string) => void
   'matchmaking:leave': () => void
   
   // Game
@@ -23,6 +36,7 @@ export interface ClientToServerEvents {
   'game:playCard': (data: { handIndex: number; targets?: any[] }) => void
   'game:attack': (data: { attackerIndex: number; targetType: 'hero' | 'creature'; targetIndex?: number }) => void
   'game:endTurn': () => void
+  'game:surrender': () => void
   'game:summonSpecimen': () => void
   
   // Advanced interactions

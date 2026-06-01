@@ -1,9 +1,16 @@
  import { useMemo, useState, useCallback, useEffect, useRef } from 'react'
 import {
-    createGame, startGame, nextTurn, playCard, passPriority, getStack,
-    respondWithCard, setCardResolver, GameState, declareAttackHero,
-    beginCombat, endCombat, setPriorityWindow, declareAttackCreature
+  createGame,
+  startGame,
+  playCard,
+  setCardResolver,
+  setPriorityWindow,
+  type GameState,
+  type GamePhase,
 } from '@infradeck/shared/engine/game-state'
+import { passPriority, getStack } from '@infradeck/shared/engine/priority'
+import { nextTurn } from '@infradeck/shared/engine/turns'
+import { declareAttackHero, declareAttackCreature } from '@infradeck/shared/engine/combat'
 import * as Basic from '@infradeck/shared/cards/basic-cards'
 import * as Class from '@infradeck/shared/cards/class-cards'
 import type { Card } from '@infradeck/shared/types/cards'
@@ -26,8 +33,8 @@ type TargetRef = { type: 'CREATURE_SELF'|'CREATURE_ENEMY'; index: number }
 export function useGameEngine() {
     const [state, setState] = useState<GameState>(() => {
         const s = createGame(
-          { id: 'P1', name: 'P1', classType: 'NEUTRAL' as any, deck: Object.keys(REGISTRY).slice(0, 20) },
-          { id: 'P2', name: 'P2', classType: 'NEUTRAL' as any, deck: Object.keys(REGISTRY).slice(20, 40) }
+          { id: 'P1', name: 'P1', classType: 'NEUTRAL' as any, deck: Object.keys(REGISTRY).slice(0, 20), programmedSpecimenEffects: [] },
+          { id: 'P2', name: 'P2', classType: 'NEUTRAL' as any, deck: Object.keys(REGISTRY).slice(20, 40), programmedSpecimenEffects: [] }
         )
         startGame(s)
         return s
@@ -35,7 +42,7 @@ export function useGameEngine() {
       const refresh = useCallback((s: GameState) => setState({ ...s, players: [...s.players] as any }), [])
 
   // estados locales
-const [targetMode, setTargetMode] = useState<{active:boolean; handIndex:number|null; respond:boolean; targets: TargetRef[]}>({ active:false, handIndex:null, respond:false, targets: [] })
+const [targetMode, setTargetMode] = useState<{active:boolean; handIndex:number|null; targets: TargetRef[]}>({ active:false, handIndex:null, targets: [] })
 const [prioritySeconds, setPrioritySeconds] = useState<number>(0)
 const [logs, setLogs] = useState<string[]>([])
 const [hasPriority, setHasPriority] = useState<boolean>(true)
@@ -60,11 +67,9 @@ function needsTarget(c?: Card) {
     const idx = targetMode.handIndex ?? -1
     if (idx < 0) return
     const opts = { targets: [t] }
-    const r = targetMode.respond
-      ? respondWithCard(state, me, idx, getCardById, opts)
-      : playCard(state, me, idx, getCardById, opts)
+    const r = playCard(state, me, idx, getCardById, opts)
     refresh(state)
-    setTargetMode({ active:false, handIndex:null, respond:false, targets: [] })
+    setTargetMode({ active:false, handIndex:null, targets: [] })
     return r
   }, [state, targetMode, refresh])
   
@@ -83,7 +88,7 @@ playSmart: (handIndex: number) => {
     const id = state.players[meIdx].hand[handIndex]
     const c = getCardById(id)
     if (needsTarget(c)) {
-      setTargetMode({ active:true, handIndex, respond:false, targets: [] })
+      setTargetMode({ active:true, handIndex, targets: [] })
       return { ok: true as const }
     }
     const r = playCard(state, meIdx, handIndex, getCardById)
@@ -91,19 +96,12 @@ playSmart: (handIndex: number) => {
     refresh(state)
     return r
   },
-    respond: (handIndex: number) => {
-      const r = respondWithCard(state, state.turn.currentPlayerIndex, handIndex, getCardById)
-      addLog(`P${state.turn.currentPlayerIndex + 1} respondió con ${state.players[state.turn.currentPlayerIndex].hand[handIndex] ?? 'carta'}`)
-      if (!r.ok) alert(r.error)
-      refresh(state)
-      return r
-    },
     pass: () => { addLog(`P${state.turn.currentPlayerIndex + 1} pasa prioridad`); passPriority(state, state.turn.currentPlayerIndex); refresh(state) },
     next: () => { addLog(`P${state.turn.currentPlayerIndex + 1} termina turno`); nextTurn(state); refresh(state) },
 
-    startTargetPlay: (handIndex: number) => setTargetMode({ active:true, handIndex, respond:false, targets: [] }),
-    startTargetRespond: (handIndex: number) => setTargetMode({ active:true, handIndex, respond:true, targets: [] }),
-    cancelTarget: () => setTargetMode({ active:false, handIndex:null, respond:false, targets: [] }),
+    startTargetPlay: (handIndex: number) => setTargetMode({ active:true, handIndex, targets: [] }),
+    startTargetRespond: (handIndex: number) => setTargetMode({ active:true, handIndex, targets: [] }),
+    cancelTarget: () => setTargetMode({ active:false, handIndex:null, targets: [] }),
     
 
     selectCreature: (owner: 'ME'|'OPP', index: number) => {
@@ -113,13 +111,11 @@ playSmart: (handIndex: number) => {
       setTargetMode({ ...targetMode, targets: nextTargets })
       const opts = { targets: nextTargets as any }
       const me = state.turn.currentPlayerIndex
-      const r = targetMode.respond
-        ? respondWithCard(state, me, targetMode.handIndex, getCardById, opts)
-        : playCard(state, me, targetMode.handIndex, getCardById, opts)
+      const r = playCard(state, me, targetMode.handIndex, getCardById, opts)
       addLog(`Objetivo: ${owner}#${index}`)
       if (!r.ok) alert(r.error)
       refresh(state)
-      setTargetMode({ active:false, handIndex:null, respond:false, targets: [] })
+      setTargetMode({ active:false, handIndex:null, targets: [] })
       return r
     },
 
@@ -153,17 +149,15 @@ playSmart: (handIndex: number) => {
       const hint = owner === 'ME' ? ({ type:'HERO_SELF' } as any) : ({ type:'HERO_ENEMY' } as any)
       const opts = { targets: [hint] }
       const me = state.turn.currentPlayerIndex
-      const r = targetMode.respond
-        ? respondWithCard(state, me, targetMode.handIndex, getCardById, opts)
-        : playCard(state, me, targetMode.handIndex, getCardById, opts)
+      const r = playCard(state, me, targetMode.handIndex, getCardById, opts)
       addLog(`Objetivo: Héroe ${owner}`)
       if (!r.ok) alert(r.error)
       refresh(state)
-      setTargetMode({ active:false, handIndex:null, respond:false, targets: [] })
+      setTargetMode({ active:false, handIndex:null, targets: [] })
       return r
     },
 
-    toCombat: () => { addLog(`P${state.turn.currentPlayerIndex + 1} entra en COMBAT`); beginCombat(state); refresh(state) },
+    toCombat: () => { addLog(`No hay fase COMBAT en este motor`) },
   }), [state, refresh, targetMode, addLog])
 
   const view = useMemo(() => ({
@@ -180,7 +174,7 @@ useEffect(() => {
     let timeoutId: any
     let intervalId: any
   
-    setPriorityWindow((s, info) => {
+    setPriorityWindow((s: GameState, info: { phase: GamePhase; activePlayer: number }) => {
       // badge: tienes prioridad si eres el jugador activo de la ventana
       setHasPriority(info.activePlayer === s.turn.currentPlayerIndex)
   

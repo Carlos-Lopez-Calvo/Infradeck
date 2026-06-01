@@ -19,7 +19,6 @@ const timingTooltips: Record<string, string> = {
 export const classTypeColors: Record<string, string> = {
   CAOS: '#fbbf24',
   ABOMINACION: '#b11ec2ff',
-  CICLO: '#fbbf24',
   VITALIDAD: '#990606ff',
   // añade más si tienes otras clases
 }
@@ -39,7 +38,7 @@ const timingNames: Record<string, string> = {
 // Descripciones para el tooltip
 const abilityDescriptions: Record<Ability, string> = {
   PRISA: 'Puede atacar el turno que entra.',
-  IMPACIENTE: 'Ataca antes que otras criaturas.',
+  IMPACIENTE: 'Puede atacar el turno que entra, pero ese turno solo puede atacar criaturas.',
   ROBO_DE_VIDA: 'Recupera vida igual al daño que hace.',
   VENENO: 'Destruye cualquier criatura que dañe.',
   TAUNT: 'Debe ser atacada primero.',
@@ -95,8 +94,8 @@ return (
   </div>
 
       <div
-        className='w-full h-[45%] rounded-lg border-t flex flex-col px-1 bg-gray-900/40'
-        style={{ borderTopColor: classColor, paddingBottom: '1.5rem' }} // <-- Añade espacio inferior
+        className='w-full h-[45%] min-h-0 rounded-lg border-t flex flex-col px-1 bg-gray-900/40 overflow-hidden'
+        style={{ borderTopColor: classColor, paddingBottom: '1.5rem' }}
       >
                 <h1
           className='w-full text-[10px] md:text-xs font-bold text-white text-center rounded-lg border-b'
@@ -104,8 +103,9 @@ return (
         >
           {card.name}
         </h1>
+        <div className="w-full min-h-0 flex-1 overflow-y-auto scrollbar-none text-start flex flex-col gap-0.5 overscroll-contain">
         {/* Habilidades */}
-        <div className="flex flex-row flex-wrap items-center gap-1">
+        <div className="flex flex-row flex-wrap items-center gap-1 shrink-0">
   {card.abilities.map((ability) => (
     <div
       key={ability}
@@ -123,9 +123,8 @@ return (
   ))}
 </div>
         {/* Descripciones de efectos */}
-        <div className="w-full max-h-16 overflow-y-auto overflow-x-hidden text-start flex flex-col gap-0.5">
-          {card.effects.map((effect, idx) => (
-            <p key={idx} className='text-white text-[10px] relative'>
+          {card.effects.length > 0 ? card.effects.map((effect, idx) => (
+            <p key={idx} className='text-white text-[10px] relative leading-tight shrink-0'>
               <span
                 className="font-bold cursor-pointer"
                 onMouseEnter={() => setHoveredTiming(idx)}
@@ -135,7 +134,11 @@ return (
               </span>{" "}
               {effect.description.replace(/^[^:]+:\s*/i, "")}
             </p>
-          ))}
+          )) : (
+            <p className='text-white text-[10px] leading-tight shrink-0'>
+              {card.description || 'Sin texto de efecto.'}
+            </p>
+          )}
         </div>
         {/* Tooltips debajo de la carta: solo para efectos/timing, no para habilidades */}
         {hoveredTiming !== null && (

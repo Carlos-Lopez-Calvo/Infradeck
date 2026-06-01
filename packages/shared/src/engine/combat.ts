@@ -1,5 +1,5 @@
 import { GameState, CreatureOnBoard, GamePhase, AttackResult, getCardByIdGlobal } from './game-state'
-import { getCurrentPlayerIndex, getOpponentPlayerIndex } from './turns'
+import { addCardToHandOrGraveyard, getCurrentPlayerIndex, getOpponentPlayerIndex } from './turns'
 import { hasFinalStandImmunity, checkAndActivateFinalStand } from './final-stand'
 import { notifyEffectTriggered, notifyLeaveBattlefield, triggerPriority } from './priority'
 import { applyAction } from './effects/dispatcher'
@@ -52,6 +52,9 @@ export function declareAttackHero(state: GameState, attackerIndex: number, attac
   const atk = me.board[attackerBoardIndex]
   if (!atk) return { ok: false, error: 'Atacante inválido' }
   if (atk.exhausted) return { ok: false, error: 'Esta criatura está exhausta' }
+  if (hasAbility(atk, Ability.IMPACIENTE) && atk.impatientHeroLockThisTurn) {
+    return { ok: false, error: 'Impaciente: en su primer turno solo puede atacar criaturas' }
+  }
 
   // TAUNT: si el oponente tiene criaturas con Taunt, debes atacarlas primero
   const taunters = opp.board.filter(c => hasAbility(c, Ability.TAUNT))
@@ -64,6 +67,10 @@ export function declareAttackHero(state: GameState, attackerIndex: number, attac
     atk.abilities = atk.abilities.filter(a => a !== String(Ability.SIGILO))
     console.log(`🫥 ${atk.cardId} pierde Sigilo tras atacar al héroe`)
   }
+
+  // Marcar contexto de ataque para condiciones de efectos (p.ej. ATTACKING_HERO)
+  me.lastAttackTargetHero = true
+  me.attackersDeclaredThisTurn = (me.attackersDeclaredThisTurn ?? 0) + 1
 
   // Triggers ON_ATTACK
   notifyEffectTriggered(state, attackerIndex, atk.cardId, 'ON_ATTACK')
@@ -96,7 +103,7 @@ export function declareAttackHero(state: GameState, attackerIndex: number, attac
 
   // ROBO_DE_VIDA: cura al atacante
   if (damage > 0 && hasAbility(atk, Ability.ROBO_DE_VIDA)) {
-    me.life = Math.min(me.maxLife || 20, me.life + damage)
+    me.life += damage
   }
 
   // DOBLE_GOLPE: segundo impacto al héroe
@@ -104,7 +111,7 @@ export function declareAttackHero(state: GameState, attackerIndex: number, attac
     const secondDamage = atk.attack ?? 0
     opp.life -= secondDamage
     if (secondDamage > 0 && hasAbility(atk, Ability.ROBO_DE_VIDA)) {
-      me.life = Math.min(me.maxLife || 20, me.life + secondDamage)
+      me.life += secondDamage
     }
   }
 
@@ -112,15 +119,24 @@ export function declareAttackHero(state: GameState, attackerIndex: number, attac
   atk.exhausted = true
 
   // Prioridad después del ataque
+  updateConditionalBuffs(state, attackerIndex)
+  updateConditionalBuffs(state, oppIndex)
   triggerPriority(state, state.turn.phase)
   return { ok: true }
 }
 
 // Ataque a criatura enemiga (estilo Hearthstone - puedes atacar en cualquier momento)
-export function declareAttackCreature(state: GameState, attackerIndex: number, attackerBoardIndex: number, defenderBoardIndex: number): AttackResult {
+export function declareAttackCreature(
+  state: GameState,
+  attackerIndex: number,
+  attackerBoardIndex: number,
+  defenderBoardIndex: number,
+  options?: { forcedBySpell?: boolean },
+): AttackResult {
+  const forcedBySpell = options?.forcedBySpell === true
   const active = getCurrentPlayerIndex(state)
-  if (attackerIndex !== active) return { ok: false, error: 'No es tu turno' }
-  if (state.turn.phase !== GamePhase.PLAYING) return { ok: false, error: 'No puedes atacar ahora' }
+  if (!forcedBySpell && attackerIndex !== active) return { ok: false, error: 'No es tu turno' }
+  if (!forcedBySpell && state.turn.phase !== GamePhase.PLAYING) return { ok: false, error: 'No puedes atacar ahora' }
 
   const me = state.players[attackerIndex]
   const oppIndex = getOpponentPlayerIndex(state)
@@ -129,10 +145,12 @@ export function declareAttackCreature(state: GameState, attackerIndex: number, a
   const def = opp.board[defenderBoardIndex]
   if (!atk) return { ok: false, error: 'Atacante inválido' }
   if (!def) return { ok: false, error: 'Defensor inválido' }
-  if (atk.exhausted) return { ok: false, error: 'Esta criatura está exhausta' }
+  if (!forcedBySpell && atk.exhausted) return { ok: false, error: 'Esta criatura está exhausta' }
 
-  // SIGILO: el defensor no puede ser targeteado si tiene Sigilo
-  if (hasAbility(def, Ability.SIGILO)) {
+  const attackerEntityId = atk.id
+
+  // SIGILO solo bloquea ataques declarados normales, no ataques forzados por hechizo
+  if (!forcedBySpell && hasAbility(def, Ability.SIGILO)) {
     return { ok: false, error: 'No puedes atacar a una criatura con Sigilo' }
   }
 
@@ -149,6 +167,7 @@ export function declareAttackCreature(state: GameState, attackerIndex: number, a
 
   // Triggers ON_ATTACK
   // Establecer hint para que el efecto sepa qué criatura es SELF
+  me.lastAttackTargetHero = false
   state.pendingTargets = [{ type: 'CREATURE_SELF', index: attackerBoardIndex }]
   console.log('[COMBAT] ON_ATTACK trigger', { 
     cardId: atk.cardId, 
@@ -193,10 +212,10 @@ export function declareAttackCreature(state: GameState, attackerIndex: number, a
 
   // ROBO_DE_VIDA: cura al dueño por el daño que hace
   if (atkDamage > 0 && hasAbility(atk, Ability.ROBO_DE_VIDA)) {
-    me.life = Math.min(me.maxLife || 20, me.life + atkDamage)
+    me.life += atkDamage
   }
   if (defDamage > 0 && hasAbility(def, Ability.ROBO_DE_VIDA)) {
-    opp.life = Math.min(opp.maxLife || 20, opp.life + defDamage)
+    opp.life += defDamage
   }
 
   // Detectar si el atacante mató al defensor (incluso si el atacante también muere)
@@ -293,7 +312,7 @@ export function declareAttackCreature(state: GameState, attackerIndex: number, a
         if (me.deck.length > 0) {
           const drawn = me.deck.shift()
           if (drawn) {
-            me.hand.push(drawn)
+            addCardToHandOrGraveyard(state, attackerIndex, drawn)
             console.log('[COMBAT] drew card from tempDrawOnKill', { 
               card: drawn,
               handSize: me.hand.length 
@@ -313,14 +332,16 @@ export function declareAttackCreature(state: GameState, attackerIndex: number, a
     })
   }
 
-  // Exhaust solo el atacante si sigue vivo
-  if (me.board[attackerBoardIndex]) {
-    me.board[attackerBoardIndex].exhausted = true
+  // Exhaust solo al atacante que sigue en mesa (índice viejo inválido si murió y hubo splice)
+  if (!forcedBySpell) {
+    const stillIdx = me.board.findIndex((c) => c.id === attackerEntityId)
+    if (stillIdx >= 0) me.board[stillIdx].exhausted = true
   }
 
   // DOBLE_GOLPE: segundo impacto solo del atacante
   if (hasAbility(atk, Ability.DOBLE_GOLPE)) {
-    const atkNow = me.board[attackerBoardIndex]
+    const atkIdx2 = me.board.findIndex((c) => c.id === attackerEntityId)
+    const atkNow = atkIdx2 >= 0 ? me.board[atkIdx2] : undefined
     const defNow = opp.board[defenderBoardIndex]
     if (atkNow && defNow) {
       const dmg = atkNow.attack ?? 0
@@ -337,7 +358,7 @@ export function declareAttackCreature(state: GameState, attackerIndex: number, a
       if (dmg > 0 && hasAbility(atkNow, Ability.VENENO)) defNow.health = 0
       // Robo de vida por el segundo golpe
       if (dmg > 0 && hasAbility(atkNow, Ability.ROBO_DE_VIDA)) {
-        me.life = Math.min(me.maxLife || 20, me.life + dmg)
+        me.life += dmg
       }
       // Muerte del defensor tras segundo golpe
       if (defNow.health <= 0) {
@@ -364,7 +385,7 @@ export function declareAttackCreature(state: GameState, attackerIndex: number, a
           for (let i = 0; i < atkNow.tempDrawOnKill; i++) {
             if (me.deck.length > 0) {
               const drawn = me.deck.shift()
-              if (drawn) me.hand.push(drawn)
+              if (drawn) addCardToHandOrGraveyard(state, attackerIndex, drawn)
             }
           }
         }
@@ -391,8 +412,8 @@ export function canTargetCreature(
 ): boolean {
   const target = state.players[targetPlayerIndex].board[targetCreatureIndex]
   if (!target) return false
-  // SIGILO: No puede ser targeteado por hechizos/habilidades enemigas
-  if (hasAbility(target, Ability.SIGILO) && targetPlayerIndex !== sourcePlayerIndex && sourceType !== 'ATTACK') {
+  // SIGILO solo bloquea ataques, no hechizos/habilidades dirigidas
+  if (hasAbility(target, Ability.SIGILO) && targetPlayerIndex !== sourcePlayerIndex && sourceType === 'ATTACK') {
     return false
   }
   return true

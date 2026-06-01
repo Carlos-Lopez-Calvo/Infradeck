@@ -9,11 +9,12 @@
  */
 
 import { EffectContext } from './core'
-import { EffectActionType, DiscoverPayLifeOptions } from '../../types/cards'
+import { EffectActionType, EffectTarget, DiscoverPayLifeOptions } from '../../types/cards'
 import { onDiscoverRequest } from '../game-state'
 import { notifyLeaveBattlefield, notifyEffectTriggered } from '../priority'
 import { declareAttackCreature } from '../combat'
 import { applyAction as dispatchAction } from './dispatcher'
+import { updateConditionalBuffs } from './board-effects'
 
 // ===== HANDLERS DE EFECTOS DE VITALIDAD =====
 
@@ -65,14 +66,20 @@ export function handleDiscoverPayLife(ctx: EffectContext): void {
     }
   }
   
-  // Aplicar efecto correspondiente
+  const selfHints = action.target === EffectTarget.SELF ? targetHints : undefined
+
   if (choice === 'BUFF' && options?.buff) {
     console.log('[DISCOVER_PAY_LIFE] applying BUFF ->', options.buff)
-    dispatchAction(state, playerIndex, options.buff, targetHints)
+    const hints = options.buff.target === EffectTarget.SELF ? selfHints : undefined
+    dispatchAction(state, playerIndex, options.buff, hints)
   } else if (options?.base) {
     console.log('[DISCOVER_PAY_LIFE] applying BASE ->', options.base)
-    dispatchAction(state, playerIndex, options.base, targetHints)
+    const hints = options.base.target === EffectTarget.SELF ? selfHints : undefined
+    dispatchAction(state, playerIndex, options.base, hints)
   }
+
+  // Si cambió vida como recurso, refrescar pasivos condicionales (p.ej. Vampiro Ancestral).
+  updateConditionalBuffs(state, playerIndex)
 }
 
 /**
@@ -167,8 +174,10 @@ export function handleAttackSpell(ctx: EffectContext): void {
     defenderStats: `${defender.attack}/${defender.health}`
   })
   
-  // Ejecutar el ataque usando el sistema de combate
-  declareAttackCreature(state, playerIndex, hintAtk.index, hintDef.index)
+  // Ejecutar ataque forzado por hechizo:
+  // debe resolver combate y habilidades (veneno, lifesteal, on-kill, etc.)
+  // sin requerir que el atacante pueda declarar ataque normal.
+  declareAttackCreature(state, playerIndex, hintAtk.index, hintDef.index, { forcedBySpell: true })
   console.log('[ATTACK_SPELL] attack completed')
 }
 

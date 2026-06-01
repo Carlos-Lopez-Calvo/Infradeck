@@ -1,6 +1,13 @@
 import { io, Socket } from 'socket.io-client'
 import type { GameState } from '@infradeck/shared'
 
+const resolveServerUrl = () => {
+  const envUrl = import.meta.env.VITE_WS_URL as string | undefined
+  if (envUrl && envUrl.trim()) return envUrl.trim()
+  if (typeof window !== 'undefined') return `${window.location.protocol}//${window.location.hostname}:3001`
+  return 'http://localhost:3001'
+}
+
 // Tipos de eventos del servidor
 interface ServerToClientEvents {
   'connection:success': (data: { playerId: string }) => void
@@ -20,12 +27,19 @@ interface ServerToClientEvents {
 }
 
 // Tipos de eventos del cliente
+export type MatchmakingJoinPayload = {
+  playerName: string
+  deckId: string
+  token: string
+}
+
 interface ClientToServerEvents {
-  'matchmaking:join': (playerName: string) => void
+  'matchmaking:join': (payload: MatchmakingJoinPayload) => void
   'matchmaking:leave': () => void
   'game:playCard': (data: { handIndex: number; targets?: any[] }) => void
   'game:attack': (data: { attackerIndex: number; targetType: 'hero' | 'creature'; targetIndex?: number }) => void
   'game:endTurn': () => void
+  'game:surrender': () => void
   'game:summonSpecimen': () => void
   'game:discoverResponse': (data: { handIndex: number; choice: string }) => void
   'game:scryResponse': (data: { handIndex: number; decision: 'TOP' | 'BOTTOM' }) => void
@@ -37,7 +51,7 @@ export class WebSocketService {
   private socket: TypedSocket | null = null
   private playerId: string | null = null
 
-  connect(serverUrl: string = 'http://localhost:3001'): Promise<string> {
+  connect(serverUrl: string = resolveServerUrl()): Promise<string> {
     return new Promise((resolve, reject) => {
       this.socket = io(serverUrl, {
         transports: ['websocket'],
@@ -83,9 +97,9 @@ export class WebSocketService {
   // ==========================================
   // MATCHMAKING
   // ==========================================
-  joinMatchmaking(playerName: string) {
+  joinMatchmaking(payload: MatchmakingJoinPayload) {
     if (!this.socket) throw new Error('Not connected')
-    this.socket.emit('matchmaking:join', playerName)
+    this.socket.emit('matchmaking:join', payload)
   }
 
   leaveMatchmaking() {
@@ -127,6 +141,12 @@ export class WebSocketService {
     if (!this.socket) throw new Error('Not connected')
     console.log('[WS] Sending endTurn')
     this.socket.emit('game:endTurn')
+  }
+
+  surrender() {
+    if (!this.socket) throw new Error('Not connected')
+    console.log('[WS] Sending surrender')
+    this.socket.emit('game:surrender')
   }
 
   onGameStart(callback: (gameState: GameState) => void) {

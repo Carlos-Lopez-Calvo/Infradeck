@@ -126,7 +126,7 @@ targetType: 'DUAL_CREATURES', step: 2
 - ⏳ Jugar carta con ATTACK_SPELL (2 pasos)
 - ⏳ Verificar responsiveness en diferentes tamaños de pantalla
 
-> **Nota:** Para probar completamente, se recomienda cambiar el mazo a ABOMINACIÓN o CICLO, ya que tienen más cartas con targeting. El mazo actual (VITALIDAD) tiene menos cartas con selección de objetivos.
+> **Nota:** Para probar completamente, se recomienda cambiar el mazo a ABOMINACIÓN, ya que tiene más cartas con targeting. El mazo actual (VITALIDAD) tiene menos cartas con selección de objetivos.
 
 ## 💡 Beneficios
 

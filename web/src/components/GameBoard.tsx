@@ -5,13 +5,34 @@ import { ContenidoDerecha, ContenidoDerechaOponente } from './ContenidoDerecha'
 import { Card } from './Card'
 import { getCardByIdGlobal } from '@infradeck/shared'
 import { useGameEngine } from '../context/GameEngineProvider'
+import { HAND_CARD_DRAG_MIME } from '../constants/game-drag'
 
 
 export function GameBoard() {
-  const { currentPlayer, opponentPlayer, actions, isMyTurn, gameState } = useGameEngine()
+  const { currentPlayer, opponentPlayer, actions, isMyTurn, gameState, onMyLifeClick } = useGameEngine()
   const [selectedAttacker, setSelectedAttacker] = useState<number | null>(null)
   const canAct = isMyTurn
   const [hoverPreview, setHoverPreview] = useState<any | null>(null)
+  const [playDropActive, setPlayDropActive] = useState(false)
+
+  const handlePlayFieldDragOver = (e: React.DragEvent) => {
+    if (!canAct) return
+    if (!e.dataTransfer.types.includes(HAND_CARD_DRAG_MIME)) return
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    setPlayDropActive(true)
+  }
+
+  const handlePlayFieldDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    setPlayDropActive(false)
+    if (!canAct) return
+    const raw = e.dataTransfer.getData(HAND_CARD_DRAG_MIME)
+    if (raw === '') return
+    const handIndex = Number.parseInt(raw, 10)
+    if (Number.isNaN(handIndex)) return
+    actions.playFromHand(handIndex)
+  }
   return (
     <>
     {Boolean(hoverPreview) && (
@@ -106,6 +127,8 @@ const preview = base
           {/* Contenido izquierdo */}
           <ContenidoIzquierda
               life={currentPlayer.life}
+              lifeClickable={Boolean(onMyLifeClick)}
+              onLifeClick={onMyLifeClick}
               onAttackHero={() => {
                 // No hace nada: atacar a tu propio héroe no procede
               }}
@@ -113,7 +136,19 @@ const preview = base
         </div>
         <div className="w-3/5 h-full flex flex-col">
   {/* Mitad superior */}
-  <div className="battlefield h-3/5 w-full flex items-center justify-center bg-black">
+  <div
+            className={`battlefield relative h-3/5 w-full flex items-center justify-center bg-black transition ${
+              playDropActive ? 'bg-emerald-950/30 ring-2 ring-inset ring-emerald-400/60' : ''
+            }`}
+            onDragOver={handlePlayFieldDragOver}
+            onDragLeave={() => setPlayDropActive(false)}
+            onDrop={handlePlayFieldDrop}
+          >
+            {playDropActive && (
+              <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-sm font-semibold tracking-wide text-emerald-300/90">
+                Suelta para jugar la carta
+              </span>
+            )}
             <div className="flex gap-3">
             {currentPlayer.board.map((c, idx) => {
                 const base = getCardByIdGlobal(c.cardId)

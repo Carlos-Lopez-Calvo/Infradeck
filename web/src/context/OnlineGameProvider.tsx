@@ -1,6 +1,9 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import { wsService } from '../services/websocket'
 import type { GameState } from '@infradeck/shared'
+import { getWinnerPlayerIndex } from '@infradeck/shared'
+import { useAuth } from './AuthContext'
+import type { PlayDeckConfig } from '../utils/play-deck'
 
 interface OnlineGameContextType {
   // Connection
@@ -35,6 +38,7 @@ interface OnlineGameContextType {
   playCard: (handIndex: number, targets?: any[]) => void
   attack: (attackerIndex: number, targetType: 'hero' | 'creature', targetIndex?: number) => void
   endTurn: () => void
+  surrender: () => void
   sendDiscoverChoice: (handIndex: number, choice: string) => void
   sendScryDecision: (handIndex: number, decision: 'TOP' | 'BOTTOM') => void
   resetGame: () => void
@@ -42,7 +46,14 @@ interface OnlineGameContextType {
 
 const OnlineGameContext = createContext<OnlineGameContextType | null>(null)
 
-export function OnlineGameProvider({ children }: { children: React.ReactNode }) {
+export function OnlineGameProvider({
+  children,
+  matchDeck,
+}: {
+  children: React.ReactNode
+  matchDeck?: PlayDeckConfig | null
+}) {
+  const { token } = useAuth()
   const [isConnected, setIsConnected] = useState(false)
   const [playerId, setPlayerId] = useState<string | null>(null)
   const [isSearching, setIsSearching] = useState(false)
@@ -88,13 +99,17 @@ export function OnlineGameProvider({ children }: { children: React.ReactNode }) 
       wsService.onGameStateUpdate((state) => {
         console.log('[CLIENT] State updated')
         setGameState(state)
+        const w = getWinnerPlayerIndex(state)
+        if (w !== null) {
+          setGameEnded(true)
+          setWinner(w)
+        }
       })
 
       wsService.onGameEnd((data) => {
         console.log('[CLIENT] Game ended', data)
         setGameEnded(true)
         setWinner(data.winner)
-        alert(`¡Juego terminado! ${data.winner === 0 ? 'Jugador 1' : 'Jugador 2'} ganó. Razón: ${data.reason}`)
       })
 
       wsService.onGameError((error) => {
@@ -137,7 +152,7 @@ export function OnlineGameProvider({ children }: { children: React.ReactNode }) 
       })
     } catch (error) {
       console.error('[CLIENT] Failed to connect:', error)
-      alert('No se pudo conectar al servidor. Asegúrate de que el servidor esté corriendo en http://localhost:3001')
+      alert('No se pudo conectar al servidor. Verifica que el backend esté corriendo y accesible en el puerto 3001.')
     }
   }
 
@@ -153,8 +168,20 @@ export function OnlineGameProvider({ children }: { children: React.ReactNode }) 
       alert('No estás conectado al servidor')
       return
     }
-    console.log('[CLIENT] Starting matchmaking as:', playerName)
-    wsService.joinMatchmaking(playerName)
+    if (!matchDeck) {
+      alert('Selecciona un mazo en Play antes de buscar partida')
+      return
+    }
+    if (!token) {
+      alert('Sesión no válida. Vuelve a iniciar sesión.')
+      return
+    }
+    console.log('[CLIENT] Starting matchmaking as:', playerName, 'deck:', matchDeck.name)
+    wsService.joinMatchmaking({
+      playerName,
+      deckId: matchDeck.id,
+      token,
+    })
   }
 
   const cancelMatchmaking = () => {
@@ -164,29 +191,34 @@ export function OnlineGameProvider({ children }: { children: React.ReactNode }) 
   }
 
   const playCard = (handIndex: number, targets?: any[]) => {
-    if (!gameState) return
+    if (!gameState || gameEnded) return
     wsService.playCard(handIndex, targets)
   }
 
   const attack = (attackerIndex: number, targetType: 'hero' | 'creature', targetIndex?: number) => {
-    if (!gameState) return
+    if (!gameState || gameEnded) return
     wsService.attack(attackerIndex, targetType, targetIndex)
   }
 
   const endTurn = () => {
-    if (!gameState) return
+    if (!gameState || gameEnded) return
     wsService.endTurn()
   }
 
+  const surrender = () => {
+    if (!gameState || gameEnded) return
+    wsService.surrender()
+  }
+
   const sendDiscoverChoice = (handIndex: number, choice: string) => {
-    if (!gameState) return
+    if (!gameState || gameEnded) return
     console.log('[CLIENT] Sending discover choice:', { handIndex, choice })
     wsService.sendDiscoverChoice(handIndex, choice)
     setPendingDiscoverSelection(null)
   }
 
   const sendScryDecision = (handIndex: number, decision: 'TOP' | 'BOTTOM') => {
-    if (!gameState) return
+    if (!gameState || gameEnded) return
     console.log('[CLIENT] Sending scry decision:', { handIndex, decision })
     wsService.sendScryDecision(handIndex, decision)
     setPendingScryDecision(null)
@@ -239,6 +271,7 @@ export function OnlineGameProvider({ children }: { children: React.ReactNode }) 
     playCard,
     attack,
     endTurn,
+    surrender,
     sendDiscoverChoice,
     sendScryDecision,
     resetGame

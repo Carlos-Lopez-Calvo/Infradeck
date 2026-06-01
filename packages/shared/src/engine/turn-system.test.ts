@@ -5,10 +5,11 @@
 
 import { describe, it, expect, beforeEach } from 'vitest'
 import { createGame, GameState, GamePhase } from './game-state'
-import { startTurn, endTurn, getCurrentPlayerIndex } from './turns'
+import { startTurn, endTurn, getCurrentPlayerIndex, draw, MAX_HAND_SIZE } from './turns'
 import { playCard } from './game-state'
 import { declareAttackHero, declareAttackCreature } from './combat'
 import { BASIC_CARDS } from '../cards/basic-cards'
+import { setCardResolver } from './game-state'
 
 describe('🎮 Hearthstone-style Turn System', () => {
   let state: GameState
@@ -25,17 +26,13 @@ describe('🎮 Hearthstone-style Turn System', () => {
         deck: deck1,
         classResource: { type: 'ENTROPIA', amount: 0 },
         specimenSummons: 0,
-        permanentEclipse: false,
         specimenFreeThisTurn: false,
-        manualCycleChangedThisTurn: false,
         allyDiedThisTurn: false,
         specimenSummonedThisTurn: false,
         attackersDeclaredThisTurn: 0,
         lastAttackTargetHero: false,
         programmedSpecimenEffects: [],
-        playedChaosEffects: [],
-        cycleAuraApplied: null,
-        cycleAuraStacks: 0
+        playedChaosEffects: []
       },
       {
         id: 'player-1',
@@ -44,19 +41,16 @@ describe('🎮 Hearthstone-style Turn System', () => {
         deck: deck2,
         classResource: { type: 'VIDA' },
         specimenSummons: 0,
-        permanentEclipse: false,
         specimenFreeThisTurn: false,
-        manualCycleChangedThisTurn: false,
         allyDiedThisTurn: false,
         specimenSummonedThisTurn: false,
         attackersDeclaredThisTurn: 0,
         lastAttackTargetHero: false,
         programmedSpecimenEffects: [],
-        playedChaosEffects: [],
-        cycleAuraApplied: null,
-        cycleAuraStacks: 0
+        playedChaosEffects: []
       }
     )
+    setCardResolver((id: string) => BASIC_CARDS.find(c => c.id === id))
   })
 
   describe('Turn Phases', () => {
@@ -125,6 +119,20 @@ describe('🎮 Hearthstone-style Turn System', () => {
       expect(state.players[0].hand.length).toBe(initialHandSize + 1)
     })
 
+    it('should send drawn card to graveyard when hand is at max size', () => {
+      state.turn.turnNumber = 2
+      state.turn.currentPlayerIndex = 0
+      const p = state.players[0]
+      p.hand = Array(MAX_HAND_SIZE).fill('Soldado_Veterano') as string[]
+      const topOfDeck = p.deck[0]
+      expect(topOfDeck).toBeDefined()
+
+      draw(state, 0, 1)
+
+      expect(p.hand.length).toBe(MAX_HAND_SIZE)
+      expect(p.graveyard[0]).toBe(topOfDeck)
+    })
+
     it('should NOT draw on first turn of first player', () => {
       state.turn.turnNumber = 0 // Se incrementará a 1
       state.turn.currentPlayerIndex = 0
@@ -155,6 +163,86 @@ describe('🎮 Hearthstone-style Turn System', () => {
       
       expect(state.players[0].board[0].exhausted).toBe(false)
       expect(state.players[0].board[0].damagedThisTurn).toBe(false)
+    })
+
+    it('should apply START_OF_TURN effects on board (Berserker_Herido)', () => {
+      state.turn.currentPlayerIndex = 0
+      state.players[0].board.push({
+        id: 'berserker-1',
+        cardId: 'Berserker_Herido',
+        ownerId: state.players[0].id,
+        attack: 4,
+        health: 2,
+        exhausted: false,
+        abilities: [],
+        effects: []
+      })
+
+      startTurn(state)
+
+      expect(state.players[0].board[0].health).toBe(1)
+    })
+
+    it('should grant PRISA to Coloso_de_Hierro at START_OF_TURN with 3+ total creatures', () => {
+      state.turn.currentPlayerIndex = 0
+      state.players[0].board.push({
+        id: 'coloso-1',
+        cardId: 'Coloso_de_Hierro',
+        ownerId: state.players[0].id,
+        attack: 6,
+        health: 4,
+        exhausted: true,
+        damagedThisTurn: false,
+        abilities: [],
+        effects: []
+      })
+      state.players[0].board.push({
+        id: 'ally-1',
+        cardId: 'Soldado_Veterano',
+        ownerId: state.players[0].id,
+        attack: 2,
+        health: 2,
+        exhausted: true,
+        damagedThisTurn: false,
+        abilities: [],
+        effects: []
+      })
+      state.players[1].board.push({
+        id: 'enemy-1',
+        cardId: 'Soldado_Veterano',
+        ownerId: state.players[1].id,
+        attack: 2,
+        health: 2,
+        exhausted: true,
+        damagedThisTurn: false,
+        abilities: [],
+        effects: []
+      })
+
+      startTurn(state)
+
+      expect(state.players[0].board[0].abilities).toContain('PRISA')
+      expect(state.players[0].board[0].exhausted).toBe(false)
+    })
+
+    it('should keep Coloso_de_Hierro exhausted if it has not awakened', () => {
+      state.turn.currentPlayerIndex = 0
+      state.players[0].board.push({
+        id: 'coloso-2',
+        cardId: 'Coloso_de_Hierro',
+        ownerId: state.players[0].id,
+        attack: 6,
+        health: 4,
+        exhausted: true,
+        damagedThisTurn: false,
+        abilities: [],
+        effects: []
+      })
+
+      startTurn(state)
+
+      expect(state.players[0].board[0].abilities).not.toContain('PRISA')
+      expect(state.players[0].board[0].exhausted).toBe(true)
     })
   })
 
@@ -375,7 +463,9 @@ describe('🎮 Hearthstone-style Turn System', () => {
       
       const result = declareAttackHero(state, 1, 0)
       expect(result.ok).toBe(false)
-      expect(result.error).toContain('No es tu turno')
+      if (!result.ok) {
+        expect(result.error).toContain('No es tu turno')
+      }
     })
   })
 

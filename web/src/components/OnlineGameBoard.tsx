@@ -6,8 +6,14 @@ import { UnifiedTargetModal, TargetType } from './UnifiedTargetModal'
 import { DiscoverModal } from './DiscoverModal'
 import { ScryModal } from './ScryModal'
 import { getCardByIdGlobal } from '@infradeck/shared'
+import { GameEndOverlay } from './GameEndOverlay'
+import { GameEndMenuModal } from './GameEndMenuModal'
 
-export function OnlineGameBoard() {
+type OnlineGameBoardProps = {
+  onExitToMenu?: () => void
+}
+
+export function OnlineGameBoard({ onExitToMenu }: OnlineGameBoardProps) {
   const { 
     gameState, 
     isMyTurn, 
@@ -22,8 +28,14 @@ export function OnlineGameBoard() {
     pendingScryDecision,
     setPendingScryDecision,
     sendDiscoverChoice,
-    sendScryDecision
+    sendScryDecision,
+    gameEnded,
+    winner,
+    resetGame,
+    surrender,
   } = useOnlineGame()
+
+  const [pauseMenuOpen, setPauseMenuOpen] = useState(false)
 
   if (!gameState) {
     return (
@@ -55,6 +67,8 @@ export function OnlineGameBoard() {
     currentPlayer,
     opponentPlayer,
     isMyTurn,
+    isGameOver: gameEnded,
+    onMyLifeClick: () => setPauseMenuOpen(true),
     actions: {
       startTurn: () => {},
       endTurn: () => onlineEndTurn(),
@@ -162,6 +176,26 @@ export function OnlineGameBoard() {
             console.log('[ONLINE] Scry cancelled')
             setPendingScryDecision(null)
           }}
+        />
+      )}
+
+      {gameEnded && winner !== null && (
+        <GameEndOverlay
+          isVictory={winner === myPlayerIndex}
+          onExitToMenu={() => {
+            resetGame()
+            onExitToMenu?.()
+          }}
+        />
+      )}
+
+      {pauseMenuOpen && !gameEnded && (
+        <GameEndMenuModal
+          onSurrender={() => {
+            setPauseMenuOpen(false)
+            surrender()
+          }}
+          onResumeGame={() => setPauseMenuOpen(false)}
         />
       )}
     </>

@@ -1,0 +1,37 @@
+---
+description: Patrones del frontend React (web/)
+globs: web/src/**/*.{ts,tsx,css}
+alwaysApply: false
+---
+
+# Frontend React
+
+## Stack
+
+React 18/19 + Vite 7 + Tailwind 3 + TypeScript
+
+## Estado
+
+- **AuthContext** — login, register, token, user. Persiste en localStorage (`infradeck:user`, `infradeck:token`)
+- **GameEngineContext** — partida local. `useState<GameState>` + llamadas imperativas al engine de shared
+- **OnlineGameContext** — partida online. Socket.IO vía `wsService`, estado del servidor como fuente de verdad
+- **NO se usa Zustand** (está instalado pero no importado)
+
+## Navegación
+
+Sin React Router. `App.tsx` usa `useState<Route>` con `'landing' | 'auth' | 'menu' | 'local' | 'online'` y renderizado condicional.
+
+## Patrones clave
+
+- `GameBoard` es compartido entre local y online. `OnlineGameBoard` lo envuelve con un mock de `GameEngineContext`
+- `Card` usa `useGameEngineOptional()` para funcionar con y sin contexto de juego
+- Lógica pesada (targeting, discover, scry, bot) vive en `GameEngineProvider`, no en componentes
+- Estilos: Tailwind utilities + `style={{}}` inline para valores dinámicos (bordes, transforms en Hand)
+- CSS global en `index.css`: fuente custom `MiFuente`, animaciones de menú, variables de color por clase
+
+## Al modificar UI
+
+- Preferir Tailwind sobre CSS custom
+- No crear archivos de estilos separados por componente
+- Componentes en `web/src/components/` (flat, sin subcarpetas)
+- Contextos en `web/src/context/`

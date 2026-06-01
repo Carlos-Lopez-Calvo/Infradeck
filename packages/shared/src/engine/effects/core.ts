@@ -36,9 +36,6 @@ export function effectConditionPasses(state: GameState, playerIndex: number, eff
       if (c.comparison === 'EQUAL') return (cr.amount ?? 0) === want
       if (c.comparison === 'GREATER_EQUAL') return (cr.amount ?? 0) >= want
     }
-    if (typeof want === 'string' && 'state' in cr) {
-      return cr.state === want
-    }
     return false
   }
   
@@ -78,9 +75,13 @@ export function effectConditionPasses(state: GameState, playerIndex: number, eff
     switch (String(c.value)) {
       case 'ALLY_DIED_THIS_TURN':       return !!p.allyDiedThisTurn
       case 'SPECIMEN_SUMMONED':         return !!p.specimenSummonedThisTurn
-      case 'NO_STATE_CHANGE_THIS_TURN': return !p.manualCycleChangedThisTurn
       case 'MANA_5_PLUS':               return p.mana >= 5
       case 'MANA_6_PLUS':               return p.mana >= 6
+      case 'CREATURE_COUNT_3_PLUS': {
+        const oppIndex = getOpponentPlayerIndex(state)
+        const totalCreatures = p.board.length + state.players[oppIndex].board.length
+        return totalCreatures >= 3
+      }
       case 'SOLO_ATTACKER':             return (p.attackersDeclaredThisTurn ?? 0) === 1
       case 'ONLY_CREATURE_ON_BOARD':    return p.board.length === 1
       case 'ATTACKING_HERO':            return !!p.lastAttackTargetHero

@@ -1,0 +1,31 @@
+---
+description: Arquitectura general del proyecto Infradeck
+alwaysApply: true
+---
+
+# Arquitectura Infradeck
+
+Monorepo manual (sin workspace manager) con tres paquetes enlazados via `file:` y path aliases.
+
+## Estructura
+
+```
+packages/shared/   → Motor de juego, tipos, cartas. Import: @infradeck/shared
+packages/server/   → Express + Socket.IO + Prisma (SQLite). Consume shared via file:../shared
+web/               → Frontend React + Vite + Tailwind. Consume shared via tsconfig paths + vite alias
+apps/web/          → Frontend legacy (NO usar, preferir web/)
+```
+
+## Reglas de imports
+
+- Siempre importar del shared con `@infradeck/shared` o `@infradeck/shared/*`
+- El shared NO tiene dependencias runtime — solo TypeScript puro
+- El server usa dynamic imports para el shared: `import('../../shared/src/index.js')`
+- El web resuelve shared via Vite alias a `../packages/shared/src/index.ts`
+
+## Convenciones
+
+- Idioma del dominio del juego: **español** (nombres de cartas, habilidades, clases, UI)
+- Idioma del código (variables, funciones, tipos): **inglés** (con excepciones en nombres de dominio como `ClassType.VITALIDAD`)
+- Testing: **Vitest** para shared, **Node test runner via tsx** para server
+- No hay ESLint/Prettier — mantener estilo consistente con el código existente

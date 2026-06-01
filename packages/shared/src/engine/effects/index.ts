@@ -15,6 +15,6 @@ export * from './board-effects'
 // Efectos por categoría (exportados para uso interno y testing)
 export * from './global-effects'
 export * from './caos-effects'
-export * from './ciclo-effects'
+export * from './transform-effects'
 export * from './vitalidad-effects'
 export * from './abominacion-effects'
