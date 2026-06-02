@@ -222,30 +222,35 @@ export function HomeScreen({
   }, [activeSection])
 
   const current = sections.find((section) => section.id === renderedSection) ?? sections[0]
+  const hasBodySectionBg = activeSection === 'play' || activeSection === 'cards'
 
   return (
     <div className="relative min-h-screen overflow-hidden text-slate-100">
-      <div className="menu-fog absolute inset-0 opacity-80" />
-      <div className="menu-sweep absolute inset-0" />
+      {!hasBodySectionBg && (
+        <>
+          <div className="menu-fog absolute inset-0 opacity-80" />
+          <div className="menu-sweep absolute inset-0" />
 
-      <div className="pointer-events-none absolute inset-0">
-        {particles.map((particle) => (
-          <span
-            key={particle.key}
-            className="menu-particle absolute rounded-full bg-sky-200/70"
-            style={{
-              left: particle.left,
-              top: particle.top,
-              width: particle.size,
-              height: particle.size,
-              animationDelay: particle.delay,
-              animationDuration: particle.duration,
-            }}
-          />
-        ))}
-      </div>
+          <div className="pointer-events-none absolute inset-0">
+            {particles.map((particle) => (
+              <span
+                key={particle.key}
+                className="menu-particle absolute rounded-full bg-sky-200/70"
+                style={{
+                  left: particle.left,
+                  top: particle.top,
+                  width: particle.size,
+                  height: particle.size,
+                  animationDelay: particle.delay,
+                  animationDuration: particle.duration,
+                }}
+              />
+            ))}
+          </div>
 
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_16%_52%,rgba(59,130,246,0.19),transparent_45%),radial-gradient(circle_at_82%_28%,rgba(147,51,234,0.22),transparent_46%),linear-gradient(180deg,rgba(2,6,23,0.28),rgba(2,6,23,0.86)_58%,rgba(2,6,23,0.97))]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_16%_52%,rgba(59,130,246,0.19),transparent_45%),radial-gradient(circle_at_82%_28%,rgba(147,51,234,0.22),transparent_46%),linear-gradient(180deg,rgba(2,6,23,0.28),rgba(2,6,23,0.86)_58%,rgba(2,6,23,0.97))]" />
+        </>
+      )}
 
       <div className="relative z-10 flex h-screen flex-col px-6 pb-6 pt-5 md:px-10">
         <header className="mb-5 rounded-2xl bg-slate-950/40 px-4 py-3 md:px-6">
@@ -265,41 +270,6 @@ export function HomeScreen({
 
         <main className="flex h-full flex-1 flex-col gap-6">
           <section className="relative min-h-0 flex-1 overflow-hidden rounded-3xl p-6 md:p-8">
-            {renderedSection === 'play' && (
-              <>
-                <div
-                  className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-                  style={{ backgroundImage: "url('/imgUi/imgmenu.webp')" }}
-                  aria-hidden
-                />
-                <div className="play-panel-fog play-panel-fog--a" aria-hidden />
-                <div className="play-panel-fog play-panel-fog--b" aria-hidden />
-                <div
-                  className="absolute inset-0 bg-gradient-to-b from-slate-950/25 via-slate-950/45 to-slate-950/70"
-                  aria-hidden
-                />
-              </>
-            )}
-            {renderedSection === 'cards' && (
-              <>
-                <div
-                  className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-                  style={{ backgroundImage: "url('/imgUi/hizili-morikawa-finish.jpg')" }}
-                  aria-hidden
-                />
-                <div
-                  className="absolute inset-0 bg-gradient-to-b from-slate-950/25 via-slate-950/45 to-slate-950/70"
-                  aria-hidden
-                />
-              </>
-            )}
-            {renderedSection !== 'play' && renderedSection !== 'cards' && (
-              <>
-                <div className="absolute -left-10 -top-16 h-44 w-44 rounded-full bg-sky-400/18 blur-3xl" />
-                <div className="absolute -bottom-20 right-8 h-56 w-56 rounded-full bg-violet-500/14 blur-3xl" />
-              </>
-            )}
-
             <div
               className={`relative flex h-full flex-col transition-all duration-300 ${
                 panelVisible ? 'translate-x-0 opacity-100' : 'translate-x-6 opacity-0'
