@@ -265,8 +265,40 @@ export function HomeScreen({
 
         <main className="flex h-full flex-1 flex-col gap-6">
           <section className="relative min-h-0 flex-1 overflow-hidden rounded-3xl p-6 md:p-8">
-            <div className="absolute -left-10 -top-16 h-44 w-44 rounded-full bg-sky-400/18 blur-3xl" />
-            <div className="absolute -bottom-20 right-8 h-56 w-56 rounded-full bg-violet-500/14 blur-3xl" />
+            {renderedSection === 'play' && (
+              <>
+                <div
+                  className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+                  style={{ backgroundImage: "url('/imgUi/imgmenu.webp')" }}
+                  aria-hidden
+                />
+                <div className="play-panel-fog play-panel-fog--a" aria-hidden />
+                <div className="play-panel-fog play-panel-fog--b" aria-hidden />
+                <div
+                  className="absolute inset-0 bg-gradient-to-b from-slate-950/25 via-slate-950/45 to-slate-950/70"
+                  aria-hidden
+                />
+              </>
+            )}
+            {renderedSection === 'cards' && (
+              <>
+                <div
+                  className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+                  style={{ backgroundImage: "url('/imgUi/hizili-morikawa-finish.jpg')" }}
+                  aria-hidden
+                />
+                <div
+                  className="absolute inset-0 bg-gradient-to-b from-slate-950/25 via-slate-950/45 to-slate-950/70"
+                  aria-hidden
+                />
+              </>
+            )}
+            {renderedSection !== 'play' && renderedSection !== 'cards' && (
+              <>
+                <div className="absolute -left-10 -top-16 h-44 w-44 rounded-full bg-sky-400/18 blur-3xl" />
+                <div className="absolute -bottom-20 right-8 h-56 w-56 rounded-full bg-violet-500/14 blur-3xl" />
+              </>
+            )}
 
             <div
               className={`relative flex h-full flex-col transition-all duration-300 ${
