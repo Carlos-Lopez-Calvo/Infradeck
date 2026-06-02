@@ -34,14 +34,6 @@ body, html, #root {
   z-index: 1;
 }
 
-body[data-menu-section='play'],
-body[data-menu-section='cards'] {
-  background-color: #020617;
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-}
-
 body[data-menu-section='play'] {
   background-image:
     linear-gradient(180deg, rgba(2, 6, 23, 0.25) 0%, rgba(2, 6, 23, 0.45) 45%, rgba(2, 6, 23, 0.7) 100%),
@@ -54,30 +46,13 @@ body[data-menu-section='cards'] {
     url('/imgUi/hizili-morikawa-finish.jpg');
 }
 
-body[data-menu-section='play']::before,
-body[data-menu-section='play']::after {
-  content: '';
-  position: fixed;
-  inset: -18%;
-  pointer-events: none;
-  z-index: 0;
-  filter: blur(32px);
-  will-change: transform, opacity;
-}
-
-body[data-menu-section='play']::before {
-  background:
-    radial-gradient(ellipse 58% 48% at 22% 62%, rgba(226, 232, 240, 0.34), transparent 72%),
-    radial-gradient(ellipse 52% 42% at 78% 38%, rgba(186, 230, 253, 0.26), transparent 70%);
-  animation: playPanelFogDriftA 20s ease-in-out infinite;
-}
-
-body[data-menu-section='play']::after {
-  background:
-    radial-gradient(ellipse 50% 44% at 55% 72%, rgba(203, 213, 225, 0.28), transparent 68%),
-    radial-gradient(ellipse 46% 38% at 40% 28%, rgba(148, 163, 184, 0.2), transparent 66%);
-  animation: playPanelFogDriftB 26s ease-in-out infinite;
-  animation-delay: -11s;
+body[data-menu-section='play'],
+body[data-menu-section='cards'] {
+  background-color: #020617;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  transition: background-color 220ms ease-out, background-position 220ms ease-out;
 }
 
 /* Clase adicional para line-clamp */
