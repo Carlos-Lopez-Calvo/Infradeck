@@ -93,6 +93,7 @@ export const MERCENARIO: Card = {
 export const CUERVO_ASTUTO: Card = {
   id: 'Cuervo_Astuto',
   name: 'Cuervo Astuto',
+  image: '/imgCards/cuervoastuto.jpg',
   type: CardType.CREATURE,
   rarity: CardRarity.BASIC,
   mana: 1,
@@ -161,6 +162,7 @@ export const GUARDIAN_NOVATO: Card = {
 export const PRIMERA_OPORTUNIDAD: Card = {
   id: 'Primera_Oportunidad',
   name: 'Primera Oportunidad',
+  image: '/imgCards/primeraoportunidad.jpg',
   type: CardType.SPELL,
   rarity: CardRarity.BASIC,
   mana: 1,
@@ -249,6 +251,7 @@ export const EXPLORADOR_AUDAZ: Card = {
 export const ESCRIBA_DEL_LYRIO: Card = {
   id: 'Escriba_Del_Lyrio',
   name: 'Escriba Del Lyrio',
+  image: '/imgCards/escribadellyrio.jpg',
   type: CardType.CREATURE,
   rarity: CardRarity.BASIC,
   mana: 2,
@@ -286,6 +289,7 @@ export const ESCRIBA_DEL_LYRIO: Card = {
 export const FLECHA_CERTERA: Card = {
   id: 'Flecha_Certera',
   name: 'Flecha Certeza',
+  image: '/imgCards/flechacerteza.jpg',
   type: CardType.SPELL,
   rarity: CardRarity.BASIC,
   mana: 2,
@@ -311,6 +315,7 @@ export const FLECHA_CERTERA: Card = {
 export const DUELISTA_FRENETICO: Card = {
   id: 'Duelista_Frenetico',
   name: 'Duelista Frenetico',
+  image: '/imgCards/duelista frenetico.jpg',
   type: CardType.CREATURE,
   rarity: CardRarity.BASIC,
   mana: 2,
@@ -342,6 +347,7 @@ export const DUELISTA_FRENETICO: Card = {
 export const COMERCIANTE_SAGAZ: Card = {
   id: 'Comerciante_Sagaz',
   name: 'Comerciante Sagaz',
+  image: '/imgCards/comerciantesagaz.webp',
   type: CardType.CREATURE,
   rarity: CardRarity.BASIC,
   mana: 2,
@@ -356,6 +362,7 @@ export const COMERCIANTE_SAGAZ: Card = {
 export const PETALOS_CERTEROS: Card = {
   id: 'Petalos_Certeros',
   name: 'Petalos Certeros',
+  image: '/imgCards/petalocerteros.webp',
   type: CardType.SPELL,
   rarity: CardRarity.BASIC,
   mana: 2,
@@ -382,6 +389,7 @@ export const PETALOS_CERTEROS: Card = {
 export const BERSERKER_HERIDO: Card = {
   id: 'Berserker_Herido',
   name: 'Berserker Herido',
+  image: '/imgCards/berserkerherido.webp',
   type: CardType.CREATURE,
   rarity: CardRarity.BASIC,
   mana: 3,
@@ -408,6 +416,7 @@ export const BERSERKER_HERIDO: Card = {
 export const ESTUDIO_FRENETICO: Card = {
   id: 'Estudio_Frenetico',
   name: 'Estudio Frenetico',
+  image: '/imgCards/estudiofrenetico.png',
   type: CardType.SPELL,
   rarity: CardRarity.BASIC,
   mana: 3,
@@ -432,6 +441,7 @@ export const ESTUDIO_FRENETICO: Card = {
 export const ASCENDER: Card = {
   id: 'Ascender',
   name: 'Ascender',
+  image: '/imgCards/ascender.png',
   type: CardType.SPELL,
   rarity: CardRarity.BASIC,
   mana: 3,
@@ -467,6 +477,7 @@ export const ASCENDER: Card = {
 export const SOLDADO_VETERANO: Card = {
   id: 'Soldado_Veterano',
   name: 'Soldado Veterano',
+  image: '/imgCards/soldadoveterano.jpg',
   type: CardType.CREATURE,
   rarity: CardRarity.BASIC,
   mana: 3,
@@ -550,6 +561,7 @@ export const CAPA_DELAROSSA: Card = {
 export const CURANDERO_SABIO: Card = {
   id: 'Curandero_Sabio',
   name: 'Curandero Sabio',
+  image: '/imgCards/curandersabio.jpg',
   type: CardType.CREATURE,
   rarity: CardRarity.BASIC,
   mana: 3,
@@ -578,6 +590,7 @@ export const CURANDERO_SABIO: Card = {
 export const CENTINELA_VIGILANTE: Card = {
   id: 'Centinela_Vigilante',
   name: 'Centinela Vigilante',
+  image: '/imgCards/centinelavigilante.jpg',
   type: CardType.CREATURE,
   rarity: CardRarity.BASIC,
   mana: 4,
@@ -609,6 +622,7 @@ export const CENTINELA_VIGILANTE: Card = {
 export const LLAMA_IMPURA: Card = {
   id: 'Llama_Impura',
   name: 'Llama Impura',
+  image: '/imgCards/llamaimpura.jpg',
   type: CardType.SPELL,
   rarity: CardRarity.RARE,
   mana: 4,
@@ -634,6 +648,7 @@ export const LLAMA_IMPURA: Card = {
 export const MAESTRO_DE_ARMAS: Card = {
   id: 'Maestro_de_Armas',
   name: 'Maestro de Armas',
+  image: '/imgCards/maestrodearmas.webp',
   type: CardType.CREATURE,
   rarity: CardRarity.RARE,
   mana: 4,
@@ -660,6 +675,7 @@ export const MAESTRO_DE_ARMAS: Card = {
 export const ACECHADOR_NOCTURNO: Card = {
   id: 'Acechador_Nocturno',
   name: 'Acechador Nocturno',
+  image: '/imgCards/acechadornocturno.webp',
   type: CardType.CREATURE,
   rarity: CardRarity.BASIC,
   mana: 4,
@@ -691,6 +707,7 @@ export const ACECHADOR_NOCTURNO: Card = {
 export const PALABRA_DE_PODER: Card = {
   id: 'Palabra_de_Poder',
   name: 'Palabra de Poder',
+  image: '/imgCards/palabradepoder.jpg',
   type: CardType.SPELL,
   rarity: CardRarity.BASIC,
   mana: 4,
@@ -718,6 +735,7 @@ export const PALABRA_DE_PODER: Card = {
 export const VAMPIRO_ANCESTRAL: Card = {
   id: 'Vampiro_Ancestral',
   name: 'Vampiro Ancestral',
+  image: '/imgCards/vampiroancestral.webp',
   type: CardType.CREATURE,
   rarity: CardRarity.RARE,
   mana: 5,
@@ -749,6 +767,7 @@ export const VAMPIRO_ANCESTRAL: Card = {
 export const COLOSO_DE_HIERRO: Card = {
   id: 'Coloso_de_Hierro',
   name: 'Coloso de Hierro',
+  image: '/imgCards/colosodehierro.jpeg',
   type: CardType.CREATURE,
   rarity: CardRarity.BASIC,
   mana: 5,
@@ -796,6 +815,7 @@ export const COLOSO_DE_HIERRO: Card = {
 export const INGENIERA_ASTUTA: Card = {
   id: 'Ingeniera_Astuta',
   name: 'Ingeniera Astuta',
+  image: '/imgCards/ingenieriaastuta.jpg',
   type: CardType.CREATURE,
   rarity: CardRarity.RARE,
   mana: 5,
@@ -822,6 +842,7 @@ export const INGENIERA_ASTUTA: Card = {
 export const TORMENTA_DE_ACERO: Card = {
   id: 'Tormenta_de_Acero',
   name: 'Tormenta de Acero',
+  image: '/imgCards/tormentadeacero.jpg',
   type: CardType.SPELL,
   rarity: CardRarity.RARE,
   mana: 5,
@@ -846,6 +867,7 @@ export const TORMENTA_DE_ACERO: Card = {
 export const GOLPE_DEVASTADOR: Card = {
   id: 'Golpe_Devastador',
   name: 'Golpe Devastador',
+  image: '/imgCards/golpedevastador.jpg',
   type: CardType.SPELL,
   rarity: CardRarity.BASIC,
   mana: 5,
@@ -873,6 +895,7 @@ export const GOLPE_DEVASTADOR: Card = {
 export const CAMPEON_CAIDO: Card = {
   id: 'Campeon_Caido',
   name: 'Campeón Caído',
+  image: '/imgCards/campeoncaido.jpg',
   type: CardType.CREATURE,
   rarity: CardRarity.RARE,
   mana: 6,
@@ -899,6 +922,7 @@ export const CAMPEON_CAIDO: Card = {
 export const SENOR_DE_LA_GUERRA: Card = {
   id: 'Senor_de_la_Guerra',
   name: 'Señor de la Guerra',
+  image: '/imgCards/señordelaguerra.jpg',
   type: CardType.CREATURE,
   rarity: CardRarity.RARE,
   mana: 6,
@@ -925,6 +949,7 @@ export const SENOR_DE_LA_GUERRA: Card = {
 export const RITUAL_DE_RENOVACION: Card = {
   id: 'Ritual_de_Renovacion',
   name: 'Ritual de Renovación',
+  image: '/imgCards/ritualderenovacion.webp',
   type: CardType.SPELL,
   rarity: CardRarity.RARE,
   mana: 6,
@@ -952,6 +977,7 @@ export const RITUAL_DE_RENOVACION: Card = {
 export const TITAN_PRIMORDIAL: Card = {
   id: 'Titan_Primordial',
   name: 'Titán Primordial',
+  image: '/imgCards/titanprimordial.jpg',
   type: CardType.CREATURE,
   rarity: CardRarity.RARE,
   mana: 7,
@@ -978,6 +1004,7 @@ export const TITAN_PRIMORDIAL: Card = {
 export const APOCALIPSIS: Card = {
   id: 'Apocalipsis',
   name: 'Apocalipsis',
+  image: '/imgCards/apocalipsis.png',
   type: CardType.SPELL,
   rarity: CardRarity.RARE,
   mana: 8,

@@ -123,6 +123,7 @@ export const ESPECIMEN_PERFECTO_EVOLUCIONADO: Card = {
 export const EXPLORADOR_INFECTADO: Card = {
   id: 'Explorador_Infectado',
   name: 'Explorador Infectado',
+  image: '/imgCards/exploradorinfectado.webp',
   type: CardType.CREATURE,
   rarity: CardRarity.BASIC,
   classType: ClassType.ABOMINACION,
@@ -150,6 +151,7 @@ export const EXPLORADOR_INFECTADO: Card = {
 export const RECOLECTOR_DE_TEJIDOS: Card = {
   id: 'Recolector_de_Tejidos',
   name: 'Recolector de Tejidos',
+  image: '/imgCards/recolectordetejidos.jpg',
   type: CardType.CREATURE,
   rarity: CardRarity.RARE,
   classType: ClassType.ABOMINACION,
@@ -177,6 +179,7 @@ export const RECOLECTOR_DE_TEJIDOS: Card = {
 export const NECROFAGO_HAMBRIENTO: Card = {
   id: 'Necrofago_Hambriento',
   name: 'Necrófago Hambriento',
+  image: '/imgCards/necrofagohabriento.png',
   type: CardType.CREATURE,
   rarity: CardRarity.BASIC,
   classType: ClassType.ABOMINACION,
@@ -208,6 +211,7 @@ export const NECROFAGO_HAMBRIENTO: Card = {
 export const RITUAL_MENOR: Card = {
   id: 'Ritual_Menor',
   name: 'Ritual Menor',
+  image: '/imgCards/ritualmenor.jpg',
   type: CardType.SPELL,
   rarity: CardRarity.BASIC,
   classType: ClassType.ABOMINACION,
@@ -244,6 +248,7 @@ export const RITUAL_MENOR: Card = {
 export const ANATOMISTA_EXPERTO: Card = {
   id: 'Anatomista_Experto',
   name: 'Anatomista Experto',
+  image: '/imgCards/anatomistaexperto.jpg',
   type: CardType.CREATURE,
   rarity: CardRarity.RARE,
   classType: ClassType.ABOMINACION,
@@ -276,6 +281,7 @@ export const ANATOMISTA_EXPERTO: Card = {
 export const INVOCACION_SINIESTRA: Card = {
   id: 'Invocacion_Siniestra',
   name: 'Invocación Siniestra',
+  image: '/imgCards/invocacionsiniestra.jpg',
   type: CardType.SPELL,
   rarity: CardRarity.RARE,
   classType: ClassType.ABOMINACION,
@@ -305,6 +311,7 @@ export const INVOCACION_SINIESTRA: Card = {
 export const PERFECCIONISTA_OBSESIVO: Card = {
   id: 'Perfeccionista_Obsesivo',
   name: 'Perfeccionista Obsesivo',
+  image: '/imgCards/perfecionistaobsesivo.jpeg',
   type: CardType.CREATURE,
   rarity: CardRarity.RARE,
   classType: ClassType.ABOMINACION,
@@ -337,6 +344,7 @@ export const PERFECCIONISTA_OBSESIVO: Card = {
 export const RITUAL_DE_PERFECCION: Card = {
   id: 'Ritual_de_Perfeccion',
   name: 'Ritual de Perfección',
+  image: '/imgCards/ritualdeperfeccion.webp',
   type: CardType.SPELL,
   rarity: CardRarity.LEGENDARY,
   classType: ClassType.ABOMINACION,
@@ -362,6 +370,7 @@ export const RITUAL_DE_PERFECCION: Card = {
 export const MAESTRO_NECROMANTICO: Card = {
   id: 'Maestro_Necromantico',
   name: 'Maestro Necromántico',
+  image: '/imgCards/maestronecromantico.webp',
   type: CardType.CREATURE,
   rarity: CardRarity.LEGENDARY,
   classType: ClassType.ABOMINACION,
@@ -428,6 +437,7 @@ export const EVOLUCION_PERFECTA: Card = {
 export const APRENDIZ_ERRATICO: Card = {
   id: 'Aprendiz_Erratico',
   name: 'Aprendiz Errático',
+  image: '/imgCards/aprendizerratico.png',
   type: CardType.CREATURE,
   rarity: CardRarity.BASIC,
   classType: ClassType.CAOS,
@@ -475,6 +485,7 @@ export const APRENDIZ_ERRATICO: Card = {
 export const MAGO_DEL_CAOS: Card = {
   id: 'Mago_del_Caos',
   name: 'Mago del Caos',
+  image: '/imgCards/magodelcaos.jpg',
   type: CardType.CREATURE,
   rarity: CardRarity.RARE,
   classType: ClassType.CAOS,
@@ -522,6 +533,7 @@ export const MAGO_DEL_CAOS: Card = {
 export const RITUAL_CAOTICO: Card = {
   id: 'Ritual_Caotico',
   name: 'Ritual Caótico',
+  image: '/imgCards/ritualcaotico.jpg',
   type: CardType.SPELL,
   rarity: CardRarity.BASIC,
   classType: ClassType.CAOS,
@@ -567,6 +579,7 @@ export const RITUAL_CAOTICO: Card = {
 export const MERCADER_LOCO: Card = {
   id: 'Mercader_Loco',
   name: 'Mercader Loco',
+  image: '/imgCards/mecaderloco.jpg',
   type: CardType.CREATURE,
   rarity: CardRarity.BASIC,
   classType: ClassType.CAOS,
@@ -657,6 +670,7 @@ export const PORTAL_INESTABLE: Card = {
 export const CAOS_CONTROLADO: Card = {
   id: 'Caos_Controlado',
   name: 'Caos Controlado',
+  image: '/imgCards/caoscontrolado.jpg',
   type: CardType.SPELL,
   rarity: CardRarity.RARE,
   classType: ClassType.CAOS,
@@ -689,6 +703,7 @@ export const CAOS_CONTROLADO: Card = {
 export const SENOR_DEL_CAOS: Card = {
   id: 'Senor_del_Caos',
   name: 'Señor del Caos',
+  image: '/imgCards/señordelcaos.jpg',
   type: CardType.CREATURE,
   rarity: CardRarity.RARE,
   classType: ClassType.CAOS,
@@ -786,6 +801,7 @@ export const REALIDAD_FRACTURADA: Card = {
 export const TOKEN_2_2_PRISA: Card = {
   id: 'TOKEN_2_2_PRISA',
   name: 'Siervo embelesado',
+  image: '/imgCards/siervoembelesado.webp',
   type: CardType.CREATURE,
   rarity: CardRarity.BASIC,
   classType: ClassType.VITALIDAD,
@@ -801,6 +817,7 @@ export const TOKEN_2_2_PRISA: Card = {
 export const TOKEN_4_4_PRISA_LIFESTEAL: Card = {
   id: 'TOKEN_4_4_PRISA_LIFESTEAL',
   name: 'Siervo frenético',
+  image: '/imgCards/siervofrenetico.webp',
   type: CardType.CREATURE,
   rarity: CardRarity.BASIC,
   classType: ClassType.VITALIDAD,
@@ -819,6 +836,7 @@ export const TOKEN_4_4_PRISA_LIFESTEAL: Card = {
 export const FANATICO_DESESPERADO: Card = {
   id: 'Fanatico_Desesperado',
   name: 'Fanático Desesperado',
+  image: '/imgCards/fanaticodesesperado.webp',
   type: CardType.CREATURE,
   rarity: CardRarity.BASIC,
   classType: ClassType.VITALIDAD,
@@ -859,6 +877,7 @@ export const FANATICO_DESESPERADO: Card = {
 export const BERSERKER_SANGUINARIO: Card = {
   id: 'Berserker_Sanguinario',
   name: 'Berserker Sanguinario',
+  image: '/imgCards/berserkersanguinario.png',
   type: CardType.CREATURE,
   rarity: CardRarity.RARE,
   classType: ClassType.VITALIDAD,
@@ -893,6 +912,7 @@ export const BERSERKER_SANGUINARIO: Card = {
 export const CAZADOR_DE_RECOMPENSAS: Card = {
   id: 'Cazador_de_Recompensas',
   name: 'Cazador de Recompensas',
+  image: '/imgCards/cazadorderecompensas.jpg',
   type: CardType.CREATURE,
   rarity: CardRarity.BASIC,
   classType: ClassType.VITALIDAD,
@@ -927,6 +947,7 @@ export const CAZADOR_DE_RECOMPENSAS: Card = {
 export const RITUAL_SANGRIENTO: Card = {
   id: 'Ritual_Sangriento',
   name: 'Ritual Sangriento',
+  image: '/imgCards/ritualsangriento.jpg',
   type: CardType.SPELL,
   rarity: CardRarity.BASIC,
   classType: ClassType.VITALIDAD,
@@ -959,6 +980,7 @@ export const RITUAL_SANGRIENTO: Card = {
 export const GUERRERO_HERIDO: Card = {
   id: 'Guerrero_Herido',
   name: 'Guerrero Herido',
+  image: '/imgCards/guerreroherido.jpg',
   type: CardType.CREATURE,
   rarity: CardRarity.RARE,
   classType: ClassType.VITALIDAD,
@@ -993,6 +1015,7 @@ export const GUERRERO_HERIDO: Card = {
 export const SENOR_DE_LA_SANGRE: Card = {
   id: 'Senor_de_la_Sangre',
   name: 'Señor de la Sangre',
+  image: '/imgCards/senordelasangre.jpg',
   type: CardType.CREATURE,
   rarity: CardRarity.RARE,
   classType: ClassType.VITALIDAD,
@@ -1027,6 +1050,7 @@ export const SENOR_DE_LA_SANGRE: Card = {
 export const PACTO_DE_PODER: Card = {
   id: 'Pacto_de_Poder',
   name: 'Pacto de Poder',
+  image: '/imgCards/pactodepoder.jpg',
   type: CardType.SPELL,
   rarity: CardRarity.RARE,
   classType: ClassType.VITALIDAD,
@@ -1069,6 +1093,7 @@ export const PACTO_DE_PODER: Card = {
 export const PACTO_FINAL: Card = {
   id: 'Pacto_Final',
   name: 'Pacto Final',
+  image: '/imgCards/pactofinal.webp',
   type: CardType.SPELL,
   rarity: CardRarity.LEGENDARY,
   classType: ClassType.VITALIDAD,
@@ -1101,6 +1126,7 @@ export const PACTO_FINAL: Card = {
 export const FRENESI_FINAL: Card = {
   id: 'Frenesi_Final',
   name: 'Frenesí Final',
+  image: '/imgCards/frenesifinal.jpg',
   type: CardType.SPELL,
   rarity: CardRarity.LEGENDARY,
   classType: ClassType.VITALIDAD,
@@ -1130,6 +1156,7 @@ export const FRENESI_FINAL: Card = {
 export const AVATAR_DE_LA_DESTRUCCION: Card = {
   id: 'Avatar_de_la_Destruccion',
   name: 'Avatar de la Destrucción',
+  image: '/imgCards/avatardeladestrucion.jpg',
   type: CardType.CREATURE,
   rarity: CardRarity.LEGENDARY,
   classType: ClassType.VITALIDAD,
