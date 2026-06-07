@@ -616,6 +616,7 @@ export const MERCADER_LOCO: Card = {
 export const MANIPULADOR_DEL_DESTINO: Card = {
   id: 'Manipulador_del_Destino',
   name: 'Manipulador del Destino',
+  image: '/imgCards/manipuladordeldestino.jpg',
   type: CardType.CREATURE,
   rarity: CardRarity.RARE,
   classType: ClassType.CAOS,
@@ -739,6 +740,7 @@ export const SENOR_DEL_CAOS: Card = {
 export const TORMENTA_IMPREDECIBLE: Card = {
   id: 'Tormenta_Impredecible',
   name: 'Tormenta Impredecible',
+  image: '/imgCards/tormentaimpredecible.jpg',
   type: CardType.SPELL,
   rarity: CardRarity.RARE,
   classType: ClassType.CAOS,
