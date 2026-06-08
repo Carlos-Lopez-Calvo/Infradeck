@@ -10,13 +10,13 @@ const CLASS_OPTIONS: {
   {
     value: ClassType.ABOMINACION,
     label: 'Abominación',
-    image: '/imgCards/abominacion.png',
+    image: '/imgCards/pj-amalgama.png',
     accent: '#b11ec2',
   },
   {
     value: ClassType.CAOS,
     label: 'Caos',
-    image: '/imgCards/caos.png',
+    image: '/imgCards/pj-caos.jpg',
     accent: '#fbbf24',
   },
   {
