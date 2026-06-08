@@ -39,6 +39,10 @@ export interface CreatureOnBoard extends CardInZone {
   effects: EffectActionType[]
   programmedEffects?: (EffectActionType | string)[]
   tempDrawOnKill?: number  // Temporal: roba N cartas al matar (limpiado al final del turno)
+  tempAtkBuff?: number     // Temporal: ataque a revertir al final del turno (duration END_OF_TURN)
+  tempHpBuff?: number      // Temporal: vida a revertir al final del turno (duration END_OF_TURN)
+  tempAbilities?: string[] // Temporal: habilidades concedidas a retirar al final del turno
+  dieAtEndOfTurn?: boolean // Token invocado que muere al final del turno (duration END_OF_TURN)
   conditionalBuff?: string  // Marca de buff condicional activo (para Duelista Frenetico, etc)
   conditionalTauntFromHand?: boolean
   deathScalingBonusApplied?: number
@@ -268,13 +272,17 @@ export function playCard(
   const card = getCardById(cardId)
   if (!card) return { ok: false, error: 'Carta no encontrada' }
 
-  // "Última Oportunidad": no puede jugarse si no cumple su condición de vida.
-  if (card.type === CardType.SPELL && card.id === 'Ultima_Oportunidad') {
+  // Restricción de juego por umbral de vida: un hechizo cuyos efectos ON_PLAY
+  // están todos condicionados a la vida (HEALTH_THRESHOLD) no puede jugarse si
+  // no se cumple ninguna (p.ej. "Última Oportunidad", "Frenesí Final": vida <= 10).
+  // No afecta a otras condiciones (ENTROPÍA, cementerio, etc.), que se resuelven
+  // saltando el efecto si no se cumplen.
+  if (card.type === CardType.SPELL) {
     const onPlayEffects = card.effects?.filter(e => e.timing === EffectTiming.ON_PLAY) ?? []
     const hasOnPlay = onPlayEffects.length > 0
-    const allConditional = hasOnPlay && onPlayEffects.every(e => !!e.condition)
+    const allLifeGated = hasOnPlay && onPlayEffects.every(e => e.condition?.type === 'HEALTH_THRESHOLD')
     const anyConditionPasses = onPlayEffects.some(e => effectConditionPasses(state, playerIndex, e))
-    if (hasOnPlay && allConditional && !anyConditionPasses) {
+    if (hasOnPlay && allLifeGated && !anyConditionPasses) {
       return { ok: false, error: 'No cumples las condiciones para jugar esta carta' }
     }
   }

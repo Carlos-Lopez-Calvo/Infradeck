@@ -1,3 +1,114 @@
+# Infradeck
+
+TCG digital 1v1 por turnos con clases asimétricas, deckbuilding y partidas online en tiempo real. Stack: TypeScript en todo el monorepo (motor de juego compartido, backend Express + Socket.IO + Prisma, frontend React + Vite + Tailwind).
+
+> [!WARNING]
+> **Todas las imágenes del proyecto (artwork de cartas, retratos de clase, fondos y texturas en `web/public/imgCards/`) son placeholders sacados directamente de internet.** No son arte propio ni cuentan con licencia para uso comercial; están únicamente como marcador temporal para el desarrollo y la demo académica. Deben sustituirse por arte original o con licencia antes de cualquier publicación.
+
+---
+
+## Puesta en marcha y despliegue
+
+### Requisitos
+
+- **Node.js >= 20** y **npm**
+- Una base de datos **PostgreSQL** (en producción se usa [Neon](https://neon.tech); en local vale cualquier Postgres)
+- (Opcional) Un **Google OAuth Client ID** si quieres habilitar el login con Google
+
+### Estructura del monorepo
+
+Monorepo manual (sin workspaces) con tres paquetes enlazados por `file:` y path aliases. Detalle completo en la [sección 3.1](#31-estructura-del-proyecto).
+
+```
+packages/shared/  → Motor de juego, tipos y cartas (@infradeck/shared). TypeScript puro, sin runtime.
+packages/server/  → Backend Express + Socket.IO + Prisma (PostgreSQL).
+web/              → Frontend React + Vite + Tailwind (cliente principal).
+```
+
+### Variables de entorno
+
+**Backend** (`packages/server/.env`):
+
+| Variable | Obligatoria | Descripción |
+|---|---|---|
+| `DATABASE_URL` | Sí | Cadena de conexión PostgreSQL (`postgresql://...`). |
+| `JWT_SECRET` | Sí (prod) | Secreto para firmar los JWT. En dev usa un valor por defecto inseguro. |
+| `CORS_ORIGIN` | Sí (prod) | Origen(es) permitido(s) del frontend, separados por coma. |
+| `GOOGLE_CLIENT_ID` | No | Client ID de Google OAuth. Sin él, el login con Google queda deshabilitado. |
+| `FRONTEND_URL` | No | URL del frontend (fallback de CORS / redirecciones). |
+| `PORT` | No | Puerto del servidor (por defecto `3001`). |
+| `HOST` | No | Host de escucha (por defecto `0.0.0.0`). |
+
+**Frontend** (`web/.env`):
+
+| Variable | Obligatoria | Descripción |
+|---|---|---|
+| `VITE_API_URL` | No | URL base de la API REST. Si se omite, usa `http(s)://<host>:3001`. |
+| `VITE_WS_URL` | No | URL del WebSocket. Si se omite, deriva del host actual. |
+| `VITE_GOOGLE_CLIENT_ID` | No | Client ID de Google OAuth para el botón de login. |
+
+### Desarrollo local
+
+```bash
+# 1. Motor compartido (debe compilarse antes que el server)
+cd packages/shared && npm install && npm run build
+
+# 2. Backend (Express + Socket.IO + Prisma)
+cd ../server && npm install
+#    Crea packages/server/.env con al menos DATABASE_URL
+npx prisma migrate dev      # aplica migraciones y genera el cliente
+npm run dev                 # arranca en http://localhost:3001 (tsx watch)
+
+# 3. Frontend (Vite)
+cd ../../web && npm install
+npm run dev                 # arranca en http://localhost:5173
+```
+
+Con eso, el frontend en `http://localhost:5173` apunta por defecto al backend en `http://localhost:3001`.
+
+### Base de datos (Prisma)
+
+El esquema está en `packages/server/prisma/schema.prisma` (provider `postgresql`).
+
+```bash
+cd packages/server
+npx prisma migrate dev       # desarrollo: crea/aplica migraciones
+npx prisma migrate deploy    # producción: aplica migraciones existentes
+npx prisma studio            # inspeccionar datos (opcional)
+```
+
+### Despliegue en producción
+
+El proyecto se despliega en tres servicios:
+
+```mermaid
+flowchart LR
+    Browser["Navegador"] -->|HTTPS / SPA| Vercel["Frontend (Vercel)"]
+    Browser -->|REST + WebSocket| Render["Backend (Render)"]
+    Render -->|Prisma| Neon["PostgreSQL (Neon)"]
+```
+
+**Backend → Render** (configurado en [`render.yaml`](render.yaml)):
+- `rootDir: packages/server`, `buildCommand: npm install`, `startCommand: npm run start:prod`.
+- `start:prod` ejecuta `prisma migrate deploy` y arranca el servidor.
+- Configura en el panel de Render: `DATABASE_URL`, `JWT_SECRET` (autogenerado), `CORS_ORIGIN` (la URL de Vercel) y `GOOGLE_CLIENT_ID`.
+- Healthcheck en `/health`.
+
+**Frontend → Vercel** (config SPA en [`web/vercel.json`](web/vercel.json)):
+- Root del proyecto: `web/`. Build: `npm run build` (Vite). Output: `dist/`.
+- Variables `VITE_API_URL` y `VITE_WS_URL` apuntando a la URL pública del backend en Render, y `VITE_GOOGLE_CLIENT_ID` si se usa Google.
+
+**Base de datos → Neon**: crea un proyecto PostgreSQL y usa su connection string como `DATABASE_URL` en Render.
+
+### Tests
+
+```bash
+cd packages/shared && npm test     # Vitest (motor de juego, cartas)
+cd packages/server && npm test     # Node test runner vía tsx
+```
+
+---
+
 ## **1. INTRODUCCIÓN**
 
 ### **1.1. Contexto y justificación del Trabajo**
@@ -69,7 +180,7 @@
 - Figma para diseño UI/UX
 
 **Recursos externos:**
-- Hosting: Vercel (frontend) + Railway (backend)
+- Hosting: Vercel (frontend) + Render (backend) + Neon (PostgreSQL)
 - CDN: Cloudinary para imágenes de cartas
 - Analytics: Plausible o similar
 
@@ -815,11 +926,10 @@ infradeck/
 │   ├── public/
 │   │   └── imgCards/
 │   └── vite.config.ts
-├── apps/web/                          # Frontend legacy (no usar)
-├── docs/                              # Documentación de diseño
-│   ├── game-design/
-│   ├── development/
-│   └── testing/
+├── docs/                              # Documentación de entrega
+│   └── entrega/
+├── render.yaml                        # Blueprint de despliegue del backend (Render)
+├── .gitignore
 └── .cursor/rules/                     # Reglas para Cursor AI
 ```
 
@@ -841,9 +951,9 @@ infradeck/
 
 #### **3.2.3. Recursos externos utilizados**
 - **Fuentes**: AvQest.ttf (custom)
-- **Imágenes**: Artwork de cartas (placeholder/generated)
+- **Imágenes**: Artwork de cartas, retratos y fondos — **placeholders sacados directamente de internet** (sin licencia para uso comercial; pendientes de sustituir por arte original o con licencia)
 - **Iconos**: @radix-ui/react-icons
-- **Hosting**: Vercel (frontend), Railway (backend) — planificado
+- **Hosting**: Vercel (frontend), Render (backend, ver `render.yaml`), Neon (PostgreSQL)
 
 #### **3.2.4. APIs utilizadas**
 **Implementadas:**
@@ -1242,7 +1352,7 @@ refactor: Extraer lógica de bot a hook
 **`package.json` principales:**
 
 ```json
-// apps/web/package.json
+// web/package.json
 {
   "name": "@infradeck/web",
   "dependencies": {
@@ -1278,7 +1388,7 @@ refactor: Extraer lógica de bot a hook
 **Dependencias clave backend:**
 - `express` + `cors`: HTTP server
 - `socket.io`: WebSockets con rooms
-- `@prisma/client`: ORM para SQLite
+- `@prisma/client`: ORM para PostgreSQL
 - `jsonwebtoken` + `bcryptjs`: Auth
 - `nanoid`: IDs únicos para jugadores y rooms
 

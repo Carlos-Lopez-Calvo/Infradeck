@@ -67,6 +67,12 @@ export function resolveSingleTarget(
         return { kind: 'CREATURE', playerIndex: oppIndex, index: idx }
       }
       return { kind: 'HERO', playerIndex: oppIndex }
+    case EffectTarget.RANDOM_CREATURE:
+      if (me.board.length > 0) {
+        const idx = Math.floor(Math.random() * me.board.length)
+        return { kind: 'CREATURE', playerIndex, index: idx }
+      }
+      return undefined
     default:
       return undefined
   }
@@ -272,7 +278,9 @@ export function handleBuffStats(ctx: EffectContext): void {
   const t = resolveSingleTarget(state, playerIndex, action.target, ctx.targetHints?.[0])
   console.log('[BUFF_STATS] target resolved:', t, 'add', { atk: addAtk, hp: addHp })
   if (!t) return
-  
+
+  const temporary = action.duration === 'END_OF_TURN'
+
   if (t.kind === 'CREATURE') {
     const owner = state.players[t.playerIndex]
     const cr = owner.board[t.index]
@@ -280,18 +288,27 @@ export function handleBuffStats(ctx: EffectContext): void {
       const before = { atk: cr.attack, hp: cr.health }
       cr.attack += addAtk
       cr.health += addHp
+      if (temporary) {
+        cr.tempAtkBuff = (cr.tempAtkBuff ?? 0) + addAtk
+        cr.tempHpBuff = (cr.tempHpBuff ?? 0) + addHp
+      }
       console.log('[BUFF_STATS] applied to CREATURE', { 
         before, 
         add: { atk: addAtk, hp: addHp }, 
+        temporary,
         after: { atk: cr.attack, hp: cr.health } 
       })
     }
   } else if (t.kind === 'MULTI') {
     const list = t.scope === 'FRIENDLY' ? me.board : opp.board
-    console.log('[BUFF_STATS] applying to MULTI', { scope: t.scope, count: list.length })
+    console.log('[BUFF_STATS] applying to MULTI', { scope: t.scope, count: list.length, temporary })
     for (const c of list) {
       c.attack += addAtk
       c.health += addHp
+      if (temporary) {
+        c.tempAtkBuff = (c.tempAtkBuff ?? 0) + addAtk
+        c.tempHpBuff = (c.tempHpBuff ?? 0) + addHp
+      }
     }
   }
 }
@@ -338,19 +355,22 @@ export function handleGainAbility(ctx: EffectContext): void {
 
   // Comportamiento normal: añadir una habilidad concreta
   const abil = val as Ability
+  const temporary = action.duration === 'END_OF_TURN'
+  const grant = (c: any) => {
+    if (!c.abilities.includes(String(abil))) {
+      c.abilities.push(String(abil))
+      // Solo marcar para revertir las que realmente se concedieron con esta acción.
+      if (temporary) c.tempAbilities = [...(c.tempAbilities ?? []), String(abil)]
+    }
+    if (abil === Ability.PRISA) c.exhausted = false
+  }
   if (t.kind === 'CREATURE') {
     const owner = state.players[t.playerIndex]
     const cr = owner.board[t.index]
-    if (cr && !cr.abilities.includes(String(abil))) {
-      cr.abilities.push(String(abil))
-      if (abil === Ability.PRISA) cr.exhausted = false
-    }
+    if (cr) grant(cr)
   } else if (t.kind === 'MULTI') {
     const list = t.scope === 'FRIENDLY' ? me.board : opp.board
-    for (const c of list) {
-      if (!c.abilities.includes(String(abil))) c.abilities.push(String(abil))
-      if (abil === Ability.PRISA) c.exhausted = false
-    }
+    for (const c of list) grant(c)
   }
 }
 
@@ -734,6 +754,7 @@ function isCreatureCard(c: any): boolean {
 export function handleSummonCreature(ctx: EffectContext): void {
   const { state, playerIndex, me, action } = ctx
   const val = String(action.value ?? '')
+  const diesAtEndOfTurn = action.duration === 'END_OF_TURN'
 
   // Caso especial: invocación aleatoria por coste exacto → 'RANDOM_COST:X'
   if (val.startsWith('RANDOM_COST:')) {
@@ -755,6 +776,7 @@ export function handleSummonCreature(ctx: EffectContext): void {
       exhausted: !(refCard?.abilities?.includes(Ability.PRISA)),
       abilities: refCard?.abilities ? refCard.abilities.map(a => String(a)) : [],
       effects: [],
+      dieAtEndOfTurn: diesAtEndOfTurn || undefined,
     }
     me.board.push(entity)
     notifyEnterBattlefield(state, playerIndex, entity.id)
@@ -781,6 +803,7 @@ export function handleSummonCreature(ctx: EffectContext): void {
     exhausted: !(ref.abilities?.includes(Ability.PRISA)),
     abilities: ref.abilities ? ref.abilities.map(a => String(a)) : [],
     effects: [],
+    dieAtEndOfTurn: diesAtEndOfTurn || undefined,
   }
   me.board.push(entity)
   notifyEnterBattlefield(state, playerIndex, entity.id)

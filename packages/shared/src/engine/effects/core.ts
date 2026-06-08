@@ -75,6 +75,12 @@ export function effectConditionPasses(state: GameState, playerIndex: number, eff
     switch (String(c.value)) {
       case 'ALLY_DIED_THIS_TURN':       return !!p.allyDiedThisTurn
       case 'SPECIMEN_SUMMONED':         return !!p.specimenSummonedThisTurn
+      case 'SPECIMEN_ON_BOARD':         return p.board.some(e =>
+        e.cardId === 'Especimen_Perfecto' ||
+        e.cardId === 'Especimen_Perfecto_Final_Stand' ||
+        e.cardId === 'Especimen_Perfecto_Evolucionado' ||
+        e.cardId === 'SPECIMEN_TOKEN' ||
+        e.cardId === 'SPECIMEN_EVOLVED_TOKEN')
       case 'MANA_5_PLUS':               return p.mana >= 5
       case 'MANA_6_PLUS':               return p.mana >= 6
       case 'CREATURE_COUNT_3_PLUS': {

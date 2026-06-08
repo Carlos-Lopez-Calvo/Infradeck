@@ -1,5 +1,5 @@
 import { GameState, GamePhase } from './game-state'
-import { triggerPriority } from './priority'
+import { triggerPriority, notifyLeaveBattlefield, notifyEffectTriggered } from './priority'
 import { triggerBoardEffects, updateConditionalBuffs } from './effects/board-effects'
 import { applyFinalStandBonus } from './final-stand'
 
@@ -93,6 +93,58 @@ export function draw(state: GameState, playerIndex: number, count = 1): void {
 }
 // =======================
 
+/**
+ * Revierte los efectos con duración END_OF_TURN del jugador `playerIndex`:
+ * - Resta los buffs temporales de ataque/vida.
+ * - Retira las habilidades concedidas temporalmente.
+ * - Marca para morir los tokens con dieAtEndOfTurn.
+ * Las criaturas que queden con 0 o menos vida (o marcadas) van al cementerio.
+ */
+function expireEndOfTurnEffects(state: GameState, playerIndex: number): void {
+  const p = state.players[playerIndex]
+  const survivors: typeof p.board = []
+  const dead: typeof p.board = []
+
+  for (const creature of p.board) {
+    // Revertir buff temporal de stats
+    if (creature.tempAtkBuff) {
+      creature.attack = Math.max(0, creature.attack - creature.tempAtkBuff)
+      delete creature.tempAtkBuff
+    }
+    if (creature.tempHpBuff) {
+      creature.health -= creature.tempHpBuff
+      delete creature.tempHpBuff
+    }
+
+    // Retirar habilidades concedidas temporalmente
+    if (creature.tempAbilities && creature.tempAbilities.length) {
+      for (const ab of creature.tempAbilities) {
+        const idx = creature.abilities.indexOf(ab)
+        if (idx !== -1) creature.abilities.splice(idx, 1)
+      }
+      delete creature.tempAbilities
+    }
+
+    if (creature.dieAtEndOfTurn || creature.health <= 0) {
+      dead.push(creature)
+    } else {
+      survivors.push(creature)
+    }
+  }
+
+  p.board = survivors
+
+  for (const creature of dead) {
+    p.graveyard.unshift(creature.cardId)
+    notifyLeaveBattlefield(state, playerIndex, creature.id)
+    notifyEffectTriggered(state, playerIndex, creature.cardId, 'ON_DEATH')
+    console.log('[TURN] Expired end-of-turn creature', {
+      creatureId: creature.id,
+      cardId: creature.cardId,
+    })
+  }
+}
+
 // Finaliza el turno del jugador activo (estilo Hearthstone)
 export function endTurn(state: GameState): void {
   const i = state.turn.currentPlayerIndex
@@ -120,6 +172,10 @@ export function endTurn(state: GameState): void {
   // Triggers de fin de turno
   triggerBoardEffects(state, i, 'END_OF_TURN' as any)
   console.log('[TURN] End of turn effects triggered')
+
+  // Revierte efectos con duración END_OF_TURN (buffs de stats, habilidades concedidas)
+  // y retira tokens invocados que mueren al final del turno.
+  expireEndOfTurnEffects(state, i)
 
   // Ejecuta tareas programadas para fin de turno
   if (state.endOfTurnTasks && state.endOfTurnTasks.length) {
