@@ -108,6 +108,7 @@ const preview = base
           {/* Contenido derecho */}
           <ContenidoIzquierdaOponente
             life={opponentPlayer.life}
+            classType={opponentPlayer.classType}
             onAttackHero={() => {
               if (selectedAttacker != null && canAct) {
                 actions.attackHero(selectedAttacker)
@@ -127,6 +128,7 @@ const preview = base
           {/* Contenido izquierdo */}
           <ContenidoIzquierda
               life={currentPlayer.life}
+              classType={currentPlayer.classType}
               lifeClickable={Boolean(onMyLifeClick)}
               onLifeClick={onMyLifeClick}
               onAttackHero={() => {

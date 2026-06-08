@@ -1,21 +1,33 @@
 import React from 'react'
 
+const CLASS_HERO_IMAGE: Record<string, string> = {
+  ABOMINACION: '/imgCards/pj-amalgama.png',
+  CAOS: '/imgCards/pj-caos.jpg',
+  VITALIDAD: '/imgCards/vitalidad.png',
+}
+
+function heroImage(classType?: string): string {
+  return (classType && CLASS_HERO_IMAGE[classType]) || '/imgCards/vitalidad.png'
+}
+
 export function ContenidoIzquierda({
   life = 20,
   onAttackHero,
   onLifeClick,
   lifeClickable = false,
+  classType,
 }: {
   life?: number
   onAttackHero?: () => void
   onLifeClick?: () => void
   lifeClickable?: boolean
+  classType?: string
 }) {
   return (
     <div className="relative w-full h-full">
         <div className="absolute bottom-0 left-0 w-full h-full flex items-end justify-center bg-black rounded-t-lg py-4"
        style={{
-            backgroundImage: `url('/imgCards/vitalidad.png')`,
+            backgroundImage: `url('${heroImage(classType)}')`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
           }}>
@@ -46,12 +58,12 @@ export function ContenidoIzquierda({
   )
 }
 
-export function ContenidoIzquierdaOponente({ life = 20, onAttackHero }: { life?: number, onAttackHero?: () => void }) {
+export function ContenidoIzquierdaOponente({ life = 20, onAttackHero, classType }: { life?: number, onAttackHero?: () => void, classType?: string }) {
   return (
     <div className="relative flex w-full h-full">
       <div className="absolute bottom-0 left-0 w-full h-full flex items-end justify-center bg-black rounded-t-lg py-4"
        style={{
-            backgroundImage: `url('/imgCards/vitalidad.png')`,
+            backgroundImage: `url('${heroImage(classType)}')`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
           }}
