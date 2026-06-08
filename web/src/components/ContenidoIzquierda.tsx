@@ -2,7 +2,7 @@ import React from 'react'
 
 const CLASS_HERO_IMAGE: Record<string, string> = {
   ABOMINACION: '/imgCards/pj-amalgama.png',
-  CAOS: '/imgCards/pj-caos.jpg',
+  CAOS: '/imgCards/pj-caos.png',
   VITALIDAD: '/imgCards/vitalidad.png',
 }
 

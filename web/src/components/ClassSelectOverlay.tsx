@@ -16,7 +16,7 @@ const CLASS_OPTIONS: {
   {
     value: ClassType.CAOS,
     label: 'Caos',
-    image: '/imgCards/pj-caos.jpg',
+    image: '/imgCards/pj-caos.png',
     accent: '#fbbf24',
   },
   {
