@@ -2,14 +2,16 @@ import { BASIC_CARDS } from '../cards/basic-cards'
 import { CLASS_CARDS } from '../cards/class-cards'
 import type { Card } from '../types/cards'
 import { CardRarity, ClassType, GAME_CONSTANTS, type DeckValidation, type DeckValidationError } from '../types/cards'
-import { isSpecimenCardId } from './deck-catalog'
+import { isNonCollectibleCardId } from './deck-catalog'
 
-/** Ids permitidos en un mazo: todas las básicas + cartas de la clase elegida (sin Espécimen). */
+/** Ids permitidos en un mazo: todas las básicas + cartas de la clase elegida (sin Espécimen ni tokens). */
 export function legalCardIdsForDeckClass(classType: ClassType): Set<string> {
   const ids = new Set<string>()
-  for (const c of BASIC_CARDS) ids.add(c.id)
+  for (const c of BASIC_CARDS) {
+    if (!isNonCollectibleCardId(c.id)) ids.add(c.id)
+  }
   for (const c of CLASS_CARDS) {
-    if (c.classType === classType && !isSpecimenCardId(c.id)) ids.add(c.id)
+    if (c.classType === classType && !isNonCollectibleCardId(c.id)) ids.add(c.id)
   }
   return ids
 }

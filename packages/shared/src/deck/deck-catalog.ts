@@ -14,6 +14,16 @@ const SPECIMEN_SET = new Set<string>(SPECIMEN_CARD_IDS)
 
 export const isSpecimenCardId = (cardId: string): boolean => SPECIMEN_SET.has(cardId)
 
+/** Tokens generados solo por efectos de cartas: no son coleccionables ni van en mazos. */
+export const isTokenCardId = (cardId: string): boolean =>
+  cardId.startsWith('TOKEN_') ||
+  cardId === 'SPECIMEN_TOKEN' ||
+  cardId === 'SPECIMEN_EVOLVED_TOKEN'
+
+/** Cartas que no se pueden coleccionar ni incluir en un mazo (Espécimen + tokens). */
+export const isNonCollectibleCardId = (cardId: string): boolean =>
+  isSpecimenCardId(cardId) || isTokenCardId(cardId)
+
 export const ALL_GAME_CARDS: Card[] = [...BASIC_CARDS, ...CLASS_CARDS]
 
-export const COLLECTION_CATALOG_CARDS: Card[] = ALL_GAME_CARDS.filter((c) => !isSpecimenCardId(c.id))
+export const COLLECTION_CATALOG_CARDS: Card[] = ALL_GAME_CARDS.filter((c) => !isNonCollectibleCardId(c.id))
