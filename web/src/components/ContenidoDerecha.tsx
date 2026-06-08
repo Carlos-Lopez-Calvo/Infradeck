@@ -25,8 +25,8 @@ export function ContenidoDerecha() {
 
     return (
         <div className="w-full h-full flex flex-col items-center justify-center">
-            <div className="w-full h-1/2 bg-black rounded-lg flex flex-row items-center justify-center">
-            <div className="w-1/2 h-full bg-black rounded-lg flex flex-col items-center justify-center">
+            <div className="w-full h-1/2 rounded-lg flex flex-row items-center justify-center">
+            <div className="w-1/2 h-full rounded-lg flex flex-col items-center justify-center">
           {classResource ? (
             <>
               <span className="font-bold text-sm mb-1">{classResource.name}</span>
@@ -54,7 +54,7 @@ export function ContenidoDerecha() {
             <span className="text-white text-xs">Sin recurso especial</span>
           )}
         </div>
-                    <div className="w-1/2 h-full bg-black rounded-lg flex flex-col items-center justify-center">
+                    <div className="w-1/2 h-full rounded-lg flex flex-col items-center justify-center">
     <button
         className='w-24 h-24 flex flex-col justify-center items-center rounded-full border bg-red-600 active:scale-95 transition disabled:opacity-50 disabled:cursor-not-allowed'
         onClick={() => {
@@ -74,8 +74,8 @@ export function ContenidoDerecha() {
     </button>
 </div>
             </div>
-            <div className="w-full h-1/2 bg-black rounded-lg flex flex-row items-center justify-center">
-                <div className="w-1/2 h-full bg-black rounded-lg flex flex-col items-center justify-center">
+            <div className="w-full h-1/2 rounded-lg flex flex-row items-center justify-center">
+                <div className="w-1/2 h-full rounded-lg flex flex-col items-center justify-center">
                     <div
                         className='w-24 h-24 flex flex-col justify-center items-center rounded-full border'
                         style={{
@@ -88,7 +88,7 @@ export function ContenidoDerecha() {
                         <span className="text-white font-bold pt-4 text-6xl">{mana}</span>
                     </div>
                 </div>
-                <div className="w-1/2 h-full bg-black rounded-lg flex flex-col items-center justify-center">
+                <div className="w-1/2 h-full rounded-lg flex flex-col items-center justify-center">
                     <StackMazo count={deckCount} handCount={handCount} />
                 </div>
             </div>
@@ -103,14 +103,22 @@ export function ContenidoDerechaOponente() {
     const handCount = opponentPlayer.hand.length
     const mana = opponentPlayer.mana
 
+    const cr = opponentPlayer.classResource
+    const classResource =
+      cr?.type === 'ENTROPIA' || cr?.type === 'CEMENTERIO'
+        ? { name: cr.type, value: cr.amount ?? 0 }
+        : cr?.type === 'VIDA'
+        ? { name: 'VIDA', value: opponentPlayer.life }
+        : undefined
+
     return (
         <div className="w-full h-full flex flex-col items-center justify-center">
-            <div className="w-full h-1/2 bg-black rounded-lg flex flex-row items-center justify-center">
+            <div className="w-full h-1/2 rounded-lg flex flex-row items-center justify-center">
                 
-                <div className="w-1/2 h-full bg-black rounded-lg flex flex-col items-center justify-center">
+                <div className="w-1/2 h-full rounded-lg flex flex-col items-center justify-center">
                     <StackMazo count={deckCount} handCount={handCount} />
                 </div>
-                <div className="w-1/2 h-full bg-black rounded-lg flex flex-col items-center justify-center">
+                <div className="w-1/2 h-full rounded-lg flex flex-col items-center justify-center">
                     <div
                         className='w-24 h-24 flex flex-col justify-center items-center rounded-full border'
                         style={{
@@ -124,11 +132,18 @@ export function ContenidoDerechaOponente() {
                     </div>
                 </div>
             </div>
-            <div className="w-full h-1/2 bg-black rounded-lg flex flex-row items-center justify-center">
-            <div className="w-1/2 h-full bg-black rounded-lg flex flex-col items-center justify-center"></div>
+            <div className="w-full h-1/2 rounded-lg flex flex-row items-center justify-center">
+            <div className="w-1/2 h-full rounded-lg flex flex-col items-center justify-center"></div>
 
-                <div className="w-1/2 h-full bg-black rounded-lg flex flex-col items-center justify-center">
-                    <span className="text-white text-xs">Sin recurso especial</span>
+                <div className="w-1/2 h-full rounded-lg flex flex-col items-center justify-center">
+                    {classResource ? (
+                      <>
+                        <span className="font-bold text-sm mb-1">{classResource.name}</span>
+                        <span className="text-white font-bold text-lg">{classResource.value}</span>
+                      </>
+                    ) : (
+                      <span className="text-white text-xs">Sin recurso especial</span>
+                    )}
                 </div>
             </div>
         </div>

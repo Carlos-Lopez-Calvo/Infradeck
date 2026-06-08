@@ -43,11 +43,18 @@ export function GameBoard() {
       </div>
     )}
     
-    <div className="game-board flex flex-col h-screen bg-gray-900 text-white">
+    <div
+      className="game-board flex flex-col h-screen text-white"
+      style={{
+        backgroundImage: `url('/imgCards/abstract-dark-background.jpg')`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }}
+    >
       {/* Parte superior */}
-      <div className="h-[40%] w-full border-b border-gray-800 flex items-center justify-center">
+      <div className="h-[40%] w-full border-b border-white/10 flex items-center justify-center">
         {/* 20% - 60% - 20% */}
-        <div className="class-left w-1/5 h-full flex items-center justify-center bg-purple-500">
+        <div className="class-left w-1/5 h-full flex items-center justify-center">
           {/* Contenido izquierdo */}
           <ContenidoDerechaOponente />
           
@@ -55,7 +62,7 @@ export function GameBoard() {
         <div className="w-3/5 h-full flex flex-col">
   {/* Mitad superior */}
   <div
-    className="hand h-1/3 w-full flex items-center justify-center bg-black"
+    className="hand h-1/3 w-full flex items-center justify-center"
     onClick={() => {
       if (selectedAttacker != null && canAct) {
         actions.attackHero(selectedAttacker)
@@ -66,7 +73,7 @@ export function GameBoard() {
   >
             <OpponentHand />
           </div>
-          <div className="battlefield h-2/3 w-full flex items-center justify-center bg-black">
+          <div className="battlefield h-2/3 w-full flex items-center justify-center">
             <div className="flex gap-3">
             {opponentPlayer.board.map((c, idx) => {
                 // Oponente (battlefield superior)
@@ -124,7 +131,7 @@ const preview = base
       <div className="h-[60%] w-full flex items-center justify-center">
         {/* Contenido de la parte inferior */}
           {/* 20% - 60% - 20% */}
-        <div className="class-left w-1/5 h-full flex items-center justify-center bg-black">
+        <div className="class-left w-1/5 h-full flex items-center justify-center">
           {/* Contenido izquierdo */}
           <ContenidoIzquierda
               life={currentPlayer.life}
@@ -139,7 +146,7 @@ const preview = base
         <div className="w-3/5 h-full flex flex-col">
   {/* Mitad superior */}
   <div
-            className={`battlefield relative h-3/5 w-full flex items-center justify-center bg-black transition ${
+            className={`battlefield relative h-3/5 w-full flex items-center justify-center transition ${
               playDropActive ? 'bg-emerald-950/30 ring-2 ring-inset ring-emerald-400/60' : ''
             }`}
             onDragOver={handlePlayFieldDragOver}
@@ -185,11 +192,11 @@ const preview = base
             </div>
           </div>
   {/* Mitad inferior */}
-  <div className="hand h-2/5 w-full flex items-center justify-center bg-black">
+  <div className="hand h-2/5 w-full flex items-center justify-center">
     <Hand />
   </div>
 </div>
-        <div className="class-right w-1/5 h-full flex items-center justify-center bg-black">
+        <div className="class-right w-1/5 h-full flex items-center justify-center">
           <ContenidoDerecha />
         </div>
       </div>
