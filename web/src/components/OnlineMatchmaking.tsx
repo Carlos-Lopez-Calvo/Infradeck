@@ -78,7 +78,7 @@ export function OnlineMatchmaking({ onLeave }: OnlineMatchmakingProps) {
           <div className="space-y-4 text-center">
             <div className="text-2xl mb-2">✅</div>
             <p className="text-green-300 font-semibold text-xl mb-2">
-              ¡Match encontrado!
+              ¡Partida encontrada!
             </p>
             <p className="text-gray-300">
               Oponente: <span className="text-white font-semibold">{opponentName}</span>

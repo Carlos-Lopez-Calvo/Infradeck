@@ -20,7 +20,7 @@ export function ScryModal({ isOpen, cardIds, onDecision, onCancel }: ScryModalPr
     <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
       <div className="bg-gray-800 rounded-lg p-8 max-w-2xl w-full border-4 border-cyan-500 shadow-2xl">
         <h2 className="text-3xl font-bold text-cyan-400 mb-2 text-center">
-          🔮 Scry - Mira tu mazo
+          🔮 Mira tu mazo
         </h2>
         <p className="text-gray-300 text-center mb-6">
           {cardIds.length === 1 ? 'Esta es la siguiente carta de tu mazo:' : 'Estas son las siguientes cartas de tu mazo:'}

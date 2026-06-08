@@ -80,7 +80,7 @@ export function GameBoard() {
 const base = getCardById(c.cardId)
 const preview = base
   ? { ...base, attack: c.attack, health: c.health, abilities: c.abilities }
-  : { id: c.cardId, name: 'Token', type: 'CREATURE', rarity: 'BASIC', mana: 0, attack: c.attack, health: c.health, abilities: c.abilities, effects: [], description: '', flavorText: '' }
+  : { id: c.cardId, name: 'Ficha', type: 'CREATURE', rarity: 'BASIC', mana: 0, attack: c.attack, health: c.health, abilities: c.abilities, effects: [], description: '', flavorText: '' }
                 return (
                   <button
                     key={c.id ?? `${c.cardId}-${idx}`}
@@ -98,7 +98,7 @@ const preview = base
 const base = getCardById(c.cardId)
 const preview = base
   ? { ...base, attack: c.attack, health: c.health, abilities: c.abilities }
-  : { id: c.cardId, name: 'Token', type: 'CREATURE', rarity: 'BASIC', mana: 0, attack: c.attack, health: c.health, abilities: c.abilities, effects: [], description: '', flavorText: '' }
+  : { id: c.cardId, name: 'Ficha', type: 'CREATURE', rarity: 'BASIC', mana: 0, attack: c.attack, health: c.health, abilities: c.abilities, effects: [], description: '', flavorText: '' }
                       setHoverPreview(preview as any)
                     }}
                     onMouseLeave={() => setHoverPreview(null)}
@@ -163,7 +163,7 @@ const preview = base
                 const base = getCardById(c.cardId)
                 const preview = base
                   ? { ...base, attack: c.attack, health: c.health, abilities: c.abilities }
-                  : { id: c.cardId, name: 'Token', type: 'CREATURE', rarity: 'BASIC', mana: 0, attack: c.attack, health: c.health, abilities: c.abilities, effects: [], description: '', flavorText: '' }
+                  : { id: c.cardId, name: 'Ficha', type: 'CREATURE', rarity: 'BASIC', mana: 0, attack: c.attack, health: c.health, abilities: c.abilities, effects: [], description: '', flavorText: '' }
                 const isSelected = selectedAttacker === idx
                 const canSelect = canAct && !c.exhausted && (c.attack ?? 0) > 0 && c.health > 0
                 return (
@@ -180,7 +180,7 @@ const preview = base
                       const base = getCardById(c.cardId)
                       const preview = base
                         ? { ...base, attack: c.attack, health: c.health, abilities: c.abilities }
-                        : { id: c.cardId, name: 'Token', type: 'CREATURE', rarity: 'BASIC', mana: 0, attack: c.attack, health: c.health, abilities: c.abilities, effects: [], description: '', flavorText: '' }
+                        : { id: c.cardId, name: 'Ficha', type: 'CREATURE', rarity: 'BASIC', mana: 0, attack: c.attack, health: c.health, abilities: c.abilities, effects: [], description: '', flavorText: '' }
                       setHoverPreview(preview as any)
                     }}
                     onMouseLeave={() => setHoverPreview(null)}

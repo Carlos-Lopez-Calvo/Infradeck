@@ -73,7 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error('Este email ya está vinculado a otra cuenta de Google')
       }
       if (code === 'google_not_configured') {
-        throw new Error('Login con Google no configurado en el servidor (GOOGLE_CLIENT_ID en Render)')
+        throw new Error('Acceso con Google no configurado en el servidor (GOOGLE_CLIENT_ID en Render)')
       }
       throw new Error('No se pudo iniciar sesión con Google')
     }

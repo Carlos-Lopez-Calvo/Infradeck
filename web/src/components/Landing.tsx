@@ -10,7 +10,7 @@ export function Landing({ onPrimaryAction }: LandingProps) {
       <div className="max-w-4xl w-full px-6 py-12 text-center space-y-8">
         <div className="space-y-3">
           <div className="text-sm tracking-[0.35em] uppercase text-slate-300">
-            Deckbuilder • Roguelike • PvP Online
+            Constructor de mazos • Roguelike • PvP en línea
           </div>
           <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight">
             INFRADECK

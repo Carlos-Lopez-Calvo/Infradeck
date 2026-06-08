@@ -23,6 +23,11 @@ export const classTypeColors: Record<string, string> = {
   // añade más si tienes otras clases
 }
 
+const cardTypeNames: Record<string, string> = {
+  CREATURE: 'Criatura',
+  SPELL: 'Hechizo',
+}
+
 const timingNames: Record<string, string> = {
   ON_PLAY: "Jugar",
   ON_ENTER: "Entrar",
@@ -166,7 +171,7 @@ return (
           </div> )}
           
           <p className='w-full text-[9px] md:text-[10px] text-center text-white rounded-t-lg mb-0'>
-            {card.type}
+            {cardTypeNames[card.type] ?? card.type}
           </p>
           {card.type === 'CREATURE' && card.health !== undefined && (
           <div

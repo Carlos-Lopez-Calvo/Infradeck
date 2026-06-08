@@ -96,7 +96,7 @@ export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
             />
           ) : (
             <p className="text-xs text-slate-500 text-center">
-              Login con Google: define VITE_GOOGLE_CLIENT_ID en web/.env
+              Acceso con Google: define VITE_GOOGLE_CLIENT_ID en web/.env
             </p>
           )}
 

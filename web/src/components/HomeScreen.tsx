@@ -39,16 +39,16 @@ const sections: MenuSection[] = [
   // },
   {
     id: 'cards',
-    title: 'Colecction',
-    subtitle: 'Collection and decks',
-    description: 'Review your collection, tune archetypes, and build new lists.',
+    title: 'Colección',
+    subtitle: 'Colección y mazos',
+    description: 'Revisa tu colección, ajusta arquetipos y construye nuevas listas.',
     accent: 'blue',
   },
   {
     id: 'play',
-    title: 'Play',
-    subtitle: 'Ranked and casual battles',
-    description: 'Enter the arena and challenge rivals in tactical duels.',
+    title: 'Jugar',
+    subtitle: 'Batallas clasificatorias y casuales',
+    description: 'Entra en la arena y desafía a tus rivales en duelos tácticos.',
     accent: 'gold',
   },
   // {
@@ -263,7 +263,7 @@ export function HomeScreen({
               className="flex items-center gap-3 rounded-xl bg-slate-900/55 px-3 py-2 text-slate-200 transition hover:bg-slate-800/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
             >
               <div className="h-9 w-9 rounded-full bg-gradient-to-br from-slate-700 to-slate-900" />
-              <div className="text-sm font-semibold text-sky-100">{user?.username ?? 'Guest'}</div>
+              <div className="text-sm font-semibold text-sky-100">{user?.username ?? 'Invitado'}</div>
             </button>
           </div>
         </header>
@@ -277,7 +277,7 @@ export function HomeScreen({
             >
               <div className="mb-4 flex items-center justify-between">
                 <div>
-                  <div className="text-[10px] uppercase tracking-[0.26em] text-slate-400">Selected section</div>
+                  <div className="text-[10px] uppercase tracking-[0.26em] text-slate-400">Sección seleccionada</div>
                   <h2 className="mt-1 text-4xl text-slate-100">{current.title}</h2>
                 </div>
               </div>
@@ -301,7 +301,7 @@ export function HomeScreen({
                     onClick={() => canStartWithDeck && onStartOnline()}
                     className="min-w-[180px] rounded-xl border border-slate-700/75 bg-slate-900/52 px-7 py-4 text-base font-semibold tracking-[0.08em] text-slate-100 shadow-[0_8px_24px_rgba(15,23,42,0.32)] transition-all duration-300 hover:scale-[1.03] hover:border-sky-300/45 hover:bg-slate-800/58 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:scale-100"
                   >
-                    Friendly
+                    Amistosa
                   </button>
                   <button
                     type="button"
@@ -309,7 +309,7 @@ export function HomeScreen({
                     onClick={() => canStartWithDeck && onStartOnline()}
                     className="min-w-[200px] rounded-xl border border-amber-200/80 bg-gradient-to-r from-amber-300/30 via-amber-100/22 to-yellow-300/34 px-8 py-4 text-base font-semibold tracking-[0.08em] text-amber-50 shadow-[0_0_36px_rgba(251,191,36,0.45)] transition-all duration-300 hover:scale-[1.04] hover:shadow-[0_0_44px_rgba(251,191,36,0.55)] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:scale-100"
                   >
-                    Ranked
+                    Clasificatoria
                   </button>
                   <button
                     type="button"
@@ -330,13 +330,13 @@ export function HomeScreen({
                     onClick={onOpenCollection}
                     className="rounded-xl border border-sky-200/60 bg-sky-300/12 px-6 py-3 text-sm font-semibold tracking-[0.08em] text-sky-100 shadow-[0_8px_26px_rgba(56,189,248,0.26)] transition-all duration-300 hover:scale-[1.03] hover:bg-sky-300/18"
                   >
-                    Open Collection
+                    Abrir colección
                   </button>
                   <button
                     onClick={onOpenDecks}
                     className="rounded-xl border border-slate-500/70 bg-slate-800/50 px-6 py-3 text-sm font-semibold tracking-[0.08em] text-slate-100 transition-all duration-300 hover:scale-[1.03] hover:border-slate-300/65 hover:bg-slate-700/55"
                   >
-                    Manage Decks
+                    Gestionar mazos
                   </button>
                 </div>
               )}

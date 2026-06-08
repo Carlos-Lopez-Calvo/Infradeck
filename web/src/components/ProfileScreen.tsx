@@ -117,7 +117,7 @@ export function ProfileScreen({ onBack }: ProfileScreenProps) {
           <h2 className="mb-4 text-xs uppercase tracking-[0.2em] text-slate-400">Cuenta</h2>
           <div className="space-y-3 text-sm">
             <div>
-              <div className="text-slate-500">Email</div>
+              <div className="text-slate-500">Correo</div>
               <div className="font-medium text-slate-200">{user.email}</div>
             </div>
             {user.createdAt && (

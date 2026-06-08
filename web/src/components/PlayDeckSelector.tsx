@@ -18,7 +18,7 @@ export function PlayDeckSelector({ decks, selectedId, onSelect, loading }: PlayD
   if (decks.length === 0) {
     return (
       <p className="mt-6 max-w-xl text-sm text-amber-200/80">
-        No tienes mazos guardados. Crea uno en Colección → Manage Decks.
+        No tienes mazos guardados. Crea uno en Colección → Gestionar mazos.
       </p>
     )
   }

@@ -798,9 +798,9 @@ summonSpecimen: () => {
       {typeof gameState.finalStandJustActivated === 'number' && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 text-white">
           <div className="text-center animate-pulse">
-            <div className="text-4xl font-extrabold mb-3">FINAL STAND</div>
+            <div className="text-4xl font-extrabold mb-3">ÚLTIMA OPORTUNIDAD</div>
             <div className="text-xl">
-              Jugador {gameState.finalStandJustActivated + 1} activó Final Stand
+              Jugador {gameState.finalStandJustActivated + 1} activó Última Oportunidad
             </div>
           </div>
         </div>
@@ -954,7 +954,7 @@ summonSpecimen: () => {
         return (
           <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 text-white">
             <div className="bg-gray-900 rounded-xl border-2 border-blue-400 px-8 py-6 shadow-2xl max-w-md text-center">
-              <div className="text-3xl font-bold mb-2 text-blue-300">Scry 1</div>
+              <div className="text-3xl font-bold mb-2 text-blue-300">Adivinar 1</div>
               <div className="text-lg mb-6 text-gray-300">Siguiente carta del mazo:</div>
               
               {card && (
