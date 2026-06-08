@@ -25,7 +25,7 @@ export function ContenidoIzquierda({
 }) {
   return (
     <div className="relative w-full h-full">
-        <div className="absolute bottom-0 left-0 w-full h-full flex items-end justify-center bg-black rounded-t-lg py-4"
+        <div className="absolute bottom-0 left-0 w-full h-full flex items-end justify-center rounded-t-lg py-4"
        style={{
             backgroundImage: `url('${heroImage(classType)}')`,
             backgroundSize: 'cover',
@@ -61,7 +61,7 @@ export function ContenidoIzquierda({
 export function ContenidoIzquierdaOponente({ life = 20, onAttackHero, classType }: { life?: number, onAttackHero?: () => void, classType?: string }) {
   return (
     <div className="relative flex w-full h-full">
-      <div className="absolute bottom-0 left-0 w-full h-full flex items-end justify-center bg-black rounded-t-lg py-4"
+      <div className="absolute bottom-0 left-0 w-full h-full flex items-end justify-center rounded-t-lg py-4"
        style={{
             backgroundImage: `url('${heroImage(classType)}')`,
             backgroundSize: 'cover',

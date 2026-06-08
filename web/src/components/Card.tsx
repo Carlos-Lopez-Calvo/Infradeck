@@ -191,7 +191,14 @@ return (
 
 export function ReversoCard() {
   return (
-    <div className="card w-36 h-48 bg-gray-700 rounded-lg shadow-md flex flex-col items-center justify-center relative">
+    <div
+      className="card w-36 h-48 rounded-lg shadow-md flex flex-col items-center justify-center relative border border-black/40"
+      style={{
+        backgroundImage: `url('/imgCards/photo-wood-texture-pattern.jpg')`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }}
+    >
     </div>
   )
 }
